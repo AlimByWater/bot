@@ -21,7 +21,7 @@ func (b *Bot) cmdStart() CommandFunc {
 
 		//msg.ReplyMarkup = inlineKeyboard
 
-		if _, err := b.api.Send(msg); err != nil {
+		if _, err := b.Api.Send(msg); err != nil {
 			return err
 		}
 
@@ -44,7 +44,7 @@ func (b *Bot) cmdInfo() CommandFunc {
 
 		msg.ReplyMarkup = defaultKeyboard
 
-		if _, err := b.api.Send(msg); err != nil {
+		if _, err := b.Api.Send(msg); err != nil {
 			return err
 		}
 

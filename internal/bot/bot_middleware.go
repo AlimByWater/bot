@@ -7,7 +7,7 @@ import (
 
 func (b *Bot) adminsOnlyMiddleware(channelID int64, next CommandFunc) CommandFunc {
 	return func(ctx context.Context, update tgbotapi.Update) error {
-		admins, err := b.api.GetChatAdministrators(
+		admins, err := b.Api.GetChatAdministrators(
 			tgbotapi.ChatAdministratorsConfig{
 				ChatConfig: tgbotapi.ChatConfig{
 					ChatID: channelID,
@@ -25,7 +25,7 @@ func (b *Bot) adminsOnlyMiddleware(channelID int64, next CommandFunc) CommandFun
 			}
 		}
 
-		if _, err := b.api.Send(tgbotapi.NewMessage(
+		if _, err := b.Api.Send(tgbotapi.NewMessage(
 			update.FromChat().ID,
 			"У вас нет прав на выполнение этой команды.",
 		)); err != nil {
