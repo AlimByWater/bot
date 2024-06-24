@@ -5,7 +5,17 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
+	"slices"
 	"time"
+)
+
+const (
+	ElysiumFmID        int64 = -1002129034021
+	ElysiumFmCommentID int64 = -1002164548613
+)
+
+var (
+	WhiteListPostsId = []int{509}
 )
 
 var defaultKeyboard = tgbotapi.NewReplyKeyboard()
@@ -70,11 +80,32 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		}
 	}()
 
-	log := logrus.WithFields(logrus.Fields{
-		"name": b.name, "user": update.Message.From.FirstName, "username": update.Message.From.UserName, "user_id": update.Message.From.ID, "chat_id": update.Message.Chat.ID,
-	})
+	// если сообщение пришло в чате комментов - пропускаем #исключение
+	if update.Message != nil && update.Message.Chat.ID == ElysiumFmCommentID {
+		log := logrus.WithFields(logrus.Fields{
+			"name": b.name, "user": update.Message.From.FirstName, "username": update.Message.From.UserName, "user_id": update.Message.From.ID, "chat_id": update.Message.Chat.ID,
+		})
+		// если сообщение в авторстве элизиум_фм
+		if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
+			if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
+				resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
+				if err != nil {
+					log.Error("delete message ", err)
+					return
+				}
+				log.Debug("delete message ", resp)
+			}
+
+			return
+		}
+
+		return
+	}
 
 	if update.Message != nil && !update.Message.IsCommand() && update.CallbackQuery == nil {
+		log := logrus.WithFields(logrus.Fields{
+			"name": b.name, "user": update.Message.From.FirstName, "username": update.Message.From.UserName, "user_id": update.Message.From.ID, "chat_id": update.Message.Chat.ID,
+		})
 		err := b.sendToChat(update)
 		if err != nil {
 			log.Error("send to chat", err)
@@ -117,8 +148,6 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		cmd = update.Message.Command()
 	}
 
-	log.Info(cmd)
-
 	cmdView, ok := b.cmdViews[cmd]
 	if !ok {
 		return
@@ -127,10 +156,10 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	view = cmdView
 
 	if err := view(ctx, update); err != nil {
-		log.Error("failed to execute view", err)
+		logrus.Error("failed to execute view", err)
 
 		if _, err := b.Api.Send(tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Internal error")); err != nil {
-			log.Error("failed to send error message", err)
+			logrus.Error("failed to send error message", err)
 		}
 	}
 }
