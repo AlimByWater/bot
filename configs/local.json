@@ -1,0 +1,17 @@
+{
+  "Http": {
+    "Mode": "release",
+    "Port": ":8080",
+    "ApiKey": "1234515151"
+  },
+  "Demethra": {
+    "BotToken": "7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8",
+    "BotName": "t.me/elysium_demethra_bot",
+    "ChatIDForLogs": -1002044294733
+  },
+  "ArimaDJ": {
+    "BotToken": "7447550770:AAHaO6tRmqNtb53fD9cIXPJVjYi1mHN3i_0",
+    "BotName":  "t.me/arima_dj_bot",
+    "ChatIDForLogs": -1002044294733
+  }
+}
