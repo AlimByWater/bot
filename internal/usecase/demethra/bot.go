@@ -17,7 +17,7 @@ const (
 	ElysiumFmID           int64 = -1002129034021
 	ElysiumChatID               = -1002124956071
 	ElysiumFmCommentID    int64 = -1002164548613
-	CurrentTrackMessageID       = 235
+	CurrentTrackMessageID       = 0
 )
 
 var (

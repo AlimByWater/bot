@@ -8,6 +8,6 @@ RUN go mod download && \
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/bot /app/bot
-#COPY --from=builder /app/configs /app/configs
+COPY --from=builder /app/configs /app/configs
 EXPOSE 8080
 ENTRYPOINT ["./bot"]
