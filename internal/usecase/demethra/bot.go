@@ -5,12 +5,13 @@ import (
 	"arimadj-helper/internal/entity"
 	"context"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"math/rand"
 	"slices"
 	"strings"
 	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // Структурированный комментарии -1002044294733,
@@ -23,7 +24,7 @@ const (
 	ElysiumFmID           int64 = -1002129034021
 	ElysiumChatID         int64 = -1002124956071
 	ElysiumFmCommentID    int64 = -1002164548613
-	CurrentTrackMessageID       = 0
+	CurrentTrackMessageID       = 13832
 )
 
 var (
