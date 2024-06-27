@@ -13,9 +13,15 @@ import (
 	"time"
 )
 
+// Структурированный комментарии -1002044294733,
+// ElysiumFM -1002129034021
+// ElysiumChat -1002124956071
+// ElysiumFmComment  -1002164548613
+// bot bot bot forum -1002224939217
+
 const (
 	ElysiumFmID           int64 = -1002129034021
-	ElysiumChatID               = -1002124956071
+	ElysiumChatID         int64 = -1002124956071
 	ElysiumFmCommentID    int64 = -1002164548613
 	CurrentTrackMessageID       = 0
 )
@@ -77,9 +83,9 @@ func (b *Bot) Run(ctx context.Context) {
 			b.handleUpdate(updateCtx, update)
 			updateCancel()
 		case <-ctx.Done():
-			if ctx.Err() != nil {
-				b.logger.Error("ctx error", slog.StringValue(ctx.Err().Error()))
-			}
+			//if ctx.Err() != nil {
+			//	b.logger.Error("ctx error", slog.StringValue(ctx.Err().Error()))
+			//}
 
 		}
 	}
@@ -126,7 +132,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}
 
 	// отвечаем на сообщения присланные боту
-	if update.Message != nil && !update.Message.IsCommand() && update.CallbackQuery == nil {
+	if update.Message != nil && !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
 		err := b.sendToChat(update)
 		if err != nil {
 			b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
