@@ -113,7 +113,6 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 	// если сообщение пришло в чате комментов - пропускаем #исключение
 	if update.Message != nil && (update.Message.Chat.ID == ElysiumFmCommentID) {
-
 		// если сообщение в авторстве элизиум_фм - удаляем его
 		if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
 			// тут проверяем нет ли его в исключениях
@@ -134,6 +133,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 	// отвечаем на сообщения присланные боту
 	if update.Message != nil && !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
+
 		err := b.sendToChat(update)
 		if err != nil {
 			b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
@@ -202,7 +202,7 @@ id: %d
 		return fmt.Errorf("forward details msg: %w", err)
 	}
 
-	if u.Message != nil && u.Message.MessageID != 0 {
+	if u.Message != nil && u.Message.Text != "" {
 		fwd := tgbotapi.NewForward(b.chatIDForLogs, u.Message.Chat.ID, u.Message.MessageID)
 		_, err = b.Api.Send(fwd)
 		if err != nil {
