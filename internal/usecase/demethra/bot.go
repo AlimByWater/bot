@@ -221,7 +221,7 @@ func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo) error {
              *↻     ⊲  Ⅱ  ⊳     ↺*
 VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 
-	b.logger.Debug("song update", slog.Any("current", current), slog.Any("prev", prev))
+	//b.logger.Debug("song update", slog.Any("current", current), slog.Any("prev", prev))
 
 	msg := tgbotapi.EditMessageTextConfig{
 		BaseEdit: tgbotapi.BaseEdit{
