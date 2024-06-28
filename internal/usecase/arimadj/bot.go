@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const ArimaDJ int64 = -1002132552731
+
 var (
 	BotRepliesVariants = []string{"я ему передам.", "хорошо, я ему передам"}
 	defaultKeyboard    = tgbotapi.NewReplyKeyboard()
