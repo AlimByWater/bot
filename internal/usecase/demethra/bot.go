@@ -25,7 +25,6 @@ const (
 	ElysiumChatID         int64 = -1002124956071
 	ElysiumFmCommentID    int64 = -1002164548613
 	CurrentTrackMessageID       = 13832
-	ArimaDJ               int64 = -1002132552731
 )
 
 var (

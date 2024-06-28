@@ -1,17 +1,11 @@
 package arimadj
 
 import (
-	"arimadj-helper/internal/bot"
 	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 )
-
-type botModule interface {
-	RegisterCommand(commandFunc func(b *bot.Bot) (string, bot.CommandFunc))
-	Run(ctx context.Context) error
-}
 
 type config interface {
 	GetBotToken() string

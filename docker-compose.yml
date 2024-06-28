@@ -1,0 +1,17 @@
+version: '3.9'
+services:
+  postgresdb:
+    image: postgres:16.3-alpine
+    container_name: postgres_container
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_NAME}
+      - DATABASE_HOST=${POSTGRES_HOST}
+    ports:
+      - '4568:5432'
+    volumes:
+      - ./../.pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
