@@ -8,6 +8,8 @@ type TrackInfo struct {
 	ArtistName string `json:"artistName"`
 	TrackLink  string `json:"trackLink"`
 	Duration   string `json:"duration"`
+	Artwork    []byte `json:"artwork"`
+	ArtworkUrl string `json:"artworkUrl"`
 }
 
 func (t *TrackInfo) Format() {

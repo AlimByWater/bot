@@ -13,5 +13,5 @@
 - Update user IDs to `int64` because of Bot API changes.
 - Add missing Bot API features.
 
-[library-structure]: ./getting-started/library-structure.md#methods
-[files]: ./getting-started/files.md
+[library-structure]: getting-started/library-structure.md#methods
+[files]: getting-started/files.md

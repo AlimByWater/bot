@@ -5,7 +5,7 @@ import (
 	"log/slog"
 )
 
-func (m *Module) SongUpdate(track entity.TrackInfo) {
+func (m *Module) NextSong(track entity.TrackInfo) {
 	if track.TrackLink == m.currentTrack.TrackLink {
 		return
 	}

@@ -2,12 +2,18 @@ package api_methods
 
 import (
 	"arimadj-helper/internal/entity"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 type botUC interface {
-	SongUpdate(track entity.TrackInfo)
+	NextSong(track entity.TrackInfo)
 }
 
 type statistic struct {
@@ -39,7 +45,31 @@ func (s statistic) submit(c *gin.Context) {
 		return
 	}
 
-	s.usecase.SongUpdate(info)
+	fmt.Println(len(info.Artwork))
+	fmt.Println(info.ArtworkUrl)
+
+	res, err := http.Get(info.ArtworkUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+
+	img, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Println("read img body:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save artwork"})
+		return
+	}
+	//// Сохранение обложки на файловую систему
+	fileName := filepath.Join("./", time.Now().Format("20060102_150405")+".jpg")
+	err = os.WriteFile(fileName, img, 0644)
+	if err != nil {
+		log.Println("Error saving artwork:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save artwork"})
+		return
+	}
+
+	//s.usecase.NextSong(info)
 	c.Status(http.StatusOK)
 }
 
