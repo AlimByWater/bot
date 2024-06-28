@@ -25,10 +25,11 @@ const (
 	ElysiumChatID         int64 = -1002124956071
 	ElysiumFmCommentID    int64 = -1002164548613
 	CurrentTrackMessageID       = 13832
+	ArimaDJ               int64 = -1002132552731
 )
 
 var (
-	WhiteListPostsId   = []int{509}
+	WhiteListPostsId   = []int{509, 391}
 	BotRepliesVariants = []string{"я им передам.", "ты был услышан.", "хорошо, я им передам", "это все что ты хотел сказать?"}
 	defaultKeyboard    = tgbotapi.NewReplyKeyboard()
 )
@@ -114,7 +115,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	// если сообщение пришло в чате комментов - пропускаем #исключение
 	if update.Message != nil && (update.Message.Chat.ID == ElysiumFmCommentID) {
 		// если сообщение в авторстве элизиум_фм - удаляем его
-		if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
+		if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID && update.Message.ForwardOrigin.Chat.ID != ArimaDJ {
 			// тут проверяем нет ли его в исключениях
 			if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
 				resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
