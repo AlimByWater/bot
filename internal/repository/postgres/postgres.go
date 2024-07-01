@@ -1,4 +1,5 @@
 package postgres
+<<<<<<< HEAD
 
 import (
 	"context"
@@ -85,3 +86,5 @@ func (m *Module) Close() (err error) {
 	}
 	return
 }
+=======
+>>>>>>> master
