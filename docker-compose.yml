@@ -13,14 +13,13 @@ services:
     volumes:
       - ./../.pg_data:/var/lib/postgresql/data
 
-  app:
+  botmanager:
     build: .
     ports:
       - "8080:8080"
     volumes:
       - ./../.images:/app/images
-    depends_on:
-      - db
+    restart: always
 
 volumes:
   pg_data:

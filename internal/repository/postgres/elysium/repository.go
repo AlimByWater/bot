@@ -22,29 +22,29 @@ type (
 		db dbtx
 	}
 
-	UserRepository struct {
+	Repository struct {
 		db *sqlx.DB
 	}
 )
 
-func NewUserRepository() *UserRepository {
-	return &UserRepository{}
+func NewRepository() *Repository {
+	return &Repository{}
 }
 
 // AddDb - добавляет в структуру пул соединений с СУБД
-func (t *UserRepository) AddDb(db *sqlx.DB) {
-	t.db = db
+func (r *Repository) AddDb(db *sqlx.DB) {
+	r.db = db
 }
 
 func newQueries(db dbtx) *queries {
 	return &queries{db: db}
 }
 
-func (t *UserRepository) execTX(ctx context.Context, fn func(*queries) error) error {
+func (r *Repository) execTX(ctx context.Context, fn func(*queries) error) error {
 	ctx, cancel := context.WithTimeout(ctx, defaultQueryTimeout)
 	defer cancel()
 
-	tx, err := t.db.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -62,6 +62,6 @@ func (t *UserRepository) execTX(ctx context.Context, fn func(*queries) error) er
 	return tx.Commit()
 }
 
-func (t *UserRepository) Close() error {
-	return t.db.Close()
+func (r *Repository) Close() error {
+	return r.db.Close()
 }

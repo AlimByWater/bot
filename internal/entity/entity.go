@@ -1,0 +1,42 @@
+package entity
+
+import "time"
+
+type User struct {
+	ID         int       `db:"id" json:"id"`
+	Username   string    `db:"username" json:"username"`
+	Firstname  string    `db:"firstname" json:"firstname"`
+	DateCreate time.Time `db:"date_create" json:"date_create"`
+}
+
+// Song represents a song in the database
+type Song struct {
+	ID                  int       `db:"id" json:"id"`
+	URL                 string    `db:"url" json:"url"`
+	ArtistName          string    `db:"artist_name" json:"artist_name"`
+	Title               string    `db:"title" json:"title"`
+	CoverLink           string    `db:"cover_link" json:"cover_link"`
+	CoverPath           string    `db:"cover" json:"cover"`
+	CoverTelegramFileID string    `db:"cover_telegram_file_id" json:"cover_telegram_file_id"`
+	ReleaseDate         time.Time `db:"release_date" json:"release_date"`
+	DownloadCount       int       `db:"download_count" json:"download_count"`
+	PlaysCount          int       `json:"plays_count"`
+	Tags                []string  `db:"tags" json:"tags"`
+	TelegramMessageLink string    `db:"telegram_message_link" json:"telegram_message_link"`
+	DateCreate          time.Time `db:"date_create" json:"date_create"`
+}
+
+// UserSongDownload represents a record of a user downloading a song
+type UserSongDownload struct {
+	ID           int       `db:"id" json:"id"`
+	UserID       int       `db:"user_id" json:"user_id"`
+	SongID       int       `db:"song_id" json:"song_id"`
+	DownloadDate time.Time `db:"download_date" json:"download_date"`
+}
+
+// SongPlay represents a record of a song being played
+type SongPlay struct {
+	ID       int       `db:"id" json:"id"`
+	SongID   int       `db:"song_id" json:"song_id"`
+	PlayTime time.Time `db:"play_time" json:"play_time"`
+}

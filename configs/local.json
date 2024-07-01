@@ -5,7 +5,7 @@
     "ApiKey": "1234515151"
   },
   "Demethra": {
-    "BotToken": "7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8",
+    "BotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
     "BotName": "t.me/elysium_demethra_bot",
     "ChatIDForLogs": -1002044294733
   },
@@ -19,9 +19,9 @@
     "Password":"OJocasd923sa0d3",
     "Name": "elysium",
     "Host": "91.206.15.29",
-    "Port": "4568",
+    "Port": 4568,
     "Driver": "postgres",
-    "SSLMode": "disabled",
+    "SSLMode": "disable",
     "MaxConn": 10
   }
 }

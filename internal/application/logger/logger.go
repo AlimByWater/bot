@@ -40,5 +40,5 @@ func New(options Options) *slog.Logger {
 			options.Writer,
 			options.HandlerOptions,
 		),
-	).With(slog.String("app", options.AppName))
+	) //.With(slog.String("app", options.AppName))
 }

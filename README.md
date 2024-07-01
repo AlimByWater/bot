@@ -1,6 +1,12 @@
 
 # ELYSIUM MANAGER
 
+## Токены
+
+Arima DJ  7447550770:AAHaO6tRmqNtb53fD9cIXPJVjYi1mHN3i_0 
+Demethra 7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8
+Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
+
 ## HOWTO
 ### Миграции
 

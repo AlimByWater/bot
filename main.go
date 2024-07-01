@@ -10,13 +10,71 @@ import (
 	"arimadj-helper/internal/controller/http"
 	api "arimadj-helper/internal/controller/http/group"
 	"arimadj-helper/internal/controller/http/group/api_methods"
-	"arimadj-helper/internal/usecase/arimadj"
+	"arimadj-helper/internal/repository/postgres"
+	"arimadj-helper/internal/repository/postgres/elysium"
 	"arimadj-helper/internal/usecase/demethra"
 	"log/slog"
 	"os"
 )
 
-func main() {
+//func maintest() {
+//	loggerModule := logger.New(
+//		logger.Options{
+//			AppName: "bot-manager",
+//			Writer:  os.Stdout,
+//			HandlerOptions: &slog.HandlerOptions{
+//				Level: slog.LevelDebug,
+//			},
+//		},
+//	)
+//
+//	/************ CONFIG *************/
+//	localEnv := local.New()
+//	envModule := env.New(
+//		localEnv,
+//	)
+//
+//	httpCfg := config_module.NewHttpConfig()
+//	arimaDJCfg := config_module.NewArimaDJConfig()
+//	demethraCfg := config_module.NewDemethraConfig()
+//	postgresCfg := config_module.NewPostgresConfig()
+//	configModule := config.New(
+//		httpCfg,
+//		arimaDJCfg,
+//		demethraCfg,
+//		postgresCfg,
+//	)
+//
+//	/************ POSTGRES *************/
+//
+//	/************ USECASE *************/
+//	demethraUC := demethra.New(demethraCfg)
+//	arimaDJUC := arimadj.New(arimaDJCfg)
+//
+//	/************ CONTROLLER *************/
+//	httpModule := http.New(httpCfg,
+//		api.NewGroup(nil,
+//			api_methods.NewSubmitMethod(demethraUC),
+//		),
+//	)
+//
+//	/************ APP *************/
+//
+//	app := application.New(loggerModule, configModule, envModule)
+//	app.AddUsecases(
+//		arimaDJUC,
+//		demethraUC,
+//	)
+//
+//	// добавляем контроллеры
+//	app.AddControllers(
+//		httpModule,
+//	)
+//
+//	app.Run()
+//}
+
+func main2() {
 	loggerModule := logger.New(
 		logger.Options{
 			AppName: "bot-manager",
@@ -34,21 +92,21 @@ func main() {
 	)
 
 	httpCfg := config_module.NewHttpConfig()
-	arimaDJCfg := config_module.NewArimaDJConfig()
 	demethraCfg := config_module.NewDemethraConfig()
 	postgresCfg := config_module.NewPostgresConfig()
 	configModule := config.New(
 		httpCfg,
-		arimaDJCfg,
 		demethraCfg,
 		postgresCfg,
 	)
 
-	/************ POSTGRES *************/
+	/************ REPOSITORY *************/
+	elysiumRepo := elysium.NewRepository()
+
+	postgresql := postgres.New(postgresCfg, elysiumRepo)
 
 	/************ USECASE *************/
-	demethraUC := demethra.New(demethraCfg)
-	arimaDJUC := arimadj.New(arimaDJCfg)
+	demethraUC := demethra.New(demethraCfg, elysiumRepo)
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
@@ -60,8 +118,10 @@ func main() {
 	/************ APP *************/
 
 	app := application.New(loggerModule, configModule, envModule)
+
+	app.AddRepositories(postgresql)
+
 	app.AddUsecases(
-		arimaDJUC,
 		demethraUC,
 	)
 

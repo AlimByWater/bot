@@ -15,18 +15,24 @@ type config interface {
 	Validate() error
 }
 
+type repository interface {
+	SongPlayed(info entity.TrackInfo) error
+}
+
 type Module struct {
 	bot          *Bot
 	cfg          config
+	repo         repository
 	logger       *slog.Logger
 	prevTrack    entity.TrackInfo // Предыдущий трек
 	currentTrack entity.TrackInfo // Текущий трек
 }
 
 // New конструктор ...
-func New(cfg config) *Module {
+func New(cfg config, repo repository) *Module {
 	return &Module{
-		cfg: cfg,
+		cfg:  cfg,
+		repo: repo,
 	}
 }
 
@@ -43,7 +49,7 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 		return fmt.Errorf("new bot api: %w", err)
 	}
 
-	m.bot = newBot(m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.logger)
+	m.bot = newBot(ctx, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.logger)
 	go func() {
 		m.bot.Run(ctx)
 	}()

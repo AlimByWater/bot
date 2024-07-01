@@ -4,10 +4,10 @@ import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand"
-	"slices"
 	"strings"
 	"time"
 
@@ -15,16 +15,17 @@ import (
 )
 
 // Структурированный комментарии -1002044294733,
+// Структурированный -1001934236726
 // ElysiumFM -1002129034021
 // ElysiumChat -1002124956071
 // ElysiumFmComment  -1002164548613
 // bot bot bot forum -1002224939217
 
 const (
-	ElysiumFmID           int64 = -1002129034021
-	ElysiumChatID         int64 = -1002124956071
-	ElysiumFmCommentID    int64 = -1002164548613
-	CurrentTrackMessageID       = 13832
+	ElysiumFmID           int64 = -1001934236726
+	ElysiumChatID         int64 = -1002224939217
+	ElysiumFmCommentID    int64 = -1002044294733
+	CurrentTrackMessageID       = 271
 )
 
 var (
@@ -39,14 +40,16 @@ type Bot struct {
 	cmdViews      map[string]CommandFunc
 	name          string
 	chatIDForLogs int64
+	ctx           context.Context
 }
 
-func newBot(name string, api *tgbotapi.BotAPI, chatIDForLogs int64, logger *slog.Logger) *Bot {
+func newBot(ctx context.Context, name string, api *tgbotapi.BotAPI, chatIDForLogs int64, logger *slog.Logger) *Bot {
 	b := &Bot{
 		name:          name,
 		Api:           api,
 		chatIDForLogs: chatIDForLogs,
 		logger:        logger,
+		ctx:           ctx,
 	}
 
 	b.registerCommands()
@@ -110,25 +113,26 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			slog.Int64("chat_id", update.Message.Chat.ID),
 		}
 
+		// TODO update раскомментить
 		// если сообщение пришло в чате комментов - пропускаем #исключение
-		if update.Message.Chat.ID == ElysiumFmCommentID {
-			// если сообщение в авторстве элизиум_фм - удаляем его
-			if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
-				// тут проверяем нет ли его в исключениях
-				if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
-					resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
-					if err != nil {
-						b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
-						return
-					}
-					b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
-				}
-
-				return
-			}
-
-			return
-		}
+		//if update.Message.Chat.ID == ElysiumFmCommentID {
+		//	// если сообщение в авторстве элизиум_фм - удаляем его
+		//	if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
+		//		// тут проверяем нет ли его в исключениях
+		//		if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
+		//			resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
+		//			if err != nil {
+		//				b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
+		//				return
+		//			}
+		//			b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
+		//		}
+		//
+		//		return
+		//	}
+		//
+		//	return
+		//}
 
 		// отвечаем на сообщения присланные боту
 		if !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
@@ -213,7 +217,7 @@ id: %d
 	return nil
 }
 
-func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo) error {
+func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo, coverFileID string) error {
 	previewUrl := current.TrackLink
 	current.Format()
 	prev.Format()
@@ -223,21 +227,17 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 
 	//b.logger.Debug("song update", slog.Any("current", current), slog.Any("prev", prev))
 
-	msg := tgbotapi.EditMessageTextConfig{
-		BaseEdit: tgbotapi.BaseEdit{
-			BaseChatMessage: tgbotapi.BaseChatMessage{
-				MessageID:  CurrentTrackMessageID,
-				ChatConfig: tgbotapi.ChatConfig{ChatID: ElysiumChatID},
-			},
-		},
-		LinkPreviewOptions: tgbotapi.LinkPreviewOptions{
-			ShowAboveText:    true,
-			PreferLargeMedia: true,
-			URL:              previewUrl,
-			IsDisabled:       false,
-		},
-		ParseMode: "MarkdownV2",
-		Text: fmt.Sprintf(`
+	//fileBytes := tgbotapi.FileBytes{
+	//	Bytes: imageBytes,
+	//}
+
+	fileUrl := tgbotapi.FileURL(previewUrl)
+
+	baseInputMedia := tgbotapi.BaseInputMedia{
+		Type:      "photo", // Set the desired media type
+		Media:     fileUrl,
+		ParseMode: "MarkdownV2", // Set the desired parse mode
+		Caption: fmt.Sprintf(`
 *[%s \- %s](%s)*
 %s
 
@@ -246,21 +246,27 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 			current.ArtistName, current.TrackTitle, current.TrackLink,
 			visual,
 			prev.ArtistName, prev.TrackTitle, prev.TrackLink),
-		//		Text: fmt.Sprintf(`
-		//Текущий трек: %s - %s
-		//%s
-		//
-		//Предыдущий: %s - %s
-		//%s
-		//`,
-		//			current.ArtistName, strings.Replace(current.TrackTitle, "Current track: ", "", 1), current.TrackLink,
-		//			prev.ArtistName, strings.Replace(prev.TrackTitle, "Current track: ", "", 1), prev.TrackLink),
 	}
 
-	_, err := b.Api.Send(msg)
+	msg := tgbotapi.EditMessageMediaConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			BaseChatMessage: tgbotapi.BaseChatMessage{
+				MessageID:  CurrentTrackMessageID,
+				ChatConfig: tgbotapi.ChatConfig{ChatID: ElysiumFmID},
+			},
+		},
+		Media: tgbotapi.InputMediaPhoto{
+			BaseInputMedia: baseInputMedia,
+		},
+	}
+
+	responseMsg, err := b.Api.Send(msg)
 	if err != nil {
 		return fmt.Errorf("send: %w", err)
 	}
+
+	j, _ := json.MarshalIndent(responseMsg, "", "  ")
+	fmt.Println(string(j))
 
 	return nil
 }
