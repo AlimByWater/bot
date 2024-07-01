@@ -4,7 +4,6 @@ import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -26,6 +25,7 @@ const (
 	ElysiumChatID         int64 = -1002224939217
 	ElysiumFmCommentID    int64 = -1002044294733
 	CurrentTrackMessageID       = 271
+	TracksDbChannel             = -1002243776940
 )
 
 var (
@@ -217,7 +217,7 @@ id: %d
 	return nil
 }
 
-func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo, coverFileID string) error {
+func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo, coverFileID string) (tgbotapi.Message, error) {
 	previewUrl := current.TrackLink
 	current.Format()
 	prev.Format()
@@ -231,11 +231,16 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 	//	Bytes: imageBytes,
 	//}
 
-	fileUrl := tgbotapi.FileURL(previewUrl)
+	var cover tgbotapi.RequestFileData
+	if coverFileID != "" {
+		cover = tgbotapi.FileID(coverFileID)
+	} else {
+		cover = tgbotapi.FileURL(previewUrl)
+	}
 
 	baseInputMedia := tgbotapi.BaseInputMedia{
 		Type:      "photo", // Set the desired media type
-		Media:     fileUrl,
+		Media:     cover,
 		ParseMode: "MarkdownV2", // Set the desired parse mode
 		Caption: fmt.Sprintf(`
 *[%s \- %s](%s)*
@@ -262,13 +267,10 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 
 	responseMsg, err := b.Api.Send(msg)
 	if err != nil {
-		return fmt.Errorf("send: %w", err)
+		return tgbotapi.Message{}, fmt.Errorf("send: %w", err)
 	}
 
-	j, _ := json.MarshalIndent(responseMsg, "", "  ")
-	fmt.Println(string(j))
-
-	return nil
+	return responseMsg, nil
 }
 
 // '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'

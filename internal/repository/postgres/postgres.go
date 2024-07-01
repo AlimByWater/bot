@@ -3,9 +3,10 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log/slog"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"log/slog"
 )
 
 var initElysiumSchema = `CREATE SCHEMA IF NOT EXISTS elysium;`
@@ -84,4 +85,8 @@ func (m *Module) Close() (err error) {
 		m.db.Close()
 	}
 	return
+}
+
+func (m *Module) GetTrack(ctx context.Context) {
+
 }

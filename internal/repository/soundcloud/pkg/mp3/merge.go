@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,20 +19,39 @@ import (
 	"github.com/grafov/m3u8"
 )
 
-var (
-	// ZHTTP client
-	ZHTTP *zhttp.Zhttp
-	// JOINER client
-	JOINER       *joiner.Joiner
+type Module struct {
+	Zhttp        *zhttp.Zhttp
+	Joiner       *joiner.Joiner
 	keyCache     map[string][]byte
 	keyCacheLock sync.Mutex
-)
+}
+
+func NewModule(proxyUrl string, downloadPath, songName string) (*Module, error) {
+	z, err := zhttp.New(30*time.Second, proxyUrl)
+	if err != nil {
+		return nil, fmt.Errorf("zhttp new: %w", err)
+	}
+
+	outFile := downloadPath + songName + ".mp3"
+	j, err := joiner.New(outFile)
+	if err != nil {
+		return nil, fmt.Errorf("joiner new: %w", err)
+	}
+
+	return &Module{
+		Zhttp:        z,
+		Joiner:       j,
+		keyCache:     make(map[string][]byte),
+		keyCacheLock: sync.Mutex{},
+	}, nil
+
+}
 
 // TODO implement tests
-func start(mpl *m3u8.MediaPlaylist) {
+func (m *Module) start(mpl *m3u8.MediaPlaylist) {
 	// 30 go routines for now
 	// TODO: find optimal go routine amount
-	p := pool.New(100, download)
+	p := pool.New(100, m.download)
 
 	go func() {
 		var count = int(mpl.Count())
@@ -47,14 +65,14 @@ func start(mpl *m3u8.MediaPlaylist) {
 }
 
 // TODO implement tests
-func parseM3u8(m3u8Url string) (*m3u8.MediaPlaylist, error) {
-	statusCode, data, err := ZHTTP.Get(m3u8Url)
+func (m *Module) parseM3u8(m3u8Url string) (*m3u8.MediaPlaylist, error) {
+	statusCode, data, err := m.Zhttp.Get(m3u8Url)
 	if err != nil {
 		return nil, err
 	}
 
 	if statusCode/100 != 2 || len(data) == 0 {
-		return nil, errors.New("download m3u8 file failed, http code: " + strconv.Itoa(statusCode))
+		return nil, fmt.Errorf("download m3u8 file failed, http code: " + strconv.Itoa(statusCode))
 	}
 
 	playlist, listType, err := m3u8.Decode(*bytes.NewBuffer(data), true)
@@ -67,7 +85,7 @@ func parseM3u8(m3u8Url string) (*m3u8.MediaPlaylist, error) {
 		mpl := playlist.(*m3u8.MediaPlaylist)
 
 		if mpl.Key != nil && mpl.Key.URI != "" {
-			uri, err := formatURI(obj, mpl.Key.URI)
+			uri, err := m.formatURI(obj, mpl.Key.URI)
 			if err != nil {
 				return nil, err
 			}
@@ -78,14 +96,14 @@ func parseM3u8(m3u8Url string) (*m3u8.MediaPlaylist, error) {
 		for i := 0; i < count; i++ {
 			segment := mpl.Segments[i]
 
-			uri, err := formatURI(obj, segment.URI)
+			uri, err := m.formatURI(obj, segment.URI)
 			if err != nil {
 				return nil, err
 			}
 			segment.URI = uri
 
 			if segment.Key != nil && segment.Key.URI != "" {
-				uri, err := formatURI(obj, segment.Key.URI)
+				uri, err := m.formatURI(obj, segment.Key.URI)
 				if err != nil {
 					return nil, err
 				}
@@ -102,16 +120,16 @@ func parseM3u8(m3u8Url string) (*m3u8.MediaPlaylist, error) {
 }
 
 // TODO implement tests
-func getKey(url string) ([]byte, error) {
-	keyCacheLock.Lock()
-	defer keyCacheLock.Unlock()
+func (m *Module) getKey(url string) ([]byte, error) {
+	m.keyCacheLock.Lock()
+	defer m.keyCacheLock.Unlock()
 
-	key := keyCache[url]
+	key := m.keyCache[url]
 	if key != nil {
 		return key, nil
 	}
 
-	statusCode, key, err := ZHTTP.Get(url)
+	statusCode, key, err := m.Zhttp.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -120,19 +138,19 @@ func getKey(url string) ([]byte, error) {
 		return nil, errors.New("body is empty, http code: " + strconv.Itoa(statusCode))
 	}
 
-	keyCache[url] = key
+	m.keyCache[url] = key
 
 	return key, nil
 }
 
 // TODO implement tests
-func download(in interface{}) {
+func (m *Module) download(in interface{}) {
 	params := in.([]interface{})
 	id := params[0].(int)
 	segment := params[1].(*m3u8.MediaSegment)
 	globalKey := params[2].(*m3u8.Key)
 
-	statusCode, data, err := ZHTTP.Get(segment.URI)
+	statusCode, data, err := m.Zhttp.Get(segment.URI)
 	if err != nil {
 		red := color.New(color.FgRed).SprintFunc()
 		fmt.Printf("%s Download failed: %s\n", red("[-]"), err)
@@ -154,7 +172,7 @@ func download(in interface{}) {
 
 	if keyURL != "" {
 		var key, iv []byte
-		key, err = getKey(keyURL)
+		key, err = m.getKey(keyURL)
 		if err != nil {
 			fmt.Println("[-] Download key failed:", keyURL, err)
 		}
@@ -175,11 +193,11 @@ func download(in interface{}) {
 		}
 	}
 
-	JOINER.Join(id, data)
+	m.Joiner.Join(id, data)
 }
 
 // TODO implement tests
-func formatURI(base *url.URL, u string) (string, error) {
+func (m *Module) formatURI(base *url.URL, u string) (string, error) {
 	if strings.HasPrefix(u, "http") {
 		return u, nil
 	}
@@ -192,60 +210,21 @@ func formatURI(base *url.URL, u string) (string, error) {
 	return obj.String(), nil
 }
 
-func filename(u string) string {
-	obj, _ := url.Parse(u)
-	_, filename := filepath.Split(obj.Path)
-	return filename
-}
-
-// Merge ...
-// TODO implement tests
-func Merge(url string, songname string) {
-
-	keyCache = map[string][]byte{}
-
-	var err error
-	ZHTTP, err = zhttp.New(time.Second*30, "")
+// Merge downloads and merges the mp3 files from the m3u8 file
+func (m *Module) Merge(url, downloadPath, songName string) (string, error) {
+	mpl, err := m.parseM3u8(url)
 	if err != nil {
-		red := color.New(color.FgRed).SprintFunc()
-		fmt.Printf("%s Init failed: %s\n", red("[-]"), err)
-	}
-
-	mpl, err := parseM3u8(url)
-	if err != nil {
-		red := color.New(color.FgRed).SprintFunc()
-		fmt.Printf("%s Parse m3u8 file failed: %s\n", red("[-]"), err)
-	} else {
-		green := color.New(color.FgGreen).SprintFunc()
-		fmt.Printf("%s Parse m3u8 file succed %s\n", green("[+]"), "")
-	}
-
-	outFile := songname + ".mp3"
-
-	JOINER, err = joiner.New(outFile)
-
-	if err != nil {
-		red := color.New(color.FgRed).SprintFunc()
-		fmt.Printf("%s Open file failed: %s\n", red("[-]"), err)
-	} else {
-		green := color.New(color.FgGreen).SprintFunc()
-		fmt.Printf("%s Will save to %s\n", green("[+]"), JOINER.Name())
+		return "", fmt.Errorf("parse m3u8 file failed: %w", err)
 	}
 
 	if mpl.Count() > 0 {
-		green := color.New(color.FgGreen).SprintFunc()
-		fmt.Printf("%s Total %d files to download \n", green("[+]"), mpl.Count())
+		m.start(mpl)
 
-		start(mpl)
-
-		err = JOINER.Run(int(mpl.Count()))
+		err = m.Joiner.Run(int(mpl.Count()))
 		if err != nil {
-			red := color.New(color.FgRed).SprintFunc()
-			fmt.Printf("%s Write to file failed: %s\n", red("[-]"), err)
+			return "", fmt.Errorf("write to file failed: %w", err)
 		}
-		g := color.New(color.FgGreen).SprintFunc()
-		fmt.Printf("%s Download succed, saved to %s\n", g("[+]"), JOINER.Name())
-
 	}
 
+	return m.Joiner.Name(), nil
 }

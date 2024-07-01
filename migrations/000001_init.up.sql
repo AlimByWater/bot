@@ -10,15 +10,16 @@ CREATE TABLE IF NOT EXISTS elysium.users (
 -- Создание таблицы песен
 CREATE TABLE IF NOT EXISTS elysium.songs (
                        id SERIAL PRIMARY KEY,
-                       url VARCHAR(255) NOT NULL,
-                       artist_name VARCHAR(255) NOT NULL,
-                       title VARCHAR(255) NOT NULL,
+                       url VARCHAR(255) UNIQUE NOT NULL CHECK (url <> ''),
+                       artist_name VARCHAR(255) NOT NULL CHECK (artist_name <> ''),
+                       title VARCHAR(255),
                        cover_link VARCHAR(255),
                        cover VARCHAR(255),
-                        cover_telegram_file_id VARCHAR(255),
+                       cover_telegram_file_id VARCHAR(255),
+                       song_telegram_message_chat_id INT,
+                       song_telegram_message_id INT,
                        release_date DATE,
                        tags TEXT[],
-                       telegram_message_link VARCHAR(255),
                        date_create TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

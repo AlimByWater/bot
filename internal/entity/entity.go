@@ -11,19 +11,20 @@ type User struct {
 
 // Song represents a song in the database
 type Song struct {
-	ID                  int       `db:"id" json:"id"`
-	URL                 string    `db:"url" json:"url"`
-	ArtistName          string    `db:"artist_name" json:"artist_name"`
-	Title               string    `db:"title" json:"title"`
-	CoverLink           string    `db:"cover_link" json:"cover_link"`
-	CoverPath           string    `db:"cover" json:"cover"`
-	CoverTelegramFileID string    `db:"cover_telegram_file_id" json:"cover_telegram_file_id"`
-	ReleaseDate         time.Time `db:"release_date" json:"release_date"`
-	DownloadCount       int       `db:"download_count" json:"download_count"`
-	PlaysCount          int       `json:"plays_count"`
-	Tags                []string  `db:"tags" json:"tags"`
-	TelegramMessageLink string    `db:"telegram_message_link" json:"telegram_message_link"`
-	DateCreate          time.Time `db:"date_create" json:"date_create"`
+	ID                        int       `db:"id" json:"id"`
+	URL                       string    `db:"url" json:"url"`
+	ArtistName                string    `db:"artist_name" json:"artist_name"`
+	Title                     string    `db:"title" json:"title"`
+	CoverLink                 string    `db:"cover_link" json:"cover_link"`
+	CoverPath                 string    `db:"cover" json:"cover"`
+	CoverTelegramFileID       string    `db:"cover_telegram_file_id" json:"cover_telegram_file_id"`
+	SongTelegramMessageID     int       `db:"song_telegram_message_id" json:"song_telegram_message_id"`           // ID сообщения содержащего данный файл, для оперативного репоста
+	SongTelegramMessageChatID int64     `db:"song_telegram_message_chat_id" json:"song_telegram_message_chat_id"` // ID чата, в котором находится сообщение с файлом
+	ReleaseDate               time.Time `db:"release_date" json:"release_date"`
+	DownloadCount             int       `db:"download_count" json:"download_count"`
+	PlaysCount                int       `json:"plays_count"`
+	Tags                      []string  `db:"tags" json:"tags"`
+	DateCreate                time.Time `db:"date_create" json:"date_create"`
 }
 
 // UserSongDownload represents a record of a user downloading a song

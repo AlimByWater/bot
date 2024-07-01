@@ -16,23 +16,37 @@ type config interface {
 }
 
 type repository interface {
-	SongPlayed(info entity.TrackInfo) error
+	SongByUrl(ctx context.Context, url string) (entity.Song, error)
+	CreateSong(ctx context.Context, song entity.Song) (entity.Song, error)
+	CreatePlay(ctx context.Context, songID int) error
+	CreateSongAndAddToPlayed(ctx context.Context, song entity.Song) (entity.Song, error)
+	SongPlayed(ctx context.Context, songID int) (entity.SongPlay, error)
+	RemoveSong(ctx context.Context, songID int) error
+	SetCoverTelegramFileID(ctx context.Context, songID int, fileID string) error
+	GetPlayedCountByID(ctx context.Context, songID int) (int, error)
+	GetPlayedCountByURL(ctx context.Context, url string) (int, error)
+	GetAllPlaysByURL(ctx context.Context, url string) ([]entity.SongPlay, error)
+}
+type soundcloudDownloader interface {
+	DownloadTrackByURL(ctx context.Context, trackUrl string, info entity.TrackInfo) (string, error)
 }
 
 type Module struct {
 	bot          *Bot
 	cfg          config
 	repo         repository
+	soundcloud   soundcloudDownloader
 	logger       *slog.Logger
 	prevTrack    entity.TrackInfo // Предыдущий трек
 	currentTrack entity.TrackInfo // Текущий трек
 }
 
 // New конструктор ...
-func New(cfg config, repo repository) *Module {
+func New(cfg config, repo repository, sc soundcloudDownloader) *Module {
 	return &Module{
-		cfg:  cfg,
-		repo: repo,
+		cfg:        cfg,
+		repo:       repo,
+		soundcloud: sc,
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"arimadj-helper/internal/controller/http/group/api_methods"
 	"arimadj-helper/internal/repository/postgres"
 	"arimadj-helper/internal/repository/postgres/elysium"
+	"arimadj-helper/internal/repository/soundcloud"
 	"arimadj-helper/internal/usecase/demethra"
 	"log/slog"
 	"os"
@@ -94,6 +95,7 @@ func main2() {
 	httpCfg := config_module.NewHttpConfig()
 	demethraCfg := config_module.NewDemethraConfig()
 	postgresCfg := config_module.NewPostgresConfig()
+	soundcloudCfg := config_module.NewSoundcloudConfig()
 	configModule := config.New(
 		httpCfg,
 		demethraCfg,
@@ -102,11 +104,12 @@ func main2() {
 
 	/************ REPOSITORY *************/
 	elysiumRepo := elysium.NewRepository()
+	sc := soundcloud.New(soundcloudCfg)
 
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
 
 	/************ USECASE *************/
-	demethraUC := demethra.New(demethraCfg, elysiumRepo)
+	demethraUC := demethra.New(demethraCfg, elysiumRepo, sc)
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
@@ -119,7 +122,7 @@ func main2() {
 
 	app := application.New(loggerModule, configModule, envModule)
 
-	app.AddRepositories(postgresql)
+	app.AddRepositories(postgresql, sc)
 
 	app.AddUsecases(
 		demethraUC,

@@ -2,6 +2,7 @@ package env
 
 import (
 	"errors"
+	"os"
 )
 
 type storage interface {
@@ -18,12 +19,11 @@ func New(storages ...storage) *Module {
 }
 
 func (m Module) GetEnv() (string, error) {
-	//env, ok := os.LookupEnv("ENV")
-	//if !ok {
-	//	return "", errors.New("not found ENV")
-	//}
-	//return env, nil
-	return "local", nil
+	env, ok := os.LookupEnv("ENV")
+	if !ok {
+		return "local", nil
+	}
+	return env, nil
 }
 
 func (m Module) Init() (interface {

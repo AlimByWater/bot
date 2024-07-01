@@ -14,8 +14,7 @@ func (s *Soundcloud) GetArtwork(doc *html.Node) (string, error) {
 	// Query the document for the artwork node
 	nodes, err := htmlquery.QueryAll(doc, artworkPath)
 	if err != nil {
-		fmt.Println("Error executing XPath query:", err)
-		return "", err
+		return "", fmt.Errorf("error executing XPath query: %w", err)
 	}
 
 	// Check if any nodes were found

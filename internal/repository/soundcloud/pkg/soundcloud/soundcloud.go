@@ -1,10 +1,14 @@
 package soundcloud
 
-import "net/http"
+import (
+	"log/slog"
+	"net/http"
+)
 
 const (
-	userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-	version   = "2.3.8"
+	userAgent           = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+	version             = "2.3.8"
+	defaultDownloadPath = "/app/temp/"
 )
 
 // Soundcloud struct represents a http client to make requests to SoundCloud's API
@@ -28,6 +32,9 @@ type Soundcloud struct {
 	Artwork *ArtworkService
 	// User is used for talking to the user endpoints
 	// User *UsersService
+	logger       *slog.Logger
+	downloadPath string
+	proxyUrl     string
 }
 
 type service struct {
@@ -35,18 +42,26 @@ type service struct {
 }
 
 // NewClient returns a new Soundcloud client
-func NewClient(authToken string, httpClient *http.Client) *Soundcloud {
+func NewClient(authToken string, downloadPath, proxyUrl string, httpClient *http.Client, log *slog.Logger) *Soundcloud {
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
+
+	if downloadPath == "" {
+		downloadPath = defaultDownloadPath
+	}
+
+	logger := log.With(slog.StringValue("💽 " + "soundcloud pkg"))
 
 	// TODO: Add a version header
 
 	// TODO: consume authToken for authenticated requests
 
 	return &Soundcloud{
-		Client: httpClient,
-
-		UserAgent: userAgent,
+		Client:       httpClient,
+		logger:       logger,
+		UserAgent:    userAgent,
+		downloadPath: downloadPath,
+		proxyUrl:     proxyUrl,
 	}
 }
