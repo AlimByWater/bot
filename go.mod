@@ -3,14 +3,24 @@ module arimadj-helper
 go 1.21.4
 
 require (
+	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/antchfx/htmlquery v1.3.2
+	github.com/bogem/id3v2 v0.0.0-00010101000000-000000000000
+	github.com/fatih/color v1.17.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.2-0.20221020003552-4126fa611266
-	github.com/jackc/pgx/v5 v5.6.0
+	github.com/grafov/m3u8 v0.12.0
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
+	github.com/schollz/progressbar/v3 v3.14.4
+	github.com/torden/go-strutil v0.1.7
+	golang.org/x/net v0.25.0
 )
 
 require (
+	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/antchfx/xpath v1.3.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
@@ -22,29 +32,31 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/jmoiron/sqlx v1.4.0 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
-	github.com/kr/text v0.2.0 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/go-telegram-bot-api/telegram-bot-api/v5 => ./telegram-bot-api/
+replace github.com/go-telegram-bot-api/telegram-bot-api/v5 => ./pkg/telegram-bot-api/
+
+replace github.com/bogem/id3v2 => ./pkg/id3v2/

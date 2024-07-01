@@ -44,5 +44,5 @@ func (m *Module) Init(ctx context.Context, log *slog.Logger) error {
 
 func (m *Module) DownloadTrackByURL(_ context.Context, trackUrl string) {
 
-	m.sc.Download(trackUrl)
+	//m.sc.Download(trackUrl)
 }
