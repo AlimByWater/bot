@@ -16,7 +16,7 @@ import (
 	"os"
 )
 
-func mainTest() {
+func main() {
 	loggerModule := logger.New(
 		logger.Options{
 			AppName: "bot-manager",
@@ -36,13 +36,15 @@ func mainTest() {
 	httpCfg := config_module.NewHttpConfig()
 	arimaDJCfg := config_module.NewArimaDJConfig()
 	demethraCfg := config_module.NewDemethraConfig()
-	soundcloudCfg := config_module.NewSoundcloudConfig()
+	postgresCfg := config_module.NewPostgresConfig()
 	configModule := config.New(
 		httpCfg,
 		arimaDJCfg,
 		demethraCfg,
-		soundcloudCfg,
+		postgresCfg,
 	)
+
+	/************ POSTGRES *************/
 
 	/************ USECASE *************/
 	demethraUC := demethra.New(demethraCfg)
@@ -60,57 +62,6 @@ func mainTest() {
 	app := application.New(loggerModule, configModule, envModule)
 	app.AddUsecases(
 		arimaDJUC,
-		demethraUC,
-	)
-
-	// добавляем контроллеры
-	app.AddControllers(
-		httpModule,
-	)
-
-	app.Run()
-}
-
-func main() {
-	loggerModule := logger.New(
-		logger.Options{
-			AppName: "bot-manager",
-			Writer:  os.Stdout,
-			HandlerOptions: &slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			},
-		},
-	)
-
-	/************ CONFIG *************/
-	localEnv := local.New()
-	envModule := env.New(
-		localEnv,
-	)
-
-	httpCfg := config_module.NewHttpConfig()
-	demethraTestCfg := config_module.NewDemethraConfig()
-	soundcloudCfg := config_module.NewSoundcloudConfig()
-	configModule := config.New(
-		httpCfg,
-		demethraTestCfg,
-		soundcloudCfg,
-	)
-
-	/************ USECASE *************/
-	demethraUC := demethra.New(demethraTestCfg)
-
-	/************ CONTROLLER *************/
-	httpModule := http.New(httpCfg,
-		api.NewGroup(nil,
-			api_methods.NewSubmitMethod(demethraUC),
-		),
-	)
-
-	/************ APP *************/
-
-	app := application.New(loggerModule, configModule, envModule)
-	app.AddUsecases(
 		demethraUC,
 	)
 

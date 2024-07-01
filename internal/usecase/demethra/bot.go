@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	WhiteListPostsId   = []int{509}
+	WhiteListPostsId   = []int{509, 391}
 	BotRepliesVariants = []string{"я им передам.", "ты был услышан.", "хорошо, я им передам", "это все что ты хотел сказать?"}
 	defaultKeyboard    = tgbotapi.NewReplyKeyboard()
 )
@@ -109,47 +109,47 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			slog.Int64("user_id", update.Message.From.ID),
 			slog.Int64("chat_id", update.Message.Chat.ID),
 		}
-	}
 
-	// если сообщение пришло в чате комментов - пропускаем #исключение
-	if update.Message != nil && (update.Message.Chat.ID == ElysiumFmCommentID) {
-		// если сообщение в авторстве элизиум_фм - удаляем его
-		if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
-			// тут проверяем нет ли его в исключениях
-			if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
-				resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
-				if err != nil {
-					b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
-					return
+		// если сообщение пришло в чате комментов - пропускаем #исключение
+		if update.Message.Chat.ID == ElysiumFmCommentID {
+			// если сообщение в авторстве элизиум_фм - удаляем его
+			if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
+				// тут проверяем нет ли его в исключениях
+				if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
+					resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
+					if err != nil {
+						b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
+						return
+					}
+					b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
 				}
-				b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
+
+				return
 			}
 
 			return
 		}
 
-		return
-	}
+		// отвечаем на сообщения присланные боту
+		if !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
 
-	// отвечаем на сообщения присланные боту
-	if update.Message != nil && !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
+			err := b.sendToChat(update)
+			if err != nil {
+				b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
+				return
+			}
 
-		err := b.sendToChat(update)
-		if err != nil {
-			b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
+			chatId := update.FromChat().ChatConfig().ChatID
+			//rand.Seed(time.Now().Unix())
+			msg := tgbotapi.NewMessage(chatId, BotRepliesVariants[rand.Intn(len(BotRepliesVariants))])
+
+			//msg.ReplyMarkup = inlineKeyboard
+			if _, err := b.Api.Send(msg); err != nil {
+				b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user", logger.AppendErrorToLogs(attributes, err)...)
+				return
+			}
 			return
 		}
-
-		chatId := update.FromChat().ChatConfig().ChatID
-		//rand.Seed(time.Now().Unix())
-		msg := tgbotapi.NewMessage(chatId, BotRepliesVariants[rand.Intn(len(BotRepliesVariants))])
-
-		//msg.ReplyMarkup = inlineKeyboard
-		if _, err := b.Api.Send(msg); err != nil {
-			b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user", logger.AppendErrorToLogs(attributes, err)...)
-			return
-		}
-		return
 	}
 
 	if (update.Message == nil || !update.Message.IsCommand()) && update.CallbackQuery == nil {
@@ -221,7 +221,7 @@ func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo) error {
              *↻     ⊲  Ⅱ  ⊳     ↺*
 VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 
-	b.logger.Debug("song update", slog.Any("current", current), slog.Any("prev", prev))
+	//b.logger.Debug("song update", slog.Any("current", current), slog.Any("prev", prev))
 
 	msg := tgbotapi.EditMessageTextConfig{
 		BaseEdit: tgbotapi.BaseEdit{
