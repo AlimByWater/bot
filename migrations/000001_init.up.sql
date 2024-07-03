@@ -16,9 +16,8 @@ CREATE TABLE IF NOT EXISTS elysium.songs (
                        cover_link VARCHAR(255),
                        cover VARCHAR(255),
                        cover_telegram_file_id VARCHAR(255),
-                       song_telegram_message_chat_id INT,
-                       song_telegram_message_id INT,
-                       release_date DATE,
+                       song_telegram_message_chat_id bigint,
+                       song_telegram_message_id bigint,
                        tags TEXT[],
                        date_create TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

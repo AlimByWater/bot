@@ -19,7 +19,6 @@ SELECT
 	s.cover_telegram_file_id,
 	s.song_telegram_message_id,
 	s.song_telegram_message_chat_id,
-	s.release_date,
 	COALESCE(count(usd.id), 0) download_count,
 	COALESCE(count(sp.id), 0) plays_count,
 	s.tags,
@@ -43,7 +42,6 @@ GROUP BY s.id
 			&song.CoverTelegramFileID,
 			&song.SongTelegramMessageID,
 			&song.SongTelegramMessageChatID,
-			&song.ReleaseDate,
 			&song.DownloadCount,
 			&song.PlaysCount,
 			pq.Array(&song.Tags),
@@ -59,22 +57,21 @@ GROUP BY s.id
 // CreateSong создает новый трек в базе данных
 func (r *Repository) CreateSong(ctx context.Context, song entity.Song) (entity.Song, error) {
 	query := fmt.Sprintf(`
-INSERT INTO songs(url, artist_name, title, cover_link, cover, cover_telegram_file_id, song_telegram_message_id, song_telegram_message_chat_id, release_date, tags)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO songs(url, artist_name, title, cover_link, cover, cover_telegram_file_id, song_telegram_message_id, song_telegram_message_chat_id, tags)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING id, date_create
 `)
 
-	err := r.db.QueryRowContext(ctx, query, song.URL, song.ArtistName, song.Title, song.CoverLink, song.CoverPath, song.CoverTelegramFileID, song.SongTelegramMessageID, song.SongTelegramMessageChatID, song.ReleaseDate, pq.Array(song.Tags)).
+	err := r.db.QueryRowContext(ctx, query, song.URL, song.ArtistName, song.Title, song.CoverLink, song.CoverPath, song.CoverTelegramFileID, song.SongTelegramMessageID, song.SongTelegramMessageChatID, pq.Array(song.Tags)).
 		Scan(&song.ID, &song.DateCreate)
 	if err != nil {
 		return entity.Song{}, fmt.Errorf("query row context: %w", err)
 	}
 
 	return song, nil
-
 }
 
-func (r *Repository) SetCoverTelegramFileID(ctx context.Context, songID int, fileID string) error {
+func (r *Repository) SetCoverTelegramFileIDForSong(ctx context.Context, songID int, fileID string) error {
 	query := fmt.Sprintf(`
 UPDATE songs SET cover_telegram_file_id = $1 WHERE id = $2
 `)
@@ -228,12 +225,12 @@ DELETE FROM songs WHERE id = $1
 // createSong создает новый трек в базе данных (без логирования проигрывания)
 func (q *queries) createSong(ctx context.Context, song entity.Song) (entity.Song, error) {
 	query := fmt.Sprintf(`
-INSERT INTO songs(url, artist_name, title, cover_link, cover, cover_telegram_file_id, song_telegram_message_id, song_telegram_message_chat_id, release_date, tags)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INSERT INTO songs(url, artist_name, title, cover_link, cover, cover_telegram_file_id, song_telegram_message_id, song_telegram_message_chat_id, tags)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING id, date_create
 `)
 
-	err := q.db.QueryRowContext(ctx, query, song.URL, song.ArtistName, song.Title, song.CoverLink, song.CoverPath, song.CoverTelegramFileID, song.SongTelegramMessageID, song.SongTelegramMessageChatID, song.ReleaseDate, pq.Array(song.Tags)).
+	err := q.db.QueryRowContext(ctx, query, song.URL, song.ArtistName, song.Title, song.CoverLink, song.CoverPath, song.CoverTelegramFileID, song.SongTelegramMessageID, song.SongTelegramMessageChatID, pq.Array(song.Tags)).
 		Scan(&song.ID, &song.DateCreate)
 	if err != nil {
 		return entity.Song{}, fmt.Errorf("query row context: %w", err)
@@ -256,7 +253,6 @@ RETURNING id, play_time
 	}
 
 	return songPlay, nil
-
 }
 
 //func (r *Repository) SongPlayed1(info entity.TrackInfo) error {

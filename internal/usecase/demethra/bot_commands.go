@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"net/url"
+	"strings"
 )
 
 type CommandFunc func(ctx context.Context, update tgbotapi.Update) error
@@ -46,6 +48,75 @@ func (b *Bot) cmdInfo() CommandFunc {
 
 		if _, err := b.Api.Send(msg); err != nil {
 			return err
+		}
+
+		return nil
+	}
+}
+
+func (b *Bot) cmdDownload() CommandFunc {
+	return func(ctx context.Context, update tgbotapi.Update) error {
+		chatId := update.FromChat().ChatConfig().ChatID
+		errMsg := tgbotapi.NewMessage(chatId, "неверная ссылка")
+
+		argString := update.Message.CommandArguments()
+		if argString == "" {
+			_, err := b.Api.Send(errMsg)
+			if err != nil {
+				return fmt.Errorf("empty arguments; send err message: %w", err)
+			}
+			return fmt.Errorf("empty arguments")
+		}
+
+		args := strings.Split(argString, " ")
+		fmt.Println(args)
+
+		_, err := url.Parse(args[0])
+		if err != nil {
+			_, err := b.Api.Send(errMsg)
+			if err != nil {
+				return fmt.Errorf("not url; : %w", err)
+			}
+			return fmt.Errorf("empty arguments")
+		}
+
+		return nil
+	}
+}
+
+func (b *Bot) cmdDownloadInline() CommandFunc {
+	return func(ctx context.Context, update tgbotapi.Update) error {
+		data := strings.Split(update.CallbackQuery.Data, "?")
+		if len(data) != 2 {
+			return fmt.Errorf("invalid data format: %s", update.CallbackQuery.Data)
+		}
+		url := "https://soundcloud.com/" + data[1]
+		fmt.Println(url)
+
+		// Получите информацию о песне из вашего репозитория
+		song, err := b.repo.SongByUrl(ctx, url)
+		if err != nil {
+			return fmt.Errorf("get song by URL: %w", err)
+		}
+
+		// Отправьте сообщение пользователю, что песня была успешно скачана
+		//forwardMsg := tgbotapi.ForwardMessagesConfig{
+		//	BaseChat: tgbotapi.BaseChat{
+		//		ChatConfig: tgbotapi.ChatConfig{
+		//			ChatID: update.CallbackQuery.From.ID,
+		//		},
+		//	},
+		//	FromChat: tgbotapi.ChatConfig{
+		//		ChatID: song.SongTelegramMessageChatID,
+		//	},
+		//	MessageIDs: []int{song.SongTelegramMessageID},
+		//}
+
+		forwardMsg := tgbotapi.NewForward(update.CallbackQuery.From.ID, song.SongTelegramMessageChatID, song.SongTelegramMessageID)
+
+		_, err = b.Api.Send(forwardMsg)
+		if err != nil {
+			return fmt.Errorf("forward message: %w", err)
 		}
 
 		return nil

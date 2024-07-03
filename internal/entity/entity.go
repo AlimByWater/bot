@@ -20,7 +20,6 @@ type Song struct {
 	CoverTelegramFileID       string    `db:"cover_telegram_file_id" json:"cover_telegram_file_id"`
 	SongTelegramMessageID     int       `db:"song_telegram_message_id" json:"song_telegram_message_id"`           // ID сообщения содержащего данный файл, для оперативного репоста
 	SongTelegramMessageChatID int64     `db:"song_telegram_message_chat_id" json:"song_telegram_message_chat_id"` // ID чата, в котором находится сообщение с файлом
-	ReleaseDate               time.Time `db:"release_date" json:"release_date"`
 	DownloadCount             int       `db:"download_count" json:"download_count"`
 	PlaysCount                int       `json:"plays_count"`
 	Tags                      []string  `db:"tags" json:"tags"`

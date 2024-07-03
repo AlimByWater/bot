@@ -4,9 +4,13 @@ import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/bogem/id3v2"
 	"log/slog"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -36,16 +40,20 @@ var (
 
 type Bot struct {
 	Api           *tgbotapi.BotAPI
+	sc            soundcloudDownloader
 	logger        *slog.Logger
 	cmdViews      map[string]CommandFunc
 	name          string
 	chatIDForLogs int64
+	repo          repository
 	ctx           context.Context
 }
 
-func newBot(ctx context.Context, name string, api *tgbotapi.BotAPI, chatIDForLogs int64, logger *slog.Logger) *Bot {
+func newBot(ctx context.Context, repo repository, sc soundcloudDownloader, name string, api *tgbotapi.BotAPI, chatIDForLogs int64, logger *slog.Logger) *Bot {
 	b := &Bot{
 		name:          name,
+		repo:          repo,
+		sc:            sc,
 		Api:           api,
 		chatIDForLogs: chatIDForLogs,
 		logger:        logger,
@@ -59,7 +67,8 @@ func newBot(ctx context.Context, name string, api *tgbotapi.BotAPI, chatIDForLog
 
 func (b *Bot) registerCommands() {
 	b.registerCommand("start", b.cmdStart())
-	//b.registerCommand("/info", b.cmdInfo())
+	b.registerCommand("download", b.cmdDownloadInline())
+	//b.registerCommand("/download", b.cmdDownload())
 	//b.registerCommand("⁉️Инфа", b.cmdInfo())
 	//b.registerCommand("/calendar", b.cmdCalendar())
 }
@@ -113,6 +122,18 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			slog.Int64("chat_id", update.Message.Chat.ID),
 		}
 
+		// если update.Message.Chat.ID == ElysiumChatID то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
+		if update.Message.Chat.ID == ElysiumChatID && !update.Message.IsCommand() {
+			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
+			if err != nil {
+				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
+			}
+
+			if sent {
+				return
+			}
+		}
+
 		// TODO update раскомментить
 		// если сообщение пришло в чате комментов - пропускаем #исключение
 		//if update.Message.Chat.ID == ElysiumFmCommentID {
@@ -136,8 +157,17 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		// отвечаем на сообщения присланные боту
 		if !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
+			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
+			if err != nil {
+				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
+			}
 
-			err := b.sendToChat(update)
+			if sent {
+				return
+			}
+
+			// отправляем сообщение в чат
+			err = b.sendToChat(update)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
 				return
@@ -165,12 +195,16 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 	if update.CallbackQuery != nil {
 		callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
-		if _, err := b.Api.Request(callback); err != nil {
+		_, err := b.Api.Request(callback)
+		if err != nil {
 			b.logger.LogAttrs(ctx, slog.LevelError, "request callback", logger.AppendErrorToLogs(attributes, err)...)
 			return
 		}
 
-		cmd = update.CallbackQuery.Data
+		data := update.CallbackQuery.Data
+		dataSlice := strings.Split(data, "?")
+
+		cmd = dataSlice[0]
 	} else if update.Message.IsCommand() {
 		cmd = update.Message.Command()
 	}
@@ -185,9 +219,9 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if err := view(ctx, update); err != nil {
 		b.logger.LogAttrs(ctx, slog.LevelError, "failed to execute view", logger.AppendErrorToLogs(attributes, err)...)
 
-		if _, err := b.Api.Send(tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Internal error")); err != nil {
-			b.logger.LogAttrs(ctx, slog.LevelError, "failed to send error message", logger.AppendErrorToLogs(attributes, err)...)
-		}
+		//if _, err := b.Api.Send(tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Internal error")); err != nil {
+		//	b.logger.LogAttrs(ctx, slog.LevelError, "failed to send error message", logger.AppendErrorToLogs(attributes, err)...)
+		//}
 	}
 }
 
@@ -217,83 +251,107 @@ id: %d
 	return nil
 }
 
-func (b *Bot) updateCurrentTrackMessage(current, prev entity.TrackInfo, coverFileID string) (tgbotapi.Message, error) {
-	previewUrl := current.TrackLink
-	current.Format()
-	prev.Format()
-	visual := formatEscapeChars(fmt.Sprintf(`0:35 ━❍──────── -%s
-             *↻     ⊲  Ⅱ  ⊳     ↺*
-VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
+func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Update, attrs []slog.Attr) (bool, error) {
+	if update.Message.Text != "" {
+		if strings.Contains(update.Message.Text, "soundcloud.com") {
+			text := strings.Split(update.Message.Text, " ")
+			for _, v := range text {
+				if strings.Contains(v, "soundcloud.com") {
+					song, err := b.repo.SongByUrl(ctx, v)
+					if err != nil && !errors.Is(err, sql.ErrNoRows) {
+						b.logger.LogAttrs(ctx, slog.LevelWarn, "get song by URL from chat", logger.AppendErrorToLogs(attrs, err)...)
+					}
 
-	//b.logger.Debug("song update", slog.Any("current", current), slog.Any("prev", prev))
+					if song.ID != 0 {
+						err = b.forwardSongToChat(update.Message.Chat.ID, song)
+						if err != nil {
+							b.logger.LogAttrs(ctx, slog.LevelWarn, "forward track to chat from chat", logger.AppendErrorToLogs(attrs, err)...)
+						}
+					}
 
-	//fileBytes := tgbotapi.FileBytes{
-	//	Bytes: imageBytes,
-	//}
+					songPath, err := b.sc.DownloadTrackByURL(ctx, v, entity.TrackInfo{})
+					if err != nil {
+						return false, fmt.Errorf("download track by url: %w", err)
+					}
+					defer func(songPath string) {
+						err := os.Remove(songPath)
+						if err != nil {
+							b.logger.LogAttrs(ctx, slog.LevelError, "remove song", logger.AppendErrorToLogs(attrs, err)...)
+						}
+					}(songPath)
 
-	var cover tgbotapi.RequestFileData
-	if coverFileID != "" {
-		cover = tgbotapi.FileID(coverFileID)
+					err = b.sengSongToChat(update.Message.Chat.ID, songPath)
+					if err != nil {
+						return false, fmt.Errorf("send track to chat: %w", err)
+					}
+
+					return true, nil
+				}
+			}
+			// отправить в чат
+			// удалить сообщение
+			// отправить сообщение об успешной загрузке
+			// если трек не удалось скачать - отправить сообщение об ошибке
+			// если трек не удалось отправить - отправить сообщение об ошибке
+			// если сообщение не удалось удалить - отправить сообщение об ошибке
+			// если сообщение об успешной загрузке не удалось отправить - отправить сообщение об ошибке
+		} else {
+			return false, nil
+		}
 	} else {
-		cover = tgbotapi.FileURL(previewUrl)
+		return false, nil
 	}
 
-	baseInputMedia := tgbotapi.BaseInputMedia{
-		Type:      "photo", // Set the desired media type
-		Media:     cover,
-		ParseMode: "MarkdownV2", // Set the desired parse mode
-		Caption: fmt.Sprintf(`
-*[%s \- %s](%s)*
-%s
-
-||Предыдущий: [%s \- %s](%s)||
-`,
-			current.ArtistName, current.TrackTitle, current.TrackLink,
-			visual,
-			prev.ArtistName, prev.TrackTitle, prev.TrackLink),
-	}
-
-	msg := tgbotapi.EditMessageMediaConfig{
-		BaseEdit: tgbotapi.BaseEdit{
-			BaseChatMessage: tgbotapi.BaseChatMessage{
-				MessageID:  CurrentTrackMessageID,
-				ChatConfig: tgbotapi.ChatConfig{ChatID: ElysiumFmID},
-			},
-		},
-		Media: tgbotapi.InputMediaPhoto{
-			BaseInputMedia: baseInputMedia,
-		},
-	}
-
-	responseMsg, err := b.Api.Send(msg)
-	if err != nil {
-		return tgbotapi.Message{}, fmt.Errorf("send: %w", err)
-	}
-
-	return responseMsg, nil
+	return true, nil
 }
 
-// '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'
-func formatEscapeChars(oldS string) string {
-	s := oldS
-	s = strings.ReplaceAll(s, `_`, `\_`)
-	//s = strings.ReplaceAll(s, `*`, `\*`)
-	s = strings.ReplaceAll(s, `[`, `\[`)
-	s = strings.ReplaceAll(s, `]`, `\]`)
-	s = strings.ReplaceAll(s, `(`, `\(`)
-	s = strings.ReplaceAll(s, `)`, `\)`)
-	s = strings.ReplaceAll(s, `~`, `\~`)
-	//s = strings.ReplaceAll(s, "`", "\`")
-	s = strings.ReplaceAll(s, `>`, `\>`)
-	s = strings.ReplaceAll(s, `#`, `\#`)
-	s = strings.ReplaceAll(s, `+`, `\+`)
-	s = strings.ReplaceAll(s, `-`, `\-`)
-	s = strings.ReplaceAll(s, `=`, `\=`)
-	s = strings.ReplaceAll(s, `|`, `\|`)
-	s = strings.ReplaceAll(s, `{`, `\{`)
-	s = strings.ReplaceAll(s, `}`, `\}`)
-	s = strings.ReplaceAll(s, `.`, `\.`)
-	s = strings.ReplaceAll(s, `!`, `\!`)
+func (b *Bot) forwardSongToChat(chatID int64, song entity.Song) error {
+	forwardMsg := tgbotapi.NewForward(chatID, song.SongTelegramMessageChatID, song.SongTelegramMessageID)
 
-	return s
+	_, err := b.Api.Send(forwardMsg)
+	if err != nil {
+		return fmt.Errorf("forward message: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Bot) sengSongToChat(chatID int64, songPath string) error {
+	file, err := os.Open(songPath)
+	if err != nil {
+		return fmt.Errorf("open song: %w", err)
+	}
+
+	tag, err := id3v2.Open(songPath, id3v2.Options{Parse: true})
+	if err != nil {
+		return err
+	}
+	defer tag.Close()
+
+	artist := tag.Artist()
+	title := tag.Title()
+
+	// ************* ОТПРАВИТЬ ТРЕК В ГРУППУ *************** //
+	audio := tgbotapi.AudioConfig{
+		BaseFile: tgbotapi.BaseFile{
+			BaseChat: tgbotapi.BaseChat{
+				ChatConfig: tgbotapi.ChatConfig{
+					ChatID: chatID,
+				},
+			},
+			File: tgbotapi.FileReader{
+				Reader: file,
+			},
+		},
+		Caption:   `||[elysium fm](t.me/elysium_fm)||`,
+		ParseMode: "MarkdownV2",
+		Title:     title,
+		Performer: artist,
+	}
+	_, err = b.Api.Send(audio)
+	if err != nil {
+		return fmt.Errorf("send audio: %w", err)
+	}
+
+	return nil
 }

@@ -32,7 +32,7 @@ func NewModule(proxyUrl string, downloadPath, songName string) (*Module, error) 
 		return nil, fmt.Errorf("zhttp new: %w", err)
 	}
 
-	outFile := downloadPath + songName + ".mp3"
+	outFile := downloadPath + strings.Replace(songName, "/", "\\", -1) + ".mp3"
 	j, err := joiner.New(outFile)
 	if err != nil {
 		return nil, fmt.Errorf("joiner new: %w", err)
@@ -211,7 +211,7 @@ func (m *Module) formatURI(base *url.URL, u string) (string, error) {
 }
 
 // Merge downloads and merges the mp3 files from the m3u8 file
-func (m *Module) Merge(url, downloadPath, songName string) (string, error) {
+func (m *Module) Merge(url string) (string, error) {
 	mpl, err := m.parseM3u8(url)
 	if err != nil {
 		return "", fmt.Errorf("parse m3u8 file failed: %w", err)

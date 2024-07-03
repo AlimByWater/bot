@@ -84,7 +84,7 @@ func TestModule_DownloadTrackByURL(t *testing.T) {
 		TrackLink:  trackUrl,
 	}
 
-	trackPath, err := sc.DownloadTrackByURL(ctx, trackUrl, "", info)
+	trackPath, err := sc.DownloadTrackByURL(ctx, trackUrl, info)
 	require.NoError(t, err)
 	require.NotEmpty(t, trackPath)
 }

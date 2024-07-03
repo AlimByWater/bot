@@ -46,12 +46,29 @@ func (s *Soundcloud) Download(ctx context.Context, url string, info entity.Track
 		return "", fmt.Errorf("construct stream url: %w", err)
 	}
 
-	//songName, err := s.GetTitle(doc)
-	//if err != nil {
-	//
-	//	return fmt.Errorf("get title: %w", err)
-	//}
+	var songName string
+	if info.TrackTitle == "" {
+		songName, err = s.GetTitle(doc)
+		if err != nil {
 
+			return "", fmt.Errorf("get title: %w", err)
+		}
+	} else {
+		songName = info.TrackTitle
+	}
+
+	// Get artist
+	var artistName string
+	if info.ArtistName == "" {
+		artistName, err = s.GetArtist(doc, songName)
+		if err != nil {
+			return "", fmt.Errorf("get artist: %w", err)
+		}
+	} else {
+		artistName = info.ArtistName
+	}
+
+	// Get the artwork
 	artwork, err := s.GetArtwork(doc)
 	if err != nil {
 		return "", fmt.Errorf("get artwork: %w", err)
@@ -78,12 +95,12 @@ func (s *Soundcloud) Download(ctx context.Context, url string, info entity.Track
 	}
 
 	// merge segments
-	mp3Module, err := mp3.NewModule(s.proxyUrl, s.downloadPath, info.TrackTitle)
+	mp3Module, err := mp3.NewModule(s.proxyUrl, s.downloadPath, songName)
 	if err != nil {
 		return "", fmt.Errorf("mp3 new module: %w", err)
 	}
 
-	path, err := mp3Module.Merge(audioResp.URL, s.downloadPath, info.TrackTitle)
+	path, err := mp3Module.Merge(audioResp.URL)
 	if err != nil {
 		return "", fmt.Errorf("merge: %w", err)
 	}
@@ -104,10 +121,9 @@ func (s *Soundcloud) Download(ctx context.Context, url string, info entity.Track
 		}
 	}
 
-	// set cover image for mp3 file
-	err = mp3Module.SetTitleArtistCoverImage(path, info.TrackTitle, info.ArtistName, image)
+	err = mp3Module.SetTitleArtistCoverImage(path, songName, artistName, image)
 	if err != nil {
-		s.logger.LogAttrs(ctx, slog.LevelError, "set title artist cover image", logger.AppendErrorToLogs(attr, err)...)
+		s.logger.LogAttrs(ctx, slog.LevelError, "set cover image", logger.AppendErrorToLogs(attr, err)...)
 	}
 
 	return path, nil

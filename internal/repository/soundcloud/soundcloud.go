@@ -55,7 +55,6 @@ func (m *Module) DownloadTrackByURL(ctx context.Context, trackUrl string, info e
 	for i := 0; i < 3; i++ {
 		songPath, err = m.sc.Download(ctx, trackUrl, info)
 		if err != nil {
-			fmt.Println(i)
 			continue
 		}
 		break

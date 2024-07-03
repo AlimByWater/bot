@@ -75,7 +75,7 @@ import (
 //	app.Run()
 //}
 
-func main2() {
+func main() {
 	loggerModule := logger.New(
 		logger.Options{
 			AppName: "bot-manager",

@@ -22,7 +22,7 @@ type repository interface {
 	CreateSongAndAddToPlayed(ctx context.Context, song entity.Song) (entity.Song, error)
 	SongPlayed(ctx context.Context, songID int) (entity.SongPlay, error)
 	RemoveSong(ctx context.Context, songID int) error
-	SetCoverTelegramFileID(ctx context.Context, songID int, fileID string) error
+	SetCoverTelegramFileIDForSong(ctx context.Context, songID int, fileID string) error
 	GetPlayedCountByID(ctx context.Context, songID int) (int, error)
 	GetPlayedCountByURL(ctx context.Context, url string) (int, error)
 	GetAllPlaysByURL(ctx context.Context, url string) ([]entity.SongPlay, error)
@@ -52,7 +52,6 @@ func New(cfg config, repo repository, sc soundcloudDownloader) *Module {
 
 // Init инициализатор ...
 func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
-	//m.ctx = ctx
 	m.logger = logger.With(slog.StringValue("🦕 " + m.cfg.GetBotName()))
 	if err := m.cfg.Validate(); err != nil {
 		return err
@@ -63,7 +62,7 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 		return fmt.Errorf("new bot api: %w", err)
 	}
 
-	m.bot = newBot(ctx, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.logger)
+	m.bot = newBot(ctx, m.repo, m.soundcloud, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.logger)
 	go func() {
 		m.bot.Run(ctx)
 	}()

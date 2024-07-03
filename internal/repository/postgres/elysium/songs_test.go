@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
-	"time"
 )
 
 var elysiumRepo *elysium.Repository
@@ -71,7 +70,6 @@ func TestCreateSong(t *testing.T) {
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
-			ReleaseDate:               time.Now(),
 			Tags:                      []string{"test-tag1", "test-tag2"},
 		}
 
@@ -101,7 +99,6 @@ func TestCreateSong(t *testing.T) {
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
-			ReleaseDate:               time.Now(),
 			Tags:                      []string{"test-tag1", "test-tag2"},
 		}
 
@@ -130,7 +127,6 @@ func TestSongByUrl(t *testing.T) {
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
-			ReleaseDate:               time.Now(),
 			Tags:                      []string{"test-tag1", "test-tag2"},
 		}
 
@@ -171,7 +167,6 @@ func TestGetPlayedCountByID(t *testing.T) {
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
-			ReleaseDate:               time.Now(),
 			Tags:                      []string{"test-tag1", "test-tag2"},
 		}
 		createdSong, err := elysiumRepo.CreateSong(context.Background(), song)
@@ -213,7 +208,6 @@ func TestGetAllPlaysByURL(t *testing.T) {
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
-			ReleaseDate:               time.Now(),
 			Tags:                      []string{"test-tag1", "test-tag2"},
 		}
 		createdSong, err := elysiumRepo.CreateSong(context.Background(), song)

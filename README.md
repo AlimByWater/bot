@@ -33,3 +33,64 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
 
 Далее откатить на 1 миграцию назад (не на версию 1 а на одну версию вниз):\
 `migrate -database 'postgres://login:password@addr:port/db_name?sslmode=disable' -path ./migrations down 1`
+
+## Скрипт для Tapermonkey
+    
+```javascript
+// ==UserScript==
+// @name         Get SoundCloud Track Info
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  Extracts track title and artist name from SoundCloud every second and sends it to a server
+// @author       You
+// @match        *://soundcloud.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const apiKey = '1234515151';
+    // Функция для извлечения названия трека и имени артиста
+    function getTrackInfo() {
+        const trackTitleElement = document.querySelector('.playbackSoundBadge__titleLink span');
+        const artistNameElement = document.querySelector('.playbackSoundBadge__lightLink');
+        const trackLinkElement = document.querySelector('.playbackSoundBadge__titleLink');
+        const durationElement = document.querySelector('.playbackTimeline__duration span[aria-hidden="true"]');
+//         const artworkUrlElement = document.evaluate("//meta[@property='og:image']/@content", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;/
+             const artworkUrlElement = document.querySelector('meta[property="og:image"]');
+                const releaseDateElement = document.querySelector('.soundTitle__uploadTime span[datetime]');
+        const tagElements = document.querySelectorAll('.sc-tag');
+
+        const trackTitle = trackTitleElement ? trackTitleElement.textContent : 'Unknown';
+        const artistName = artistNameElement ? artistNameElement.textContent : 'Unknown';
+        const trackLink = trackLinkElement ? trackLinkElement.href : 'Unknown';
+        const duration = durationElement ? durationElement.textContent.trim() : '05:31';
+        const artworkUrl = artworkUrlElement ? artworkUrlElement.getAttribute('content') : '';
+         const releaseDate = releaseDateElement ? releaseDateElement.getAttribute('datetime') : '';
+        const tags = Array.from(tagElements).map(tag => tag.textContent.trim());
+
+        console.log(artworkUrl)
+        return { trackTitle, artistName, trackLink, duration, artworkUrl, releaseDate, tags};
+    }
+
+    // Отправка данных на сервер
+    function sendTrackInfoToServer(trackInfo) {
+        fetch('http://localhost:8080/api/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+            },
+            body: JSON.stringify(trackInfo),
+        });
+    }
+
+    // Извлечение данных и отправка на сервер каждые 1000 мс (1 секунда)
+    setInterval(function() {
+        const trackInfo = getTrackInfo();
+        sendTrackInfoToServer(trackInfo);
+    }, 10000);
+
+})();
+```
