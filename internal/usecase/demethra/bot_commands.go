@@ -91,7 +91,6 @@ func (b *Bot) cmdDownloadInline() CommandFunc {
 			return fmt.Errorf("invalid data format: %s", update.CallbackQuery.Data)
 		}
 		url := "https://soundcloud.com/" + data[1]
-		fmt.Println(url)
 
 		// Получите информацию о песне из вашего репозитория
 		song, err := b.repo.SongByUrl(ctx, url)
