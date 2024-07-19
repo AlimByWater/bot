@@ -32,7 +32,8 @@ func NewModule(proxyUrl string, downloadPath, songName string) (*Module, error) 
 		return nil, fmt.Errorf("zhttp new: %w", err)
 	}
 
-	outFile := downloadPath + strings.Replace(songName, "/", "\\", -1) + ".mp3"
+	//outFile := downloadPath + strings.Replace(songName, "/", "\\", -1) + ".mp3"
+	outFile := downloadPath + strconv.FormatInt(time.Now().Unix(), 10) + ".mp3"
 	j, err := joiner.New(outFile)
 	if err != nil {
 		return nil, fmt.Errorf("joiner new: %w", err)

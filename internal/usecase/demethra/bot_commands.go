@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"net/url"
+	"slices"
 	"strings"
 )
 
@@ -69,7 +70,6 @@ func (b *Bot) cmdDownload() CommandFunc {
 		}
 
 		args := strings.Split(argString, " ")
-		fmt.Println(args)
 
 		_, err := url.Parse(args[0])
 		if err != nil {
@@ -117,6 +117,34 @@ func (b *Bot) cmdDownloadInline() CommandFunc {
 		_, err = b.Api.Send(forwardMsg)
 		if err != nil {
 			return fmt.Errorf("forward message: %w", err)
+		}
+
+		return nil
+	}
+}
+
+func (b *Bot) cmdSwitchToggleForPostAutoDelete() CommandFunc {
+	return func(ctx context.Context, update tgbotapi.Update) error {
+		chatId := update.FromChat().ChatConfig().ChatID
+		if !slices.Contains(b.adminIds, chatId) {
+			return fmt.Errorf("несанкционированный доступ к /autodelete") // TODO возвращать ошибку или логировать ее для не-админов
+		}
+
+		var msg tgbotapi.MessageConfig
+
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		if b.DisableCommentSectionDelete {
+			b.DisableCommentSectionDelete = false
+			msg = tgbotapi.NewMessage(chatId, "Автоматическое удаление постов включено.")
+
+		} else {
+			b.DisableCommentSectionDelete = true
+			msg = tgbotapi.NewMessage(chatId, "Автоматическое удаление постов отключено.")
+		}
+		_, err := b.Api.Send(msg)
+		if err != nil {
+			return fmt.Errorf("empty arguments; send err message: %w", err)
 		}
 
 		return nil

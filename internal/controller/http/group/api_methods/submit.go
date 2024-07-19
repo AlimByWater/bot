@@ -6,10 +6,6 @@ import (
 	"net/http"
 )
 
-type botUC interface {
-	NextSong(track entity.TrackInfo)
-}
-
 type statistic struct {
 	usecase botUC
 }
@@ -22,16 +18,6 @@ func (s statistic) path() string {
 	return "/submit"
 }
 
-// getExample    godoc
-// @Summary      Sum a and b
-// @Description  Get sun
-// @Tags         Sum
-// @Accept       json
-// @Produce      json
-// @Param        a header int true "a"
-// @Param        b header int true "b"
-// @Success      200 {integer} integer "sum"
-// @Router       /api/example [get]
 func (s statistic) submit(c *gin.Context) {
 	var info entity.TrackInfo
 	if err := c.ShouldBindJSON(&info); err != nil {

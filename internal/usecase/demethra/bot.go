@@ -11,7 +11,9 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -33,31 +35,37 @@ const (
 )
 
 var (
-	WhiteListPostsId   = []int{509, 391}
 	BotRepliesVariants = []string{"я им передам.", "ты был услышан.", "хорошо, я им передам", "это все что ты хотел сказать?"}
 	defaultKeyboard    = tgbotapi.NewReplyKeyboard()
 )
 
 type Bot struct {
-	Api           *tgbotapi.BotAPI
-	sc            soundcloudDownloader
-	logger        *slog.Logger
-	cmdViews      map[string]CommandFunc
-	name          string
-	chatIDForLogs int64
-	repo          repository
-	ctx           context.Context
+	Api                         *tgbotapi.BotAPI
+	sc                          soundcloudDownloader
+	logger                      *slog.Logger
+	cmdViews                    map[string]CommandFunc
+	name                        string
+	chatIDForLogs               int64
+	repo                        repository
+	ctx                         context.Context
+	mu                          sync.RWMutex
+	WhiteListPostsID            []int // рудемент, но пусть пока что будет
+	adminIds                    []int64
+	DisableCommentSectionDelete bool
 }
 
 func newBot(ctx context.Context, repo repository, sc soundcloudDownloader, name string, api *tgbotapi.BotAPI, chatIDForLogs int64, logger *slog.Logger) *Bot {
 	b := &Bot{
-		name:          name,
-		repo:          repo,
-		sc:            sc,
-		Api:           api,
-		chatIDForLogs: chatIDForLogs,
-		logger:        logger,
-		ctx:           ctx,
+		name:             name,
+		repo:             repo,
+		sc:               sc,
+		Api:              api,
+		chatIDForLogs:    chatIDForLogs,
+		logger:           logger,
+		ctx:              ctx,
+		mu:               sync.RWMutex{},
+		adminIds:         []int64{251636949, 548414066, 5534121833},
+		WhiteListPostsID: []int{509, 391}, // TODO перенести их в базу
 	}
 
 	b.registerCommands()
@@ -68,6 +76,7 @@ func newBot(ctx context.Context, repo repository, sc soundcloudDownloader, name 
 func (b *Bot) registerCommands() {
 	b.registerCommand("start", b.cmdStart())
 	b.registerCommand("download", b.cmdDownloadInline())
+	b.registerCommand("autodelete", b.cmdSwitchToggleForPostAutoDelete())
 	//b.registerCommand("/download", b.cmdDownload())
 	//b.registerCommand("⁉️Инфа", b.cmdInfo())
 	//b.registerCommand("/calendar", b.cmdCalendar())
@@ -124,6 +133,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		// если update.Message.Chat.ID == ElysiumChatID то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
 		if update.Message.Chat.ID == ElysiumChatID && !update.Message.IsCommand() {
+			fmt.Println(update.Message.Text)
 			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
@@ -135,25 +145,30 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		}
 
 		// TODO update раскомментить
-		// если сообщение пришло в чате комментов - пропускаем #исключение
-		//if update.Message.Chat.ID == ElysiumFmCommentID {
-		//	// если сообщение в авторстве элизиум_фм - удаляем его
-		//	if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
-		//		// тут проверяем нет ли его в исключениях
-		//		if !slices.Contains(WhiteListPostsId, update.Message.ForwardOrigin.MessageID) {
-		//			resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
-		//			if err != nil {
-		//				b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
-		//				return
-		//			}
-		//			b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
-		//		}
-		//
-		//		return
-		//	}
-		//
-		//	return
-		//}
+		//если сообщение пришло в чате комментов - пропускаем #исключение
+		if update.Message.Chat.ID == ElysiumFmCommentID {
+			// если сообщение в авторстве элизиум_фм - удаляем его
+			b.mu.RLock()
+			defer b.mu.RUnlock()
+			if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
+				// тут проверяем нет ли его в исключениях
+				if b.DisableCommentSectionDelete {
+					return
+				}
+				if !slices.Contains(b.WhiteListPostsID, update.Message.ForwardOrigin.MessageID) {
+					resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
+					if err != nil {
+						b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
+						return
+					}
+					b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
+				}
+
+				return
+			}
+
+			return
+		}
 
 		// отвечаем на сообщения присланные боту
 		if !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {

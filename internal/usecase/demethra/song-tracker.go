@@ -34,7 +34,7 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 
 	attributes := []slog.Attr{
 		slog.String("track_link", track.TrackLink),
-		slog.String("method", "next song"),
+		slog.String("METHOD", "next song"),
 	}
 
 	songChan := make(chan entity.Song)
@@ -80,7 +80,7 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 
 	attributes := []slog.Attr{
 		slog.String("track_link", info.TrackLink),
-		slog.String("method", "download and create new song"),
+		slog.String("METHOD", "download and create new song"),
 	}
 
 	//************ КАЧАЕМ ОБЛОЖКУ  *************** //
@@ -169,7 +169,7 @@ func (m *Module) downloadCover(link string) (string, error) {
 	}
 
 	//// Сохранение обложки на файловую систему
-	fileName := filepath.Join("./app/images", time.Now().Format("20060102_150405")+".jpg")
+	fileName := filepath.Join("/app/images", time.Now().Format("20060102_150405")+".jpg")
 	err = os.WriteFile(fileName, img, 0644)
 	if err != nil {
 		return "", fmt.Errorf("write file: %w", err)
