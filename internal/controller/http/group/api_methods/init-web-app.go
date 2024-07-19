@@ -25,8 +25,13 @@ func (iwa initWebApp) submit(c *gin.Context) {
 		return
 	}
 
-	//iwa.usecase.NextSong(info)
-	c.Status(http.StatusOK)
+	// Обработка полученных данных
+	if err := iwa.usecase.ProcessInitWebAppData(data); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process init data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Init data processed successfully"})
 }
 
 func NewInitWebApp(usecase botUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
