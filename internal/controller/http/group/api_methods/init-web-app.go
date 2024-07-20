@@ -25,7 +25,7 @@ func (wae webAppEvent) submit(c *gin.Context) {
 		return
 	}
 
-	// Обработка полученного события
+	// Process the received event
 	if err := wae.usecase.ProcessWebAppEvent(event); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process web app event"})
 		return
