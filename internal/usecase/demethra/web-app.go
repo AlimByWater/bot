@@ -34,6 +34,9 @@ func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEven
 	case entity.EventTypePauseAnimation:
 		// Handle pause animation event
 		return m.handlePauseAnimation(ctx, event)
+	case entity.EventTypeResumeAnimation:
+		// Handle pause animation event
+		return m.handlePauseAnimation(ctx, event)
 	default:
 		return fmt.Errorf("unknown event type: %s", event.EventType)
 	}
@@ -76,6 +79,12 @@ func (m *Module) handleMaximize(ctx context.Context, event entity.WebAppEvent) e
 
 func (m *Module) handlePauseAnimation(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Animation paused", slog.String("sessionID", event.SessionID))
+	// TODO: Implement actual animation pause logic
+	return nil
+}
+
+func (m *Module) handleResumeAnimation(ctx context.Context, event entity.WebAppEvent) error {
+	m.logger.Info("Animation resumed", slog.String("sessionID", event.SessionID))
 	// TODO: Implement actual animation pause logic
 	return nil
 }
