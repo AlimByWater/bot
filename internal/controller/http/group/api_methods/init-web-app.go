@@ -6,37 +6,37 @@ import (
 	"net/http"
 )
 
-type initWebApp struct {
+type webAppEvent struct {
 	usecase botUC
 }
 
-func (iwa initWebApp) method() string {
+func (wae webAppEvent) method() string {
 	return http.MethodPost
 }
 
-func (iwa initWebApp) path() string {
-	return "/initwebapp"
+func (wae webAppEvent) path() string {
+	return "/web-app-event"
 }
 
-func (iwa initWebApp) submit(c *gin.Context) {
-	var data entity.InitWebApp
-	if err := c.ShouldBindJSON(&data); err != nil {
+func (wae webAppEvent) submit(c *gin.Context) {
+	var event entity.WebAppEvent
+	if err := c.ShouldBindJSON(&event); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Обработка полученных данных
-	if err := iwa.usecase.ProcessInitWebAppData(data); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process init data"})
+	// Обработка полученного события
+	if err := wae.usecase.ProcessWebAppEvent(event); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process web app event"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Init data processed successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Web app event processed successfully"})
 }
 
-func NewInitWebApp(usecase botUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
+func NewWebAppEvent(usecase botUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
-		iwa := initWebApp{usecase: usecase}
-		return iwa.method(), iwa.path(), iwa.submit
+		wae := webAppEvent{usecase: usecase}
+		return wae.method(), wae.path(), wae.submit
 	}
 }
