@@ -8,6 +8,32 @@ import (
 	"time"
 )
 
+type repository interface {
+	SaveWebAppEvent(ctx context.Context, event WebAppEvent) error
+	SaveRadioEvent(ctx context.Context, event RadioEvent) (int64, error)
+	SaveAnimationEvent(ctx context.Context, event AnimationEvent) (int64, error)
+}
+
+type WebAppEvent struct {
+	EventType      entity.EventType
+	UserID         int
+	TelegramUserID int64
+	SessionID      string
+	Timestamp      time.Time
+	PayloadID      int64
+	AdditionalData map[string]interface{}
+}
+
+type RadioEvent struct {
+	Duration int
+	TrackID  string
+}
+
+type AnimationEvent struct {
+	AnimationID string
+	Duration    int
+}
+
 func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramUserID, event.SessionID))
 
