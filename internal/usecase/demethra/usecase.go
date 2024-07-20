@@ -35,6 +35,7 @@ type Module struct {
 	bot          *Bot
 	cfg          config
 	repo         repository
+	eventRepo    eventRepository
 	soundcloud   soundcloudDownloader
 	logger       *slog.Logger
 	prevTrack    entity.TrackInfo // Предыдущий трек
@@ -42,10 +43,11 @@ type Module struct {
 }
 
 // New конструктор ...
-func New(cfg config, repo repository, sc soundcloudDownloader) *Module {
+func New(cfg config, repo repository, eventRepo eventRepository, sc soundcloudDownloader) *Module {
 	return &Module{
 		cfg:        cfg,
 		repo:       repo,
+		eventRepo:  eventRepo,
 		soundcloud: sc,
 	}
 }
