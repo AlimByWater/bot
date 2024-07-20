@@ -37,9 +37,48 @@ func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEven
 
 func (m *Module) saveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	event.Timestamp = time.Now()
-	err := m.repo.SaveEvent(ctx, event)
+	
+	var payloadID int64
+	var additionalData map[string]interface{}
+
+	switch event.EventType {
+	case entity.EventTypeStartRadio:
+		payload := event.Payload.(map[string]interface{})
+		radioEvent := RadioEvent{
+			Duration: int(payload["duration"].(float64)),
+			TrackID:  payload["trackID"].(string),
+		}
+		var err error
+		payloadID, err = m.repo.SaveRadioEvent(ctx, radioEvent)
+		if err != nil {
+			return fmt.Errorf("failed to save radio event: %w", err)
+		}
+	case entity.EventTypeStartAnimation, entity.EventTypePauseAnimation, entity.EventTypeResumeAnimation, entity.EventTypeCloseAnimation:
+		payload := event.Payload.(map[string]interface{})
+		animationEvent := AnimationEvent{
+			AnimationID: payload["animationID"].(string),
+			Duration:    int(payload["duration"].(float64)),
+		}
+		var err error
+		payloadID, err = m.repo.SaveAnimationEvent(ctx, animationEvent)
+		if err != nil {
+			return fmt.Errorf("failed to save animation event: %w", err)
+		}
+	default:
+		additionalData = event.Payload.(map[string]interface{})
+	}
+
+	err := m.repo.SaveWebAppEvent(ctx, WebAppEvent{
+		EventType:      event.EventType,
+		UserID:         event.UserID,
+		TelegramUserID: event.TelegramUserID,
+		SessionID:      event.SessionID,
+		Timestamp:      event.Timestamp,
+		PayloadID:      payloadID,
+		AdditionalData: additionalData,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to save user event to repository: %w", err)
+		return fmt.Errorf("failed to save web app event: %w", err)
 	}
 	return nil
 }
