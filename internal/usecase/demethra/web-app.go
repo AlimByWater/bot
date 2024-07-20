@@ -41,36 +41,50 @@ func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEven
 
 // Implement handler methods for each event type
 func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement initialization logic
+	m.currentSession = event.SessionID
+	m.isRadioPlaying = false
+	m.isAnimationPaused = false
+	m.logger.Info("Web app initialized", slog.String("sessionID", event.SessionID))
 	return nil
 }
 
 func (m *Module) handleClosing(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement closing logic
+	m.currentSession = ""
+	m.isRadioPlaying = false
+	m.isAnimationPaused = false
+	m.logger.Info("Web app closed", slog.String("sessionID", event.SessionID))
 	return nil
 }
 
 func (m *Module) handleStartRadio(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement start radio logic
+	m.isRadioPlaying = true
+	m.logger.Info("Radio started", slog.String("sessionID", event.SessionID))
+	// TODO: Implement actual radio start logic
 	return nil
 }
 
 func (m *Module) handleStartAnimation(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement start animation logic
+	m.isAnimationPaused = false
+	m.logger.Info("Animation started", slog.String("sessionID", event.SessionID))
+	// TODO: Implement actual animation start logic
 	return nil
 }
 
 func (m *Module) handleMinimize(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement minimize logic
+	m.logger.Info("App minimized", slog.String("sessionID", event.SessionID))
+	// TODO: Implement any necessary logic for minimized state
 	return nil
 }
 
 func (m *Module) handleMaximize(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement maximize logic
+	m.logger.Info("App maximized", slog.String("sessionID", event.SessionID))
+	// TODO: Implement any necessary logic for maximized state
 	return nil
 }
 
 func (m *Module) handlePauseAnimation(ctx context.Context, event entity.WebAppEvent) error {
-	// TODO: Implement pause animation logic
+	m.isAnimationPaused = true
+	m.logger.Info("Animation paused", slog.String("sessionID", event.SessionID))
+	// TODO: Implement actual animation pause logic
 	return nil
 }

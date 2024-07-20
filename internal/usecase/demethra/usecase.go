@@ -32,13 +32,16 @@ type soundcloudDownloader interface {
 }
 
 type Module struct {
-	bot          *Bot
-	cfg          config
-	repo         repository
-	soundcloud   soundcloudDownloader
-	logger       *slog.Logger
-	prevTrack    entity.TrackInfo // Предыдущий трек
-	currentTrack entity.TrackInfo // Текущий трек
+	bot             *Bot
+	cfg             config
+	repo            repository
+	soundcloud      soundcloudDownloader
+	logger          *slog.Logger
+	prevTrack       entity.TrackInfo // Предыдущий трек
+	currentTrack    entity.TrackInfo // Текущий трек
+	currentSession  string           // Current web app session ID
+	isRadioPlaying  bool             // Flag to track if radio is playing
+	isAnimationPaused bool           // Flag to track if animation is paused
 }
 
 // New конструктор ...
