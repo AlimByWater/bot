@@ -9,51 +9,27 @@ import (
 	"time"
 )
 
-type userState struct {
-	isRadioPlaying    bool
-	isAnimationActive bool
-	isMinimized       bool
-	lastUpdated       time.Time
+type UserEvent struct {
+	UserID    int64
+	EventType string
+	Timestamp time.Time
+	Data      map[string]interface{}
 }
 
 type Repository interface {
-	SaveUserState(ctx context.Context, userID int64, state *userState) error
-	GetUserState(ctx context.Context, userID int64) (*userState, error)
+	SaveUserEvent(ctx context.Context, event UserEvent) error
+	GetUserEvents(ctx context.Context, userID int64, since time.Time) ([]UserEvent, error)
 }
 
 type Module struct {
-	// ... existing fields ...
-	userStates map[int64]*userState
-	stateMutex sync.RWMutex
-	repo       Repository
-	logger     *slog.Logger
+	repo   Repository
+	logger *slog.Logger
 }
 
 func NewModule(repo Repository, logger *slog.Logger) *Module {
-	m := &Module{
-		userStates: make(map[int64]*userState),
-		repo:       repo,
-		logger:     logger,
-	}
-	go m.startCacheCleaner()
-	return m
-}
-
-func (m *Module) startCacheCleaner() {
-	ticker := time.NewTicker(1 * time.Hour)
-	for range ticker.C {
-		m.cleanCache()
-	}
-}
-
-func (m *Module) cleanCache() {
-	m.stateMutex.Lock()
-	defer m.stateMutex.Unlock()
-
-	for userID, state := range m.userStates {
-		if time.Since(state.lastUpdated) > 1*time.Hour {
-			delete(m.userStates, userID)
-		}
+	return &Module{
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -82,85 +58,58 @@ func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEven
 	}
 }
 
-func (m *Module) getUserState(ctx context.Context, userID int64) (*userState, error) {
-	m.stateMutex.RLock()
-	state, exists := m.userStates[userID]
-	m.stateMutex.RUnlock()
-
-	if !exists {
-		var err error
-		state, err = m.repo.GetUserState(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user state from repository: %w", err)
-		}
-		if state == nil {
-			state = &userState{}
-		}
-		m.stateMutex.Lock()
-		m.userStates[userID] = state
-		m.stateMutex.Unlock()
+func (m *Module) saveUserEvent(ctx context.Context, userID int64, eventType string, data map[string]interface{}) error {
+	event := UserEvent{
+		UserID:    userID,
+		EventType: eventType,
+		Timestamp: time.Now(),
+		Data:      data,
 	}
-
-	return state, nil
-}
-
-func (m *Module) saveUserState(ctx context.Context, userID int64, state *userState) error {
-	state.lastUpdated = time.Now()
-	m.stateMutex.Lock()
-	m.userStates[userID] = state
-	m.stateMutex.Unlock()
-
-	err := m.repo.SaveUserState(ctx, userID, state)
+	err := m.repo.SaveUserEvent(ctx, event)
 	if err != nil {
-		return fmt.Errorf("failed to save user state to repository: %w", err)
+		return fmt.Errorf("failed to save user event to repository: %w", err)
 	}
 	return nil
 }
 
+func (m *Module) getUserState(ctx context.Context, userID int64) (map[string]interface{}, error) {
+	events, err := m.repo.GetUserEvents(ctx, userID, time.Now().Add(-24*time.Hour))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user events from repository: %w", err)
+	}
+
+	state := make(map[string]interface{})
+	for _, event := range events {
+		for k, v := range event.Data {
+			state[k] = v
+		}
+	}
+	return state, nil
+}
+
 func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Web app initialized", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state := &userState{} // Reset state
-	return m.saveUserState(ctx, event.TelegramUserID, state)
+	return m.saveUserEvent(ctx, event.TelegramUserID, "initialization", nil)
 }
 
 func (m *Module) handleClosing(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Web app closed", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	m.stateMutex.Lock()
-	delete(m.userStates, event.TelegramUserID)
-	m.stateMutex.Unlock()
-	return m.repo.SaveUserState(ctx, event.TelegramUserID, nil) // Clear state in repository
+	return m.saveUserEvent(ctx, event.TelegramUserID, "closing", nil)
 }
 
 func (m *Module) handleStartRadio(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Radio started", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state, err := m.getUserState(ctx, event.TelegramUserID)
-	if err != nil {
-		return err
-	}
-	state.isRadioPlaying = true
-	// TODO: Implement actual radio start logic for this user
-	return m.saveUserState(ctx, event.TelegramUserID, state)
+	return m.saveUserEvent(ctx, event.TelegramUserID, "start_radio", map[string]interface{}{"isRadioPlaying": true})
 }
 
 func (m *Module) handleStartAnimation(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Animation started", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state, err := m.getUserState(ctx, event.TelegramUserID)
-	if err != nil {
-		return err
-	}
-	state.isAnimationActive = true
-	// TODO: Implement actual animation start logic for this user
-	return m.saveUserState(ctx, event.TelegramUserID, state)
+	return m.saveUserEvent(ctx, event.TelegramUserID, "start_animation", map[string]interface{}{"isAnimationActive": true})
 }
 
 func (m *Module) handleMinimize(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("App minimized", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state, err := m.getUserState(ctx, event.TelegramUserID)
-	if err != nil {
-		return err
-	}
-	state.isMinimized = true
-	if err := m.saveUserState(ctx, event.TelegramUserID, state); err != nil {
+	if err := m.saveUserEvent(ctx, event.TelegramUserID, "minimize", map[string]interface{}{"isMinimized": true}); err != nil {
 		return err
 	}
 	return m.handlePauseAnimation(ctx, event)
@@ -168,12 +117,7 @@ func (m *Module) handleMinimize(ctx context.Context, event entity.WebAppEvent) e
 
 func (m *Module) handleMaximize(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("App maximized", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state, err := m.getUserState(ctx, event.TelegramUserID)
-	if err != nil {
-		return err
-	}
-	state.isMinimized = false
-	if err := m.saveUserState(ctx, event.TelegramUserID, state); err != nil {
+	if err := m.saveUserEvent(ctx, event.TelegramUserID, "maximize", map[string]interface{}{"isMinimized": false}); err != nil {
 		return err
 	}
 	return m.handleResumeAnimation(ctx, event)
@@ -181,22 +125,10 @@ func (m *Module) handleMaximize(ctx context.Context, event entity.WebAppEvent) e
 
 func (m *Module) handlePauseAnimation(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Animation paused", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state, err := m.getUserState(ctx, event.TelegramUserID)
-	if err != nil {
-		return err
-	}
-	state.isAnimationActive = false
-	// TODO: Implement actual animation pause logic for this user
-	return m.saveUserState(ctx, event.TelegramUserID, state)
+	return m.saveUserEvent(ctx, event.TelegramUserID, "pause_animation", map[string]interface{}{"isAnimationActive": false})
 }
 
 func (m *Module) handleResumeAnimation(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info("Animation resumed", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
-	state, err := m.getUserState(ctx, event.TelegramUserID)
-	if err != nil {
-		return err
-	}
-	state.isAnimationActive = true
-	// TODO: Implement actual animation resume logic for this user
-	return m.saveUserState(ctx, event.TelegramUserID, state)
+	return m.saveUserEvent(ctx, event.TelegramUserID, "resume_animation", map[string]interface{}{"isAnimationActive": true})
 }
