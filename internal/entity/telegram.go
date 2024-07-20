@@ -7,13 +7,14 @@ const (
 type EventType string
 
 const (
-	EventTypeInitApp        EventType = "init_app"
-	EventTypeCloseApp       EventType = "close_app"
-	EventTypeStartRadio     EventType = "start_radio"
-	EventTypeStartAnimation EventType = "start_animation"
-	EventTypeMinimizeApp    EventType = "minimize_app"
-	EventTypeMaximizeApp    EventType = "maximize_app"
-	EventTypePauseAnimation EventType = "pause_animation"
+	EventTypeInitApp         EventType = "init_app"
+	EventTypeCloseApp        EventType = "close_app"
+	EventTypeStartRadio      EventType = "start_radio"
+	EventTypeStartAnimation  EventType = "start_animation"
+	EventTypeMinimizeApp     EventType = "minimize_app"
+	EventTypeMaximizeApp     EventType = "maximize_app"
+	EventTypePauseAnimation  EventType = "pause_animation"
+	EventTypeResumeAnimation EventType = "resume_animation"
 )
 
 type WebAppEvent struct {
