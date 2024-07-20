@@ -1,7 +1,5 @@
 package entity
 
-import "github.com/google/uuid"
-
 const (
 	ChatTypeSuperGroup = "supergroup"
 )
@@ -22,5 +20,5 @@ type WebAppEvent struct {
 	EventType      EventType   `json:"event_type"`
 	TelegramUserID int64       `json:"telegram_user_id"`
 	Payload        interface{} `json:"payload"`
-	SessionID      uuid.UUID   `json:"session_id"`
+	SessionID      string      `json:"session_id"`
 }
