@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-type eventRepository interface {
-	SaveEvent(ctx context.Context, event entity.WebAppEvent) error
-	GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error)
-}
-
 func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramUserID, event.SessionID))
 
@@ -42,7 +37,7 @@ func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEven
 
 func (m *Module) saveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	event.Timestamp = time.Now()
-	err := m.eventRepo.SaveEvent(ctx, event)
+	err := m.repo.SaveEvent(ctx, event)
 	if err != nil {
 		return fmt.Errorf("failed to save user event to repository: %w", err)
 	}

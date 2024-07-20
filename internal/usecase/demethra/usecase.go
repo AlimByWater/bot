@@ -6,6 +6,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
+	"time"
 )
 
 type config interface {
@@ -26,6 +27,9 @@ type repository interface {
 	GetPlayedCountByID(ctx context.Context, songID int) (int, error)
 	GetPlayedCountByURL(ctx context.Context, url string) (int, error)
 	GetAllPlaysByURL(ctx context.Context, url string) ([]entity.SongPlay, error)
+
+	SaveEvent(ctx context.Context, event entity.WebAppEvent) error
+	GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error)
 }
 type soundcloudDownloader interface {
 	DownloadTrackByURL(ctx context.Context, trackUrl string, info entity.TrackInfo) (string, error)
@@ -35,7 +39,6 @@ type Module struct {
 	bot          *Bot
 	cfg          config
 	repo         repository
-	eventRepo    eventRepository
 	soundcloud   soundcloudDownloader
 	logger       *slog.Logger
 	prevTrack    entity.TrackInfo // Предыдущий трек
@@ -43,11 +46,10 @@ type Module struct {
 }
 
 // New конструктор ...
-func New(cfg config, repo repository, eventRepo eventRepository, sc soundcloudDownloader) *Module {
+func New(cfg config, repo repository, sc soundcloudDownloader) *Module {
 	return &Module{
 		cfg:        cfg,
 		repo:       repo,
-		eventRepo:  eventRepo,
 		soundcloud: sc,
 	}
 }
