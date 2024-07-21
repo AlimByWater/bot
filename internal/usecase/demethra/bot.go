@@ -120,6 +120,11 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		}
 	}()
 
+	if update.SentFrom() != nil {
+		user := update.SentFrom()
+
+	}
+
 	// для логов
 	// если не проверять пустое ли сообщение то можно словить панику
 	var attributes []slog.Attr

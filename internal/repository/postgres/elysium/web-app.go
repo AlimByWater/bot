@@ -3,31 +3,65 @@ package elysium
 import (
 	"arimadj-helper/internal/entity"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 )
 
 func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
-	query := `
+	err := r.execTX(ctx, func(q *queries) error {
+		if event.UserID == 0 {
+			userID, err := q.getUserIDByTelegramUserID(ctx, event.TelegramUserID)
+			if err != nil {
+				return fmt.Errorf("failed to get user ID: %w", err)
+			}
+			event.UserID = userID
+		}
+
+		query := `
 		INSERT INTO elysium.web_app_events 
 		(event_type, user_id, telegram_user_id, payload, session_id, timestamp)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
-	_, err := r.db.ExecContext(ctx, query,
-		event.EventType,
-		event.UserID,
-		event.TelegramUserID,
-		event.Payload,
-		event.SessionID,
-		event.Timestamp,
-	)
+		_, err := r.db.ExecContext(ctx, query,
+			event.EventType,
+			event.UserID,
+			event.TelegramUserID,
+			event.Payload,
+			event.SessionID,
+			event.Timestamp,
+		)
+
+		if err != nil {
+			return fmt.Errorf("failed to save web app event: %w", err)
+		}
+
+		return nil
+	})
 
 	if err != nil {
-		return fmt.Errorf("failed to save web app event: %w", err)
+		return fmt.Errorf("exec tx: %w", err)
 	}
 
 	return nil
+}
+
+func (q *queries) getUserIDByTelegramUserID(ctx context.Context, telegramUserID int64) (int, error) {
+	query := `
+		SELECT id FROM elysium.users WHERE telegram_user_id = $1
+	`
+
+	var userID int
+	err := q.db.QueryRowContext(ctx, query, telegramUserID).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("user not found for telegram_user_id %d", telegramUserID)
+		}
+		return 0, fmt.Errorf("failed to query user ID: %w", err)
+	}
+
+	return userID, nil
 }
 
 func (r *Repository) GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64) ([]entity.WebAppEvent, error) {
