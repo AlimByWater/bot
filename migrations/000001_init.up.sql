@@ -51,14 +51,15 @@ CREATE INDEX IF NOT EXISTS idx_song_plays_song_id ON elysium.song_plays(song_id)
 CREATE TABLE IF NOT EXISTS elysium.web_app_events (
     id SERIAL PRIMARY KEY,
     event_type VARCHAR(50) NOT NULL,
-    user_id INT,
-    telegram_user_id BIGINT NOT NULL,
+    user_id INT REFERENCES elysium.users(id),
+    telegram_user_id BIGINT NOT NULL REFERENCES elysium.users(telegram_id),
     payload JSONB,
     session_id VARCHAR(255) NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Создание индексов для быстрого поиска
+CREATE INDEX IF NOT EXISTS idx_web_app_events_user_id ON elysium.web_app_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_web_app_events_telegram_user_id ON elysium.web_app_events(telegram_user_id);
 CREATE INDEX IF NOT EXISTS idx_web_app_events_session_id ON elysium.web_app_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_web_app_events_event_type ON elysium.web_app_events(event_type);
