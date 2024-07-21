@@ -3,9 +3,9 @@ package elysium
 import (
 	"arimadj-helper/internal/entity"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
@@ -47,24 +47,7 @@ func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEve
 	return nil
 }
 
-func (q *queries) getUserIDByTelegramUserID(ctx context.Context, telegramUserID int64) (int, error) {
-	query := `
-		SELECT id FROM elysium.users WHERE telegram_user_id = $1
-	`
-
-	var userID int
-	err := q.db.QueryRowContext(ctx, query, telegramUserID).Scan(&userID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("user not found for telegram_user_id %d", telegramUserID)
-		}
-		return 0, fmt.Errorf("failed to query user ID: %w", err)
-	}
-
-	return userID, nil
-}
-
-func (r *Repository) GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64) ([]entity.WebAppEvent, error) {
+func (r *Repository) GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error) {
 	query := `
 		SELECT event_type, user_id, telegram_user_id, payload, session_id, timestamp
 		FROM elysium.web_app_events

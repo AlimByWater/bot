@@ -121,8 +121,18 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}()
 
 	if update.SentFrom() != nil {
-		user := update.SentFrom()
+		tgUser := update.SentFrom()
+		user := entity.User{
+			TelegramID:       tgUser.ID,
+			TelegramUsername: tgUser.UserName,
+			Firstname:        tgUser.FirstName,
+			DateCreate:       time.Now(),
+		}
 
+		_, err := b.repo.CreateOrUpdateUser(ctx, user)
+		if err != nil {
+			b.logger.Error("create user", slog.StringValue(err.Error()), slog.Int64("user_id", tgUser.ID))
+		}
 	}
 
 	// для логов

@@ -1,8 +1,11 @@
 package api_methods
 
-import "arimadj-helper/internal/entity"
+import (
+	"arimadj-helper/internal/entity"
+	"context"
+)
 
 type botUC interface {
 	NextSong(track entity.TrackInfo)
-	ProcessWebAppEvent(event entity.WebAppEvent) error
+	ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error
 }

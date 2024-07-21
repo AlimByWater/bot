@@ -3,10 +3,11 @@ package entity
 import "time"
 
 type User struct {
-	ID         int       `db:"id" json:"id"`
-	Username   string    `db:"username" json:"username"`
-	Firstname  string    `db:"firstname" json:"firstname"`
-	DateCreate time.Time `db:"date_create" json:"date_create"`
+	ID               int       `db:"id" json:"id"`
+	TelegramID       int64     `db:"telegram_id" json:"telegram_id"`
+	TelegramUsername string    `db:"telegram_username" json:"username"`
+	Firstname        string    `db:"firstname" json:"firstname"`
+	DateCreate       time.Time `db:"date_create" json:"date_create"`
 }
 
 // Song represents a song in the database

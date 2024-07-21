@@ -11,6 +11,13 @@ import (
 func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramUserID, event.SessionID))
 
+	user, err := m.repo.CreateOrUpdateUser(ctx, entity.User{TelegramID: event.TelegramUserID, DateCreate: time.Now()})
+	if err != nil {
+		m.logger.Debug(fmt.Sprintf("Failed to create or update user: %v", err), slog.String("method", "ProcessWebAppEvent"))
+	} else {
+		m.logger.Debug(fmt.Sprintf("User created: id=%v; telegram_id=%v", user.ID, user.TelegramID), slog.String("method", "ProcessWebAppEvent"))
+	}
+
 	switch event.EventType {
 	case entity.EventTypeInitApp:
 		return m.handleInitialization(ctx, event)

@@ -28,6 +28,8 @@ type repository interface {
 	GetPlayedCountByURL(ctx context.Context, url string) (int, error)
 	GetAllPlaysByURL(ctx context.Context, url string) ([]entity.SongPlay, error)
 
+	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
+
 	SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error
 	GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error)
 }
