@@ -10,23 +10,16 @@ import (
 
 func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	err := r.execTX(ctx, func(q *queries) error {
-		if event.UserID == 0 {
-			userID, err := q.getUserIDByTelegramUserID(ctx, event.TelegramUserID)
-			if err != nil {
-				return fmt.Errorf("failed to get user ID: %w", err)
-			}
-			event.UserID = userID
-		}
-
 		query := `
-		INSERT INTO elysium.web_app_events 
-		(event_type, user_id, telegram_user_id, payload, session_id, timestamp)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
+INSERT INTO elysium.web_app_events
+(event_type, user_id, telegram_user_id, payload, session_id, timestamp)
+SELECT $1, u.id, u.telegram_id, $3,  $4, $5
+FROM users u
+WHERE telegram_id = $2
+`
 
 		_, err := r.db.ExecContext(ctx, query,
 			event.EventType,
-			event.UserID,
 			event.TelegramUserID,
 			event.Payload,
 			event.SessionID,

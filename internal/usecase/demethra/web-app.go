@@ -10,21 +10,10 @@ import (
 	initdata "github.com/telegram-mini-apps/init-data-golang"
 )
 
-type Module struct {
-	// existing fields
-	botToken string
-}
-
 func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramUserID, event.SessionID))
 
 	switch event.EventType {
-	case entity.EventTypeInitApp:
-		rawInitData, ok := event.Payload.(string)
-		if !ok {
-			return fmt.Errorf("invalid payload for init event")
-		}
-		return m.handleInitialization(ctx, event, rawInitData)
 	case entity.EventTypeInitApp:
 		return m.handleInitialization(ctx, event)
 	case entity.EventTypeCloseApp:
@@ -57,24 +46,27 @@ func (m *Module) saveWebAppEvent(ctx context.Context, event entity.WebAppEvent) 
 	return nil
 }
 
-func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEvent, rawInitData string) error {
-	m.logger.Info("Web app initialized", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
+func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEvent) error {
+	m.logger.Info("Web app initialized", slog.String("sessionID", event.SessionID), slog.Int64("telegram_id", event.TelegramUserID))
 
-	// Validate init data
-	err := initdata.Validate(rawInitData, m.botToken, 24*time.Hour)
+	rawInitData, ok := event.Payload.(string)
+	if !ok {
+		return fmt.Errorf("invalid payload for init event")
+	}
+
+	err := initdata.Validate(rawInitData, m.cfg.GetBotToken(), 24*time.Hour)
 	if err != nil {
 		m.logger.Error("Invalid init data", slog.String("error", err.Error()))
 		return fmt.Errorf("invalid init data: %w", err)
 	}
 
-	// Parse init data
 	parsedData, err := initdata.Parse(rawInitData)
 	if err != nil {
 		m.logger.Error("Failed to parse init data", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to parse init data: %w", err)
 	}
 
-	// Use parsed data to create or update user
+	// создаем или обновляем пользователя на всякий случай
 	user, err := m.repo.CreateOrUpdateUser(ctx, entity.User{
 		TelegramID:       parsedData.User.ID,
 		TelegramUsername: parsedData.User.Username,

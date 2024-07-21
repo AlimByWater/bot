@@ -14,9 +14,9 @@ func TestSaveWebAppEventSucceeds(t *testing.T) {
 	defer teardown(t)
 
 	event := entity.WebAppEvent{
-		EventType:      entity.EventTypeResumeAnimation,
-		UserID:         1,
-		TelegramUserID: 123456789,
+		EventType: entity.EventTypeResumeAnimation,
+		//UserID:         1,
+		TelegramUserID: 6871255048,
 		Payload:        json.RawMessage(`{"key":"value"}`),
 		SessionID:      "session_123",
 		Timestamp:      time.Now(),
