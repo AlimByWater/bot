@@ -16,23 +16,33 @@ type User struct {
 }
 
 func (r *Repository) CreateUser(ctx context.Context, username, email string) (*User, error) {
-	query := `
-		INSERT INTO users (id, username, email, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, username, email, created_at, updated_at
-	`
+	var user *User
 
-	user := &User{
-		ID:        uuid.New(),
-		Username:  username,
-		Email:     email,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+	err := r.execTx(ctx, func(tx *sqlx.Tx) error {
+		query := `
+			INSERT INTO users (id, username, email, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING id, username, email, created_at, updated_at
+		`
 
-	err := r.db.QueryRowContext(ctx, query,
-		user.ID, user.Username, user.Email, user.CreatedAt, user.UpdatedAt,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+		user = &User{
+			ID:        uuid.New(),
+			Username:  username,
+			Email:     email,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		err := tx.QueryRowContext(ctx, query,
+			user.ID, user.Username, user.Email, user.CreatedAt, user.UpdatedAt,
+		).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	if err != nil {
 		return nil, err
