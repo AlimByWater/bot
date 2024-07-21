@@ -6,12 +6,39 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	initdata "github.com/telegram-mini-apps/init-data-golang"
 )
 
-func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
+type Module struct {
+	// existing fields
+	botToken string
+}
+
+func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent, rawInitData string) error {
 	m.logger.Info(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramUserID, event.SessionID))
 
-	user, err := m.repo.CreateOrUpdateUser(ctx, entity.User{TelegramID: event.TelegramUserID, DateCreate: time.Now()})
+	// Validate init data
+	err := initdata.Validate(rawInitData, m.botToken, 24*time.Hour)
+	if err != nil {
+		m.logger.Error("Invalid init data", slog.String("error", err.Error()))
+		return fmt.Errorf("invalid init data: %w", err)
+	}
+
+	// Parse init data
+	parsedData, err := initdata.Parse(rawInitData)
+	if err != nil {
+		m.logger.Error("Failed to parse init data", slog.String("error", err.Error()))
+		return fmt.Errorf("failed to parse init data: %w", err)
+	}
+
+	// Use parsed data to create or update user
+	user, err := m.repo.CreateOrUpdateUser(ctx, entity.User{
+		TelegramID:       parsedData.User.ID,
+		TelegramUsername: parsedData.User.Username,
+		Firstname:        parsedData.User.FirstName,
+		DateCreate:       time.Now(),
+	})
 	if err != nil {
 		m.logger.Debug(fmt.Sprintf("Failed to create or update user: %v", err), slog.String("method", "ProcessWebAppEvent"))
 	} else {
