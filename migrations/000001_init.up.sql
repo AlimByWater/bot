@@ -1,7 +1,7 @@
 -- Создание таблицы пользователей
 CREATE TABLE IF NOT EXISTS elysium.users (
                        id SERIAL PRIMARY KEY,
-                       telegram_id bigint,
+                       telegram_id bigint UNIQUE ,
                        telegram_username VARCHAR(255),
                        firstname VARCHAR(255),
                        date_create TIMESTAMP DEFAULT CURRENT_TIMESTAMP

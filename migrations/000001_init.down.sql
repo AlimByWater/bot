@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS elysium.web_app_events;
+
 -- Удаление таблицы воспроизведения песен
 DROP TABLE IF EXISTS elysium.song_plays;
 
