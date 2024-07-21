@@ -15,37 +15,16 @@ type Module struct {
 	botToken string
 }
 
-func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent, rawInitData string) error {
+func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	m.logger.Info(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramUserID, event.SessionID))
 
-	// Validate init data
-	err := initdata.Validate(rawInitData, m.botToken, 24*time.Hour)
-	if err != nil {
-		m.logger.Error("Invalid init data", slog.String("error", err.Error()))
-		return fmt.Errorf("invalid init data: %w", err)
-	}
-
-	// Parse init data
-	parsedData, err := initdata.Parse(rawInitData)
-	if err != nil {
-		m.logger.Error("Failed to parse init data", slog.String("error", err.Error()))
-		return fmt.Errorf("failed to parse init data: %w", err)
-	}
-
-	// Use parsed data to create or update user
-	user, err := m.repo.CreateOrUpdateUser(ctx, entity.User{
-		TelegramID:       parsedData.User.ID,
-		TelegramUsername: parsedData.User.Username,
-		Firstname:        parsedData.User.FirstName,
-		DateCreate:       time.Now(),
-	})
-	if err != nil {
-		m.logger.Debug(fmt.Sprintf("Failed to create or update user: %v", err), slog.String("method", "ProcessWebAppEvent"))
-	} else {
-		m.logger.Debug(fmt.Sprintf("User created: id=%v; telegram_id=%v", user.ID, user.TelegramID), slog.String("method", "ProcessWebAppEvent"))
-	}
-
 	switch event.EventType {
+	case entity.EventTypeInitApp:
+		rawInitData, ok := event.Payload.(string)
+		if !ok {
+			return fmt.Errorf("invalid payload for init event")
+		}
+		return m.handleInitialization(ctx, event, rawInitData)
 	case entity.EventTypeInitApp:
 		return m.handleInitialization(ctx, event)
 	case entity.EventTypeCloseApp:
@@ -78,8 +57,36 @@ func (m *Module) saveWebAppEvent(ctx context.Context, event entity.WebAppEvent) 
 	return nil
 }
 
-func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEvent) error {
+func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEvent, rawInitData string) error {
 	m.logger.Info("Web app initialized", slog.String("sessionID", event.SessionID), slog.Int64("userID", event.TelegramUserID))
+
+	// Validate init data
+	err := initdata.Validate(rawInitData, m.botToken, 24*time.Hour)
+	if err != nil {
+		m.logger.Error("Invalid init data", slog.String("error", err.Error()))
+		return fmt.Errorf("invalid init data: %w", err)
+	}
+
+	// Parse init data
+	parsedData, err := initdata.Parse(rawInitData)
+	if err != nil {
+		m.logger.Error("Failed to parse init data", slog.String("error", err.Error()))
+		return fmt.Errorf("failed to parse init data: %w", err)
+	}
+
+	// Use parsed data to create or update user
+	user, err := m.repo.CreateOrUpdateUser(ctx, entity.User{
+		TelegramID:       parsedData.User.ID,
+		TelegramUsername: parsedData.User.Username,
+		Firstname:        parsedData.User.FirstName,
+		DateCreate:       time.Now(),
+	})
+	if err != nil {
+		m.logger.Debug(fmt.Sprintf("Failed to create or update user: %v", err), slog.String("method", "handleInitialization"))
+	} else {
+		m.logger.Debug(fmt.Sprintf("User created: id=%v; telegram_id=%v", user.ID, user.TelegramID), slog.String("method", "handleInitialization"))
+	}
+
 	return m.saveWebAppEvent(ctx, event)
 }
 
