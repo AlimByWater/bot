@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"log/slog"
@@ -54,10 +55,29 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 		}
 	}
 
-	m.server = &http.Server{
-		Addr:    m.cfg.GetPort(),
-		Handler: router,
+	var certFilePath = "~/ssl/cert.pem"
+	var keyFilePath = "~/ssl/key.pem"
+
+	serverTLSCert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
+	if err != nil {
+		m.logger.Warn("Error loading certificate and key file", slog.String("err", err.Error()))
+		m.server = &http.Server{
+			Addr:    m.cfg.GetPort(),
+			Handler: router,
+		}
+
+	} else {
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{serverTLSCert},
+		}
+
+		m.server = &http.Server{
+			Addr:      m.cfg.GetPort(),
+			Handler:   router,
+			TLSConfig: tlsConfig,
+		}
 	}
+
 	return
 }
 
