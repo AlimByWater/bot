@@ -11,7 +11,7 @@ type webAppEvent struct {
 }
 
 func (ws webAppEvent) method() string {
-	return http.MethodGet
+	return http.MethodPost
 }
 
 func (wae webAppEvent) path() string {
