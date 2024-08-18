@@ -36,6 +36,9 @@ type Module struct {
 	logger *slog.Logger
 	cfg    config
 	groups []group
+
+	certFilePath string
+	keyFilePath  string
 }
 
 // Init инициализатор контролера
@@ -56,19 +59,19 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 		}
 	}
 
-	var certFilePath string
-	var keyFilePath string
-
 	switch runtime.GOOS {
 	case "windows":
-		certFilePath = `C:\ssl\cert.pem`
-		keyFilePath = `C:\ssl\key.pem`
-	default:
-		certFilePath = "/app/ssl/cert.pem"
-		keyFilePath = "/app/ssl/key.pem"
+		m.certFilePath = `C:\ssl\cert.pem`
+		m.keyFilePath = `C:\ssl\key.pem`
+	case "linux":
+		m.certFilePath = "/app/ssl/cert.pem"
+		m.keyFilePath = "/app/ssl/key.pem"
+	case "darwin":
+		m.certFilePath = "/Users/admin/ssl/cert.pem"
+		m.keyFilePath = "/Users/admin/ssl/key.pem"
 	}
 
-	serverTLSCert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
+	serverTLSCert, err := tls.LoadX509KeyPair(m.certFilePath, m.keyFilePath)
 	if err != nil {
 		m.logger.Warn("Error loading certificate and key file", slog.String("err", err.Error()))
 		m.server = &http.Server{
@@ -96,7 +99,7 @@ func (m *Module) Run() {
 }
 
 func (m *Module) run() {
-	if err := m.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := m.server.ListenAndServeTLS(m.certFilePath, m.keyFilePath); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		m.logger.Error("Listen and serve", slog.String("err", err.Error()))
 	}
 	m.stop()
