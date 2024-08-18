@@ -1,4 +1,4 @@
-package api_methods
+package tampermonkey_methods
 
 import (
 	"arimadj-helper/internal/entity"

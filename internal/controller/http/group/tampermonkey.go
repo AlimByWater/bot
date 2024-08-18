@@ -10,31 +10,31 @@ type apiKey interface {
 }
 
 // NewGroup создает группу хендлеров
-func NewGroup(ak apiKey, h ...func() (method string, path string, handlerFunc gin.HandlerFunc)) Api {
-	return Api{
+func NewGroup(ak apiKey, h ...func() (method string, path string, handlerFunc gin.HandlerFunc)) Tampermonkey {
+	return Tampermonkey{
 		apiKey:   ak,
 		handlers: h,
 	}
 }
 
-// Api ...
-type Api struct {
+// Tampermonkey ...
+type Tampermonkey struct {
 	apiKey   apiKey
 	handlers []func() (method string, path string, handlerFunc gin.HandlerFunc)
 }
 
 // Path ...
-func (Api) Path() string {
-	return "/api"
+func (Tampermonkey) Path() string {
+	return "/tampermonkey"
 }
 
 // Handlers ...
-func (g Api) Handlers() []func() (method string, path string, handlerFunc gin.HandlerFunc) {
+func (g Tampermonkey) Handlers() []func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return g.handlers
 }
 
 // Auth миддлвейр авторизаций
-func (g Api) Auth() gin.HandlerFunc {
+func (g Tampermonkey) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetHeader("x-api-key") != g.apiKey.GetApiKey() {
 			//logger.Error("😈unauthorized access", slog.String("from IP", c.ClientIP()), slog.String("remote IP", c.RemoteIP()))

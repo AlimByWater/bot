@@ -9,8 +9,8 @@ import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/controller/http"
 	api "arimadj-helper/internal/controller/http/group"
-	"arimadj-helper/internal/controller/http/group/api_methods"
 	"arimadj-helper/internal/controller/http/group/auth_methods"
+	"arimadj-helper/internal/controller/http/group/tampermonkey_methods"
 	"arimadj-helper/internal/controller/http/group/web-app_methods"
 	"arimadj-helper/internal/controller/scheduler"
 	"arimadj-helper/internal/controller/scheduler/scheduler_job"
@@ -62,7 +62,7 @@ import (
 //	/************ CONTROLLER *************/
 //	httpModule := http.New(httpCfg,
 //		api.NewGroup(nil,
-//			api_methods.NewSubmitMethod(demethraUC),
+//			tampermonkey_methods.NewSubmitMethod(demethraUC),
 //		),
 //	)
 //
@@ -138,7 +138,7 @@ func main() {
 			web_app_methods.NewWebsocketEvent(usersUC),
 		),
 		api.NewGroup(authCfg,
-			api_methods.NewSubmitMethod(demethraUC),
+			tampermonkey_methods.NewSubmitMethod(demethraUC),
 		),
 	)
 
