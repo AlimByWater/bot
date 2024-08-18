@@ -1,7 +1,7 @@
 {
   "Http": {
     "Mode": "release",
-    "Port": ":9443"
+    "Port": ":443"
   },
   "Demethra": {
     "BotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
