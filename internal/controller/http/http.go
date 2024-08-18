@@ -55,8 +55,8 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 		}
 	}
 
-	var certFilePath = "~/ssl/cert.pem"
-	var keyFilePath = "~/ssl/key.pem"
+	var certFilePath = "/app/ssl/cert.pem"
+	var keyFilePath = "/app/ssl/key.pem"
 
 	serverTLSCert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
 	if err != nil {
