@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
+	"runtime"
 	"time"
 )
 
@@ -55,8 +56,17 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 		}
 	}
 
-	var certFilePath = "/app/ssl/cert.pem"
-	var keyFilePath = "/app/ssl/key.pem"
+	var certFilePath string
+	var keyFilePath string
+
+	switch runtime.GOOS {
+	case "windows":
+		certFilePath = `C:\ssl\cert.pem`
+		keyFilePath = `C:\ssl\key.pem`
+	default:
+		certFilePath = "/app/ssl/cert.pem"
+		keyFilePath = "/app/ssl/key.pem"
+	}
 
 	serverTLSCert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
 	if err != nil {
