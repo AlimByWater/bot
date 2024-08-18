@@ -7,5 +7,6 @@ import (
 
 type botUC interface {
 	NextSong(track entity.TrackInfo)
-	ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) error
+	ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent)
+	ProcessWebAppState(ctx context.Context, event entity.WebAppState)
 }

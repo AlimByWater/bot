@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -12,15 +13,13 @@ func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEve
 	err := r.execTX(ctx, func(q *queries) error {
 		query := `
 INSERT INTO elysium.web_app_events
-(event_type, user_id, telegram_user_id, payload, session_id, timestamp)
-SELECT $1, u.id, u.telegram_id, $3,  $4, $5
-FROM users u
-WHERE telegram_id = $2
+(event_type, telegram_id, payload, session_id, timestamp)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 		_, err := r.db.ExecContext(ctx, query,
 			event.EventType,
-			event.TelegramUserID,
+			event.TelegramID,
 			event.Payload,
 			event.SessionID,
 			event.Timestamp,
@@ -40,11 +39,42 @@ WHERE telegram_id = $2
 	return nil
 }
 
+func (r *Repository) SaveWebAppEvents(ctx context.Context, events []entity.WebAppEvent) error {
+	err := r.execTX(ctx, func(q *queries) error {
+
+		// placeholderCount
+		pC := 0
+		valueStrings := make([]string, 0, len(events))
+		valueArgs := make([]interface{}, 0, len(events)*5)
+		for _, e := range events {
+			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", pC+1, pC+2, pC+3, pC+4, pC+5))
+			valueArgs = append(valueArgs, e.EventType, e.TelegramID, e.Payload, e.SessionID, e.Timestamp)
+			pC += 5
+		}
+
+		query := fmt.Sprintf(`
+INSERT INTO elysium.web_app_events (event_type, telegram_id, payload, session_id, timestamp)
+VALUES %s`, strings.Join(valueStrings, ","))
+
+		_, err := r.db.ExecContext(ctx, query, valueArgs...)
+		if err != nil {
+			return fmt.Errorf("failed to save web app events: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("exec tx: %w", err)
+	}
+
+	return nil
+}
+
 func (r *Repository) GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error) {
 	query := `
-		SELECT event_type, user_id, telegram_user_id, payload, session_id, timestamp
+		SELECT event_type, telegram_id, payload, session_id, timestamp
 		FROM elysium.web_app_events
-		WHERE telegram_user_id = $1
+		WHERE telegram_id = $1
 		ORDER BY timestamp DESC
 	`
 
@@ -61,8 +91,7 @@ func (r *Repository) GetEventsByTelegramUserID(ctx context.Context, telegramUser
 
 		err := rows.Scan(
 			&event.EventType,
-			&event.UserID,
-			&event.TelegramUserID,
+			&event.TelegramID,
 			&payloadJSON,
 			&event.SessionID,
 			&event.Timestamp,

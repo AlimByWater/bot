@@ -1,6 +1,7 @@
 package zhttp
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,18 +43,25 @@ func New(timeout time.Duration, proxy string) (*Zhttp, error) {
 // Get ...
 func (zhttp *Zhttp) Get(url string) (int, []byte, error) {
 	var code int
-	req, err := http.Get(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, nil, fmt.Errorf("new request: %w", err)
+	}
+
+	resp, err := zhttp.client.Do(req)
 	if err != nil {
 		return 0, nil, err
 	}
 	// response body
-	body, err := io.ReadAll(req.Body)
-	req.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
 		return 0, nil, fmt.Errorf("reaad body: %w", err)
 	}
 
-	code = req.StatusCode
+	code = resp.StatusCode
 
 	return code, body, nil
 }

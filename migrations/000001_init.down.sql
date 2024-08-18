@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS elysium.user_to_song_history;
+
+DROP TABLE IF EXISTS elysium.user_session_durations;
+
 DROP TABLE IF EXISTS elysium.web_app_events;
 
 -- Удаление таблицы воспроизведения песен

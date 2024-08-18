@@ -19,7 +19,6 @@ type group interface {
 type config interface {
 	GetPort() string
 	GetMode() string
-	GetApiKey() string
 }
 
 // New коструктор http контролера
@@ -45,7 +44,7 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 
 	gin.SetMode(m.cfg.GetMode())
 	router := gin.New()
-	router.Use(ginRecovery(m.logger), cors(m.logger), apiKeyAuthMiddleware(m.logger, m.cfg.GetApiKey()))
+	router.Use(ginRecovery(m.logger), cors(m.logger))
 
 	// добавляем группы эндпоинтов
 	for _, g := range m.groups {

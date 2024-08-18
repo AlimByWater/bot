@@ -10,10 +10,17 @@ import (
 	"arimadj-helper/internal/controller/http"
 	api "arimadj-helper/internal/controller/http/group"
 	"arimadj-helper/internal/controller/http/group/api_methods"
+	"arimadj-helper/internal/controller/http/group/auth_methods"
+	"arimadj-helper/internal/controller/http/group/web-app_methods"
+	"arimadj-helper/internal/controller/scheduler"
+	"arimadj-helper/internal/controller/scheduler/scheduler_job"
 	"arimadj-helper/internal/repository/postgres"
 	"arimadj-helper/internal/repository/postgres/elysium"
+	"arimadj-helper/internal/repository/redis"
 	"arimadj-helper/internal/repository/soundcloud"
+	"arimadj-helper/internal/usecase/auth"
 	"arimadj-helper/internal/usecase/demethra"
+	"arimadj-helper/internal/usecase/users"
 	"log/slog"
 	"os"
 )
@@ -96,10 +103,15 @@ func main() {
 	demethraCfg := config_module.NewDemethraConfig()
 	postgresCfg := config_module.NewPostgresConfig()
 	soundcloudCfg := config_module.NewSoundcloudConfig()
+	redisCfg := config_module.NewRedisConfig()
+	authCfg := config_module.NewAuthConfig()
 	configModule := config.New(
 		httpCfg,
 		demethraCfg,
 		postgresCfg,
+		soundcloudCfg,
+		redisCfg,
+		authCfg,
 	)
 
 	/************ REPOSITORY *************/
@@ -107,30 +119,51 @@ func main() {
 	sc := soundcloud.New(soundcloudCfg)
 
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
+	redisCache := redis.New(redisCfg)
 
 	/************ USECASE *************/
-	demethraUC := demethra.New(demethraCfg, elysiumRepo, sc)
+	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, sc)
+	authUC := auth.NewModule(authCfg, elysiumRepo)
+	usersUC := users.New(redisCache)
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
-		api.NewGroup(nil,
+		api.NewAuthGroup(authUC,
+			auth_methods.NewGenerateMethod(authUC),
+			auth_methods.NewRefreshMethod(authUC),
+		),
+		api.NewWebAppGroup(authUC,
+			web_app_methods.NewWebAppState(demethraUC),
+			web_app_methods.NewWebAppEvent(demethraUC),
+			web_app_methods.NewWebsocketEvent(usersUC),
+		),
+		api.NewGroup(authCfg,
 			api_methods.NewSubmitMethod(demethraUC),
 		),
+	)
+
+	activeListenerCheckJob := scheduler_job.NewListenerCheckJob(demethraUC)
+
+	schedularModule := scheduler.New(nil,
+		activeListenerCheckJob,
 	)
 
 	/************ APP *************/
 
 	app := application.New(loggerModule, configModule, envModule)
 
-	app.AddRepositories(postgresql, sc)
+	app.AddRepositories(postgresql, redisCache, sc)
 
 	app.AddUsecases(
 		demethraUC,
+		authUC,
+		usersUC,
 	)
 
 	// добавляем контроллеры
 	app.AddControllers(
 		httpModule,
+		schedularModule,
 	)
 
 	app.Run()

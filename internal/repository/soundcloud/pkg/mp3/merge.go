@@ -154,7 +154,7 @@ func (m *Module) download(in interface{}) {
 	statusCode, data, err := m.Zhttp.Get(segment.URI)
 	if err != nil {
 		red := color.New(color.FgRed).SprintFunc()
-		fmt.Printf("%s Download failed: %s\n", red("[-]"), err)
+		fmt.Printf("%s Download failed: %s %s\n", red("[-]"), err, segment.URI)
 	}
 
 	if len(data) == 0 {

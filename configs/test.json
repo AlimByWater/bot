@@ -1,8 +1,7 @@
 {
   "Http": {
     "Mode": "release",
-    "Port": ":8080",
-    "ApiKey": "1234515151"
+    "Port": ":8080"
   },
   "Demethra": {
     "BotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
@@ -27,5 +26,15 @@
   "Soundcloud": {
     "ProxyURL": "http://fi6dlzgv41-corp.mobile.res-country-TR-state-325361-city-325363-hold-session-session-667e8de518597:Nb1PdLCwQEBD3vld@93.190.138.107:9999",
     "DownloadPath": "/Users/admin/go/src/arimadj-helper/"
+  },
+  "Redis": {
+    "Host": "91.206.15.29",
+    "Port": 6379,
+    "Password": "OJocasd923sa0d4"
+  },
+  "Auth": {
+    "Secret": "test-secret",
+    "TelegramBotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
+    "ApiKey": "1234515151"
   }
 }

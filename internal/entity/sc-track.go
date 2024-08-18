@@ -1,6 +1,10 @@
 package entity
 
-import "strings"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 // TrackInfo структура трека
 type TrackInfo struct {
@@ -27,6 +31,11 @@ func (ti *TrackInfo) Format() TrackInfo {
 		t.Tags = append(t.Tags, formatEscapeChars(tag))
 	}
 	return t
+}
+
+func (ti *TrackInfo) PrintIndent() {
+	j, _ := json.MarshalIndent(ti, "", "  ")
+	fmt.Println(string(j))
 }
 
 // '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'

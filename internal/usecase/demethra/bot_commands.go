@@ -92,24 +92,10 @@ func (b *Bot) cmdDownloadInline() CommandFunc {
 		}
 		url := "https://soundcloud.com/" + data[1]
 
-		// Получите информацию о песне из вашего репозитория
 		song, err := b.repo.SongByUrl(ctx, url)
 		if err != nil {
 			return fmt.Errorf("get song by URL: %w", err)
 		}
-
-		// Отправьте сообщение пользователю, что песня была успешно скачана
-		//forwardMsg := tgbotapi.ForwardMessagesConfig{
-		//	BaseChat: tgbotapi.BaseChat{
-		//		ChatConfig: tgbotapi.ChatConfig{
-		//			ChatID: update.CallbackQuery.From.ID,
-		//		},
-		//	},
-		//	FromChat: tgbotapi.ChatConfig{
-		//		ChatID: song.SongTelegramMessageChatID,
-		//	},
-		//	MessageIDs: []int{song.SongTelegramMessageID},
-		//}
 
 		forwardMsg := tgbotapi.NewForward(update.CallbackQuery.From.ID, song.SongTelegramMessageChatID, song.SongTelegramMessageID)
 

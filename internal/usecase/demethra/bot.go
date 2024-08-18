@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -26,46 +25,48 @@ import (
 // ElysiumFmComment  -1002164548613
 // bot bot bot forum -1002224939217
 
-const (
-	ElysiumFmID           int64 = -1001934236726
-	ElysiumChatID         int64 = -1002224939217
-	ElysiumFmCommentID    int64 = -1002044294733
-	CurrentTrackMessageID       = 271
-	TracksDbChannel             = -1002243776940
-)
-
 var (
 	BotRepliesVariants = []string{"я им передам.", "ты был услышан.", "хорошо, я им передам", "это все что ты хотел сказать?"}
 	defaultKeyboard    = tgbotapi.NewReplyKeyboard()
 )
 
 type Bot struct {
-	Api                         *tgbotapi.BotAPI
-	sc                          soundcloudDownloader
-	logger                      *slog.Logger
-	cmdViews                    map[string]CommandFunc
-	name                        string
-	chatIDForLogs               int64
+	Api      *tgbotapi.BotAPI
+	sc       soundcloudDownloader
+	logger   *slog.Logger
+	cmdViews map[string]CommandFunc
+	name     string
+
+	chatIDForLogs         int64
+	mainChannelID         int64
+	forumID               int64
+	commentChatID         int64
+	tracksDbChannelID     int64
+	currentTrackMessageID int // TODO поменять на слайс который будет подтягиватьcя с базы данных
+
 	repo                        repository
 	ctx                         context.Context
 	mu                          sync.RWMutex
-	WhiteListPostsID            []int // рудемент, но пусть пока что будет
 	adminIds                    []int64
 	DisableCommentSectionDelete bool
 }
 
-func newBot(ctx context.Context, repo repository, sc soundcloudDownloader, name string, api *tgbotapi.BotAPI, chatIDForLogs int64, logger *slog.Logger) *Bot {
+func newBot(ctx context.Context, repo repository, sc soundcloudDownloader, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
 	b := &Bot{
-		name:             name,
-		repo:             repo,
-		sc:               sc,
-		Api:              api,
-		chatIDForLogs:    chatIDForLogs,
-		logger:           logger,
-		ctx:              ctx,
-		mu:               sync.RWMutex{},
-		adminIds:         []int64{251636949, 548414066, 5534121833},
-		WhiteListPostsID: []int{509, 391}, // TODO перенести их в базу
+		name:                  name,
+		repo:                  repo,
+		sc:                    sc,
+		Api:                   api,
+		chatIDForLogs:         chatIDForLogs,
+		mainChannelID:         mainChannelID,
+		forumID:               forumID,
+		commentChatID:         commentChatID,
+		tracksDbChannelID:     tracksDbChannelID,
+		currentTrackMessageID: currentTrackMessageID,
+		logger:                logger,
+		ctx:                   ctx,
+		mu:                    sync.RWMutex{},
+		adminIds:              []int64{251636949, 548414066, 5534121833},
 	}
 
 	b.registerCommands()
@@ -146,9 +147,8 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			slog.Int64("chat_id", update.Message.Chat.ID),
 		}
 
-		// если update.Message.Chat.ID == ElysiumChatID то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
-		if update.Message.Chat.ID == ElysiumChatID && !update.Message.IsCommand() {
-			fmt.Println(update.Message.Text)
+		// если сообщение пришло с форума, то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
+		if update.Message.Chat.ID == b.forumID && !update.Message.IsCommand() {
 			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
@@ -161,23 +161,22 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		// TODO update раскомментить
 		//если сообщение пришло в чате комментов - пропускаем #исключение
-		if update.Message.Chat.ID == ElysiumFmCommentID {
+		if update.Message.Chat.ID == b.commentChatID {
 			// если сообщение в авторстве элизиум_фм - удаляем его
 			b.mu.RLock()
 			defer b.mu.RUnlock()
-			if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == ElysiumFmID {
+			if update.Message.ForwardOrigin != nil && update.Message.ForwardOrigin.Chat.ID == b.mainChannelID {
 				// тут проверяем нет ли его в исключениях
 				if b.DisableCommentSectionDelete {
 					return
 				}
-				if !slices.Contains(b.WhiteListPostsID, update.Message.ForwardOrigin.MessageID) {
-					resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(ElysiumFmCommentID, update.Message.MessageID))
-					if err != nil {
-						b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
-						return
-					}
-					b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
+
+				resp, err := b.Api.Request(tgbotapi.NewDeleteMessage(b.commentChatID, update.Message.MessageID))
+				if err != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "delete message", logger.AppendErrorToLogs(attributes, err)...)
+					return
 				}
+				b.logger.LogAttrs(ctx, slog.LevelDebug, "delete message ", logger.AppendToLogs(attributes, slog.Any("resp", resp))...)
 
 				return
 			}
@@ -197,7 +196,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			}
 
 			// отправляем сообщение в чат
-			err = b.sendToChat(update)
+			err = b.logToChat(update)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
 				return
@@ -249,13 +248,13 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if err := view(ctx, update); err != nil {
 		b.logger.LogAttrs(ctx, slog.LevelError, "failed to execute view", logger.AppendErrorToLogs(attributes, err)...)
 
-		//if _, err := b.Api.Send(tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Internal error")); err != nil {
-		//	b.logger.LogAttrs(ctx, slog.LevelError, "failed to send error message", logger.AppendErrorToLogs(attributes, err)...)
-		//}
+		if _, err := b.Api.Send(tgbotapi.NewMessage(b.chatIDForLogs, "Internal error")); err != nil {
+			b.logger.LogAttrs(ctx, slog.LevelError, "failed to send error message", logger.AppendErrorToLogs(attributes, err)...)
+		}
 	}
 }
 
-func (b *Bot) sendToChat(u tgbotapi.Update) error {
+func (b *Bot) logToChat(u tgbotapi.Update) error {
 	text := fmt.Sprintf(`
 %s
 	

@@ -25,6 +25,14 @@ func (s statistic) submit(c *gin.Context) {
 		return
 	}
 
+	if info.ArtistName == "Unknown" && info.TrackTitle == "Unknown" && info.TrackLink == "Unknown" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	//j, _ := json.MarshalIndent(info, "", "  ")
+	//fmt.Println(string(j))
+
 	s.usecase.NextSong(info)
 	c.Status(http.StatusOK)
 }

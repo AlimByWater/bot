@@ -1,13 +1,18 @@
 {
   "Http": {
     "Mode": "release",
-    "Port": ":8080",
-    "ApiKey": "1234515151"
+    "Port": ":8080"
   },
   "Demethra": {
     "BotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
     "BotName": "t.me/elysium_demethra_bot",
-    "ChatIDForLogs": -1002044294733
+    "ChatIDForLogs": -1002044294733,
+    "ElysiumFmID": -1001934236726,
+    "ElysiumForumID": -1002224939217,
+    "ElysiumFmCommentID": -1002044294733,
+    "TracksDbChannel": -1002243776940,
+    "CurrentTrackMessageID": 271,
+    "ListenerIdleTimeoutInMinutes": 3
   },
   "ArimaDJ": {
     "BotToken": "7447550770:AAHaO6tRmqNtb53fD9cIXPJVjYi1mHN3i_0",
@@ -27,5 +32,15 @@
   "Soundcloud": {
     "ProxyURL": "http://fi6dlzgv41-corp.mobile.res-country-TR-state-325361-city-325363-hold-session-session-667e8de518597:Nb1PdLCwQEBD3vld@93.190.138.107:9999",
     "DownloadPath": "../../app/temp"
+  },
+  "Redis": {
+    "Host": "91.206.15.29",
+    "Port": 6379,
+    "Password": "OJocasd923sa0d4"
+  },
+  "Auth": {
+    "Secret": "test-secret",
+    "TelegramBotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
+    "ApiKey": "1234515151"
   }
 }

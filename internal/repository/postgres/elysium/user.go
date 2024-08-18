@@ -86,6 +86,51 @@ func (r *Repository) GetUserByTelegramID(ctx context.Context, telegramID int64) 
 	return user, nil
 }
 
+func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, error) {
+	var user entity.User
+	err := r.execTX(ctx, func(q *queries) error {
+		query := `
+		SELECT telegram_id, telegram_username, firstname, date_create
+		FROM elysium.users
+		WHERE id = $1
+		`
+
+		var telegramID sql.NullInt64
+		var telegramUsername sql.NullString
+		var firstname sql.NullString
+
+		err := q.db.QueryRowContext(ctx, query, userID).Scan(
+			&telegramID,
+			&telegramUsername,
+			&firstname,
+			&user.DateCreate,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+
+		user.ID = userID
+		if telegramID.Valid {
+			user.TelegramID = telegramID.Int64
+		}
+		if telegramUsername.Valid {
+			user.TelegramUsername = telegramUsername.String
+		}
+		if firstname.Valid {
+			user.Firstname = firstname.String
+		}
+
+		return nil
+	})
+	if err != nil {
+		return entity.User{}, fmt.Errorf("exec tx: %w", err)
+	}
+
+	user.ID = userID
+
+	return user, nil
+}
+
 // func get full user by telegram user_id in queries
 func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID int64) (entity.User, error) {
 	query := `
@@ -94,16 +139,26 @@ func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID in
 		WHERE telegram_id = $1
 	`
 
+	var telegramUsername sql.NullString
+	var firstname sql.NullString
+
 	var user entity.User
 	err := q.db.QueryRowContext(ctx, query, telegramUserID).Scan(
 		&user.ID,
 		&user.TelegramID,
-		&user.TelegramUsername,
-		&user.Firstname,
+		&telegramUsername,
+		&firstname,
 		&user.DateCreate,
 	)
 	if err != nil {
-		return entity.User{}, fmt.Errorf("failed to query user: %w", err)
+		return entity.User{}, fmt.Errorf("failed to query user: %w; telegram_id: %d", err, telegramUserID)
+	}
+
+	if telegramUsername.Valid {
+		user.TelegramUsername = telegramUsername.String
+	}
+	if firstname.Valid {
+		user.Firstname = firstname.String
 	}
 
 	return user, nil
