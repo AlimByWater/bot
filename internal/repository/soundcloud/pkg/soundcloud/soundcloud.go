@@ -51,7 +51,7 @@ func NewClient(authToken string, downloadPath, proxyUrl string, httpClient *http
 		downloadPath = defaultDownloadPath
 	}
 
-	logger := log.With(slog.StringValue("💽 " + "soundcloud pkg"))
+	logger := log.With(slog.String("module", "💽 soundcloud pkg"))
 
 	// TODO: Add a version header
 
