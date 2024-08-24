@@ -12,5 +12,9 @@ type botUC interface {
 }
 
 type usersUC interface {
-	WebsocketInfo() (entity.WebsocketInfo, error)
+	GetOnlineUsersCount() int64
+}
+
+type songTrackerUC interface {
+	CurrentTrack() entity.TrackInfo
 }

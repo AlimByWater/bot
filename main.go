@@ -135,7 +135,7 @@ func main() {
 		api.NewWebAppGroup(authUC,
 			web_app_methods.NewWebAppState(demethraUC),
 			web_app_methods.NewWebAppEvent(demethraUC),
-			web_app_methods.NewWebsocketEvent(usersUC),
+			web_app_methods.NewWebsocketEvent(usersUC, demethraUC),
 		),
 		api.NewGroup(authCfg,
 			tampermonkey_methods.NewSubmitMethod(demethraUC),

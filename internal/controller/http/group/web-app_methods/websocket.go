@@ -1,6 +1,7 @@
 package web_app_methods
 
 import (
+	"arimadj-helper/internal/entity"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -17,6 +18,7 @@ var upgrader = websocket.Upgrader{
 
 type webSocket struct {
 	users usersUC
+	songs songTrackerUC
 }
 
 func (ws webSocket) method() string {
@@ -35,10 +37,10 @@ func (ws webSocket) ws(c *gin.Context) {
 	}
 
 	for {
-		info, err := ws.users.WebsocketInfo()
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			break
+
+		info := entity.WebsocketInfo{
+			OnlineUsersCount: ws.users.GetOnlineUsersCount(),
+			CurrentTrack:     ws.songs.CurrentTrack(),
 		}
 
 		err = conn.WriteJSON(info)
@@ -51,9 +53,9 @@ func (ws webSocket) ws(c *gin.Context) {
 	}
 }
 
-func NewWebsocketEvent(usecase usersUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
+func NewWebsocketEvent(usecase usersUC, uc songTrackerUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
-		wae := webSocket{users: usecase}
+		wae := webSocket{users: usecase, songs: uc}
 		return wae.method(), wae.path(), wae.ws
 	}
 }

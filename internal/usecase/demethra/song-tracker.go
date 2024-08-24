@@ -58,8 +58,10 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 		}
 	}
 
+	m.mu.Lock()
 	m.prevTrack = m.currentTrack
 	m.currentTrack = track
+	m.mu.Unlock()
 
 	msg, err := m.bot.updateCurrentTrackMessage(ctx, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
 	if err != nil {
@@ -81,17 +83,20 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 	// все еще может сложиться такая ситуация, что song не создался в базе
 	// тогда не имеет смысла создавать запись о проигранном треке в базе данных
 	if song.ID != 0 {
-		songPlayed, err := m.repo.SongPlayed(ctx, song.ID)
-		if err != nil {
-			m.logger.LogAttrs(ctx, slog.LevelError, "song played", logger.AppendErrorToLogs(attributes, err)...)
-			return
-		}
-
-		m.mu.Lock()
-		m.lastPlayed = songPlayed
-		m.mu.Unlock()
-
+		m.songPlayed(ctx, attributes, song.ID)
 	}
+}
+
+func (m *Module) songPlayed(ctx context.Context, attributes []slog.Attr, songID int) {
+	songPlayed, err := m.repo.SongPlayed(ctx, songID)
+	if err != nil {
+		m.logger.LogAttrs(ctx, slog.LevelError, "song played", logger.AppendErrorToLogs(attributes, err)...)
+		return
+	}
+
+	m.mu.Lock()
+	m.lastPlayed = songPlayed
+	m.mu.Unlock()
 }
 
 func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context) {
