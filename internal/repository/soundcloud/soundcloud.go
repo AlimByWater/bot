@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 )
 
 type configs interface {
@@ -31,14 +30,14 @@ func New(cfg configs) *Module {
 func (m *Module) Init(ctx context.Context, log *slog.Logger) error {
 	m.logger = log.With(slog.String("module", "☁️ soundcloud repo"))
 	client := http.DefaultClient
-	if m.cfg.GetProxyURL() != "" {
-		proxyUrl, err := url.Parse(m.cfg.GetProxyURL())
-		if err != nil {
-			return fmt.Errorf("proxy parse: %w", err)
-		}
-
-		client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
-	}
+	//if m.cfg.GetProxyURL() != "" {
+	//	proxyUrl, err := url.Parse(m.cfg.GetProxyURL())
+	//	if err != nil {
+	//		return fmt.Errorf("proxy parse: %w", err)
+	//	}
+	//
+	//	client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	//}
 
 	m.sc = soundcloud.NewClient("", m.cfg.GetDownloadPath(), m.cfg.GetProxyURL(), client, log)
 	return nil
