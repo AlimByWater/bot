@@ -4,48 +4,92 @@ import (
 	"arimadj-helper/internal/entity"
 	"context"
 	"errors"
+	"fmt"
 )
 
-var ErrNoPermission = errors.New("you don't have permission to edit this layout")
+var (
+	ErrNoPermission = errors.New("you don't have permission to edit this layout")
+	ErrLayoutNotFound = errors.New("layout not found")
+)
 
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
-	// Реализация получения макета пользователя
-	return entity.UserLayout{}, nil
+	layout, err := m.repo.LayoutByUserID(ctx, userID)
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("failed to get user layout: %w", err)
+	}
+
+	if !layout.IsPublic && !m.hasViewPermission(layout, initiatorUserID) {
+		return entity.UserLayout{}, ErrNoPermission
+	}
+
+	return layout, nil
 }
 
 func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID int, updatedLayout entity.UserLayout) error {
-	currentLayout, err := m.GetUserLayout(ctx, userID, initiatorUserID)
+	currentLayout, err := m.repo.LayoutByUserID(ctx, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get current layout: %w", err)
 	}
 
 	if !m.hasEditPermission(currentLayout, initiatorUserID) {
 		return ErrNoPermission
 	}
 
-	// Сохраняем создателя и редакторов
 	updatedLayout.Creator = currentLayout.Creator
 	updatedLayout.Editors = currentLayout.Editors
 
-	// Здесь должна быть логика сохранения обновленного макета
-	// Например, сохранение в базу данных
+	err = m.repo.UpdateLayout(ctx, updatedLayout)
+	if err != nil {
+		return fmt.Errorf("failed to update layout: %w", err)
+	}
 
 	return nil
 }
 
 func (m *Module) AddEditor(ctx context.Context, layoutID string, editorID int) error {
-	// Реализация добавления редактора
+	layout, err := m.repo.LayoutByID(ctx, layoutID)
+	if err != nil {
+		return fmt.Errorf("failed to get layout: %w", err)
+	}
+
+	layout.Editors = append(layout.Editors, editorID)
+
+	err = m.repo.UpdateLayout(ctx, layout)
+	if err != nil {
+		return fmt.Errorf("failed to update layout with new editor: %w", err)
+	}
+
 	return nil
 }
 
 func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID int) error {
-	// Реализация удаления редактора
+	layout, err := m.repo.LayoutByID(ctx, layoutID)
+	if err != nil {
+		return fmt.Errorf("failed to get layout: %w", err)
+	}
+
+	for i, editor := range layout.Editors {
+		if editor == editorID {
+			layout.Editors = append(layout.Editors[:i], layout.Editors[i+1:]...)
+			break
+		}
+	}
+
+	err = m.repo.UpdateLayout(ctx, layout)
+	if err != nil {
+		return fmt.Errorf("failed to update layout after removing editor: %w", err)
+	}
+
 	return nil
 }
 
 func (m *Module) IsEditor(ctx context.Context, layoutID string, userID int) (bool, error) {
-	// Реализация проверки, является ли пользователь редактором
-	return false, nil
+	layout, err := m.repo.LayoutByID(ctx, layoutID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get layout: %w", err)
+	}
+
+	return m.hasEditPermission(layout, userID), nil
 }
 
 func (m *Module) hasEditPermission(layout entity.UserLayout, userID int) bool {
@@ -58,4 +102,8 @@ func (m *Module) hasEditPermission(layout entity.UserLayout, userID int) bool {
 		}
 	}
 	return false
+}
+
+func (m *Module) hasViewPermission(layout entity.UserLayout, userID int) bool {
+	return layout.Creator == userID || m.hasEditPermission(layout, userID)
 }

@@ -39,10 +39,13 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 
 	err = ul.layout.UpdateLayoutFull(c.Request.Context(), wantedUserID, initiatorUserID, updatedLayout)
 	if err != nil {
-		if err == layout.ErrNoPermission {
+		switch {
+		case errors.Is(err, layout.ErrNoPermission):
 			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to edit this layout"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		case errors.Is(err, layout.ErrLayoutNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Layout not found"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update layout"})
 		}
 		return
 	}
