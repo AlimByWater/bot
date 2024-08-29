@@ -11,8 +11,32 @@ func (m *Module) GetUserLayout(ctx context.Context, userID int) (entity.UserLayo
 	return entity.UserLayout{}, nil
 }
 
-func (m *Module) UpdateLayoutFull(ctx context.Context, userID int, layout entity.UserLayout) error {
-	// Реализация обновления макета
+func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID int, updatedLayout entity.UserLayout) error {
+	currentLayout, err := m.GetUserLayout(ctx, userID, initiatorUserID)
+	if err != nil {
+		return err
+	}
+
+	isCreator := currentLayout.Creator == initiatorUserID
+	isEditor := false
+	for _, editor := range currentLayout.Editors {
+		if editor == initiatorUserID {
+			isEditor = true
+			break
+		}
+	}
+
+	if !isCreator && !isEditor {
+		return errors.New("you don't have permission to edit this layout")
+	}
+
+	// Сохраняем создателя и редакторов
+	updatedLayout.Creator = currentLayout.Creator
+	updatedLayout.Editors = currentLayout.Editors
+
+	// Здесь должна быть логика сохранения обновленного макета
+	// Например, сохранение в базу данных
+
 	return nil
 }
 
