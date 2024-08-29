@@ -3,7 +3,6 @@ package layout_methods
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type addLayoutEditor struct {
