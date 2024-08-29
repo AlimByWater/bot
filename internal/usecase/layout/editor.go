@@ -7,9 +7,9 @@ import (
 )
 
 // AddLayoutEditor добавляет редактора к макету
-func (uc *UseCase) AddLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
+func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
 	// Проверяем, имеет ли инициатор права на редактирование макета
-	layout, err := uc.GetLayout(ctx, layoutID, initiatorUserID)
+	layout, err := m.GetLayout(ctx, layoutID, initiatorUserID)
 	if err != nil {
 		return fmt.Errorf("failed to get layout: %w", err)
 	}
@@ -17,7 +17,7 @@ func (uc *UseCase) AddLayoutEditor(ctx context.Context, layoutID string, initiat
 	// Проверяем, не является ли editorID уже редактором
 	for _, editor := range layout.Editors {
 		if editor == editorID {
-			return errors.New("user is already an editor of this layout")
+			return nil
 		}
 	}
 
@@ -25,7 +25,7 @@ func (uc *UseCase) AddLayoutEditor(ctx context.Context, layoutID string, initiat
 	layout.Editors = append(layout.Editors, editorID)
 
 	// Сохраняем обновленный макет
-	err = uc.repo.UpdateLayout(ctx, layout)
+	err = m.repo.UpdateLayout(ctx, layout)
 	if err != nil {
 		return fmt.Errorf("failed to update layout: %w", err)
 	}
@@ -34,9 +34,9 @@ func (uc *UseCase) AddLayoutEditor(ctx context.Context, layoutID string, initiat
 }
 
 // RemoveLayoutEditor удаляет редактора из макета
-func (uc *UseCase) RemoveLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
+func (m *Module) RemoveLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
 	// Проверяем, имеет ли инициатор права на редактирование макета
-	layout, err := uc.GetLayout(ctx, layoutID, initiatorUserID)
+	layout, err := m.GetLayout(ctx, layoutID, initiatorUserID)
 	if err != nil {
 		return fmt.Errorf("failed to get layout: %w", err)
 	}
@@ -57,7 +57,7 @@ func (uc *UseCase) RemoveLayoutEditor(ctx context.Context, layoutID string, init
 	}
 
 	// Сохраняем обновленный макет
-	err = uc.repo.UpdateLayout(ctx, layout)
+	err = m.repo.UpdateLayout(ctx, layout)
 	if err != nil {
 		return fmt.Errorf("failed to update layout: %w", err)
 	}
