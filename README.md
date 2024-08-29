@@ -95,59 +95,59 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
 })();
 ```
 
-## Layout
+## Макет (Layout)
 
-The layout functionality in this project allows users to create and manage customizable layouts. Here's an overview of how it works:
+Функциональность макета в этом проекте позволяет пользователям создавать и управлять настраиваемыми макетами. Вот обзор того, как это работает:
 
-### Structure
+### Структура
 
-- `UserLayout`: Represents a user's layout, including background, layout elements, creator, and editors.
-- `LayoutElement`: Represents an individual element in the layout, with properties like position, type, and visibility.
+- `UserLayout`: Представляет макет пользователя, включая фон, элементы макета, создателя и редакторов.
+- `LayoutElement`: Представляет отдельный элемент в макете, с такими свойствами, как позиция, тип и видимость.
 
-### Permissions
+### Разрешения
 
-- Creator: The user who created the layout. Has full edit permissions.
-- Editors: Users who have been granted permission to edit the layout.
-- Viewers: All other users who can view the layout but cannot edit it.
+- Создатель: Пользователь, создавший макет. Имеет полные права на редактирование.
+- Редакторы: Пользователи, которым предоставлено разрешение на редактирование макета.
+- Просмотрщики: Все остальные пользователи, которые могут просматривать макет, но не могут его редактировать.
 
-### Public vs Private Elements
+### Публичные и приватные элементы
 
-- Each `LayoutElement` has a `Public` boolean field.
-- If `Public` is true, the element is visible to all users.
-- If `Public` is false, the element is only visible to the creator and editors.
+- Каждый `LayoutElement` имеет булево поле `Public`.
+- Если `Public` равно true, элемент виден всем пользователям.
+- Если `Public` равно false, элемент виден только создателю и редакторам.
 
-### Key Operations
+### Ключевые операции
 
 1. **GetUserLayout**: 
-   - Retrieves a user's layout.
-   - Filters out private elements if the requester doesn't have edit permissions.
+   - Получает макет пользователя.
+   - Фильтрует приватные элементы, если запрашивающий не имеет прав на редактирование.
 
 2. **UpdateLayoutFull**: 
-   - Updates the entire layout.
-   - Requires edit permissions.
-   - Logs the change.
+   - Обновляет весь макет.
+   - Требует прав на редактирование.
+   - Логирует изменение.
 
 3. **AddEditor**: 
-   - Adds a new editor to the layout.
-   - Only the creator can perform this action.
-   - Logs the change.
+   - Добавляет нового редактора в макет.
+   - Только создатель может выполнить это действие.
+   - Логирует изменение.
 
 4. **RemoveEditor**: 
-   - Removes an editor from the layout.
-   - Only the creator can perform this action.
-   - Logs the change.
+   - Удаляет редактора из макета.
+   - Только создатель может выполнить это действие.
+   - Логирует изменение.
 
 5. **IsEditor**: 
-   - Checks if a user has edit permissions for a specific layout.
+   - Проверяет, имеет ли пользователь права на редактирование конкретного макета.
 
-### Logging
+### Логирование
 
-All significant changes to layouts (updates, adding/removing editors) are logged using the `LogLayoutChange` method. This helps in tracking the history of changes made to layouts.
+Все значительные изменения макетов (обновления, добавление/удаление редакторов) логируются с помощью метода `LogLayoutChange`. Это помогает отслеживать историю изменений, внесенных в макеты.
 
-### Best Practices
+### Лучшие практики
 
-- Always check permissions before allowing edits to a layout.
-- Use the `Public` field to control the visibility of sensitive layout elements.
-- Log all significant changes to maintain an audit trail.
+- Всегда проверяйте разрешения перед тем, как разрешить редактирование макета.
+- Используйте поле `Public` для контроля видимости чувствительных элементов макета.
+- Логируйте все значительные изменения для поддержания аудиторского следа.
 
-For more detailed information on each operation, refer to the method documentation in the `layout` package.
+Для более подробной информации о каждой операции обратитесь к документации методов в пакете `layout`.
