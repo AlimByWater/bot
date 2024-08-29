@@ -4,7 +4,16 @@ import (
 	"arimadj-helper/internal/entity"
 	"context"
 	"fmt"
+	"time"
 )
+
+type LayoutChange struct {
+	UserID    int
+	LayoutID  string
+	Timestamp time.Time
+	Action    string
+	Details   string
+}
 
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
 	layout, err := m.repo.LayoutByUserID(ctx, userID)
@@ -37,6 +46,8 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID i
 		return fmt.Errorf("failed to update layout: %w", err)
 	}
 
+	m.logLayoutChange(ctx, initiatorUserID, updatedLayout.LayoutID, "UpdateLayoutFull", fmt.Sprintf("Layout updated for user %d", userID))
+
 	return nil
 }
 
@@ -52,6 +63,8 @@ func (m *Module) AddEditor(ctx context.Context, layoutID string, editorID int) e
 	if err != nil {
 		return fmt.Errorf("failed to update layout with new editor: %w", err)
 	}
+
+	m.logLayoutChange(ctx, layout.Creator, layoutID, "AddEditor", fmt.Sprintf("Added editor %d to layout", editorID))
 
 	return nil
 }
@@ -73,6 +86,8 @@ func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID int
 	if err != nil {
 		return fmt.Errorf("failed to update layout after removing editor: %w", err)
 	}
+
+	m.logLayoutChange(ctx, layout.Creator, layoutID, "RemoveEditor", fmt.Sprintf("Removed editor %d from layout", editorID))
 
 	return nil
 }
@@ -100,4 +115,20 @@ func (m *Module) hasEditPermission(layout entity.UserLayout, userID int) bool {
 
 func (m *Module) hasViewPermission(layout entity.UserLayout, userID int) bool {
 	return layout.Creator == userID || m.hasEditPermission(layout, userID)
+}
+
+func (m *Module) logLayoutChange(ctx context.Context, userID int, layoutID string, action, details string) {
+	change := LayoutChange{
+		UserID:    userID,
+		LayoutID:  layoutID,
+		Timestamp: time.Now(),
+		Action:    action,
+		Details:   details,
+	}
+	m.logger.Info("Layout change", 
+		"userID", change.UserID,
+		"layoutID", change.LayoutID,
+		"action", change.Action,
+		"details", change.Details,
+		"timestamp", change.Timestamp)
 }
