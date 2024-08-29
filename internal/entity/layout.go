@@ -16,6 +16,14 @@ type UserLayout struct {
 	Editors    []int           `json:"editors"`
 }
 
+type LayoutChange struct {
+	UserID    int       `json:"userId"`
+	LayoutID  string    `json:"layoutId"`
+	Timestamp time.Time `json:"timestamp"`
+	Action    string    `json:"action"`
+	Details   string    `json:"details"`
+}
+
 type Background struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`

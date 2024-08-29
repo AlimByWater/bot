@@ -14,6 +14,7 @@ type repoUC interface {
 	LayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error)
 	LayoutByID(ctx context.Context, layoutID string) (entity.UserLayout, error)
 	UpdateLayout(ctx context.Context, layout entity.UserLayout) error
+	LogLayoutChange(ctx context.Context, change entity.LayoutChange) error
 }
 
 type Module struct {
