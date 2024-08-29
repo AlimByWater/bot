@@ -6,18 +6,22 @@ import (
 	"strconv"
 )
 
+// getUserLayout структура для обработки получения макета пользователя
 type getUserLayout struct {
 	layout layoutUC
 }
 
+// method возвращает HTTP метод для получения макета пользователя
 func (gul getUserLayout) method() string {
 	return http.MethodGet
 }
 
+// path возвращает путь для получения макета пользователя
 func (gul getUserLayout) path() string {
 	return "/layout/:userID"
 }
 
+// sendEvent обрабатывает запрос на получение макета пользователя
 func (gul getUserLayout) sendEvent(c *gin.Context) {
 	initiatorUserID, err := getUserID(c)
 	if err != nil {
@@ -29,7 +33,6 @@ func (gul getUserLayout) sendEvent(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-
 	}
 
 	layout, err := gul.layout.GetUserLayout(c.Request.Context(), wantedUserID, initiatorUserID)
@@ -41,6 +44,7 @@ func (gul getUserLayout) sendEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, layout)
 }
 
+// NewGetUserLayout создает новый обработчик для получения макета пользователя
 func NewGetUserLayout(usecase layoutUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
 		gul := getUserLayout{layout: usecase}

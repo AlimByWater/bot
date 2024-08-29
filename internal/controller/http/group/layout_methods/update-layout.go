@@ -8,18 +8,22 @@ import (
 	"strconv"
 )
 
+// updateLayout структура для обработки обновления макета
 type updateLayout struct {
 	layout layoutUC
 }
 
+// method возвращает HTTP метод для обновления макета
 func (ul updateLayout) method() string {
 	return http.MethodPut
 }
 
+// path возвращает путь для обновления макета
 func (ul updateLayout) path() string {
 	return "/layout/:userID"
 }
 
+// sendEvent обрабатывает запрос на обновление макета
 func (ul updateLayout) sendEvent(c *gin.Context) {
 	initiatorUserID, err := getUserID(c)
 	if err != nil {
@@ -43,18 +47,19 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrNoPermission):
-			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to edit this layout"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав на редактирование этого макета"})
 		case errors.Is(err, entity.ErrLayoutNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Layout not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Макет не найден"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update layout"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить макет"})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Layout updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Макет успешно обновлен"})
 }
 
+// NewUpdateLayout создает новый обработчик для обновления макета
 func NewUpdateLayout(usecase layoutUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
 		ul := updateLayout{layout: usecase}

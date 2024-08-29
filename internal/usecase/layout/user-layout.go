@@ -7,18 +7,18 @@ import (
 	"time"
 )
 
-
+// GetUserLayout получает макет пользователя с учетом прав доступа инициатора
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
 	layout, err := m.repo.LayoutByUserID(ctx, userID)
 	if err != nil {
-		return entity.UserLayout{}, fmt.Errorf("failed to get user layout: %w", err)
+		return entity.UserLayout{}, fmt.Errorf("не удалось получить макет пользователя: %w", err)
 	}
 
 	if !m.hasViewPermission(layout, initiatorUserID) {
 		return entity.UserLayout{}, entity.ErrNoPermission
 	}
 
-	// Filter LayoutElements if the initiator is not the creator or an editor
+	// Фильтрация элементов макета, если инициатор не является создателем или редактором
 	if !m.hasEditPermission(layout, initiatorUserID) {
 		filteredElements := make([]entity.LayoutElement, 0, len(layout.Layout))
 		for _, element := range layout.Layout {
@@ -32,10 +32,11 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 	return layout, nil
 }
 
+// UpdateLayoutFull обновляет макет пользователя полностью
 func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID int, updatedLayout entity.UserLayout) error {
 	currentLayout, err := m.repo.LayoutByUserID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get current layout: %w", err)
+		return fmt.Errorf("не удалось получить текущий макет: %w", err)
 	}
 
 	if !m.hasEditPermission(currentLayout, initiatorUserID) {
@@ -47,40 +48,42 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID i
 
 	err = m.repo.UpdateLayout(ctx, updatedLayout)
 	if err != nil {
-		return fmt.Errorf("failed to update layout: %w", err)
+		return fmt.Errorf("не удалось обновить макет: %w", err)
 	}
 
-	err = m.logLayoutChange(ctx, initiatorUserID, updatedLayout.LayoutID, "UpdateLayoutFull", fmt.Sprintf("Layout updated for user %d", userID))
+	err = m.logLayoutChange(ctx, initiatorUserID, updatedLayout.LayoutID, "UpdateLayoutFull", fmt.Sprintf("Макет обновлен для пользователя %d", userID))
 	if err != nil {
-		m.logger.Error("Failed to log layout change", "error", err)
+		m.logger.Error("Не удалось записать изменение макета", "error", err)
 	}
 	return nil
 }
 
+// AddEditor добавляет нового редактора к макету
 func (m *Module) AddEditor(ctx context.Context, layoutID string, editorID int) error {
 	layout, err := m.repo.LayoutByID(ctx, layoutID)
 	if err != nil {
-		return fmt.Errorf("failed to get layout: %w", err)
+		return fmt.Errorf("не удалось получить макет: %w", err)
 	}
 
 	layout.Editors = append(layout.Editors, editorID)
 
 	err = m.repo.UpdateLayout(ctx, layout)
 	if err != nil {
-		return fmt.Errorf("failed to update layout with new editor: %w", err)
+		return fmt.Errorf("не удалось обновить макет с новым редактором: %w", err)
 	}
 
-	err = m.logLayoutChange(ctx, layout.Creator, layoutID, "AddEditor", fmt.Sprintf("Added editor %d to layout", editorID))
+	err = m.logLayoutChange(ctx, layout.Creator, layoutID, "AddEditor", fmt.Sprintf("Добавлен редактор %d к макету", editorID))
 	if err != nil {
-		m.logger.Error("Failed to log layout change", "error", err)
+		m.logger.Error("Не удалось записать изменение макета", "error", err)
 	}
 	return nil
 }
 
+// RemoveEditor удаляет редактора из макета
 func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID int) error {
 	layout, err := m.repo.LayoutByID(ctx, layoutID)
 	if err != nil {
-		return fmt.Errorf("failed to get layout: %w", err)
+		return fmt.Errorf("не удалось получить макет: %w", err)
 	}
 
 	for i, editor := range layout.Editors {
@@ -92,25 +95,27 @@ func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID int
 
 	err = m.repo.UpdateLayout(ctx, layout)
 	if err != nil {
-		return fmt.Errorf("failed to update layout after removing editor: %w", err)
+		return fmt.Errorf("не удалось обновить макет после удаления редактора: %w", err)
 	}
 
-	err = m.logLayoutChange(ctx, layout.Creator, layoutID, "RemoveEditor", fmt.Sprintf("Removed editor %d from layout", editorID))
+	err = m.logLayoutChange(ctx, layout.Creator, layoutID, "RemoveEditor", fmt.Sprintf("Удален редактор %d из макета", editorID))
 	if err != nil {
-		m.logger.Error("Failed to log layout change", "error", err)
+		m.logger.Error("Не удалось записать изменение макета", "error", err)
 	}
 	return nil
 }
 
+// IsEditor проверяет, является ли пользователь редактором макета
 func (m *Module) IsEditor(ctx context.Context, layoutID string, userID int) (bool, error) {
 	layout, err := m.repo.LayoutByID(ctx, layoutID)
 	if err != nil {
-		return false, fmt.Errorf("failed to get layout: %w", err)
+		return false, fmt.Errorf("не удалось получить макет: %w", err)
 	}
 
 	return m.hasEditPermission(layout, userID), nil
 }
 
+// hasEditPermission проверяет, имеет ли пользователь права на редактирование макета
 func (m *Module) hasEditPermission(layout entity.UserLayout, userID int) bool {
 	if layout.Creator == userID {
 		return true
@@ -123,10 +128,12 @@ func (m *Module) hasEditPermission(layout entity.UserLayout, userID int) bool {
 	return false
 }
 
+// hasViewPermission проверяет, имеет ли пользователь права на просмотр макета
 func (m *Module) hasViewPermission(layout entity.UserLayout, userID int) bool {
 	return layout.Creator == userID || m.hasEditPermission(layout, userID)
 }
 
+// logLayoutChange записывает изменение макета в лог
 func (m *Module) logLayoutChange(ctx context.Context, userID int, layoutID string, action, details string) error {
 	change := entity.LayoutChange{
 		UserID:    userID,
@@ -137,13 +144,13 @@ func (m *Module) logLayoutChange(ctx context.Context, userID int, layoutID strin
 	}
 	err := m.repo.LogLayoutChange(ctx, change)
 	if err != nil {
-		m.logger.Error("Failed to log layout change", 
+		m.logger.Error("Не удалось записать изменение макета", 
 			"error", err,
 			"userID", change.UserID,
 			"layoutID", change.LayoutID,
 			"action", change.Action,
 			"details", change.Details)
-		return fmt.Errorf("failed to log layout change: %w", err)
+		return fmt.Errorf("не удалось записать изменение макета: %w", err)
 	}
 	return nil
 }
