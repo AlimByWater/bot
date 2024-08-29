@@ -29,12 +29,45 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-
 	}
 
-	_, _ = initiatorUserID, wantedUserID
+	// Получаем текущий макет
+	currentLayout, err := ul.layout.GetUserLayout(c.Request.Context(), wantedUserID, initiatorUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	//c.JSON(http.StatusOK, layout)
+	// Проверяем, является ли инициатор создателем или редактором
+	isCreator := currentLayout.Creator == strconv.Itoa(initiatorUserID)
+	isEditor, err := ul.layout.IsEditor(c.Request.Context(), currentLayout.LayoutID, strconv.Itoa(initiatorUserID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !isCreator && !isEditor {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to edit this layout"})
+		return
+	}
+
+	// Обновляем макет
+	var updatedLayout entity.UserLayout
+	if err := c.ShouldBindJSON(&updatedLayout); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Сохраняем создателя и редакторов
+	updatedLayout.Creator = currentLayout.Creator
+	updatedLayout.Editors = currentLayout.Editors
+
+	if err := ul.layout.UpdateLayoutFull(c.Request.Context(), wantedUserID, updatedLayout); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Layout updated successfully"})
 }
 
 func NewUpdateLayout(usecase layoutUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {

@@ -6,6 +6,8 @@ type UserLayout struct {
 	IsPublic   bool            `json:"isPublic"`
 	Background Background      `json:"background"`
 	Layout     []LayoutElement `json:"layout"`
+	Creator    string          `json:"creator"`
+	Editors    []string        `json:"editors"`
 }
 
 type Background struct {
