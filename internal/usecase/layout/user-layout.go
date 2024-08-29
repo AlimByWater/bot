@@ -12,7 +12,7 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 		return entity.UserLayout{}, fmt.Errorf("failed to get user layout: %w", err)
 	}
 
-	if !layout.IsPublic && !m.hasViewPermission(layout, initiatorUserID) {
+	if !m.hasViewPermission(layout, initiatorUserID) {
 		return entity.UserLayout{}, entity.ErrNoPermission
 	}
 

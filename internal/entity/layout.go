@@ -10,7 +10,6 @@ var (
 type UserLayout struct {
 	UserID     string          `json:"userId"`
 	LayoutID   string          `json:"layoutId"`
-	IsPublic   bool            `json:"isPublic"`
 	Background Background      `json:"background"`
 	Layout     []LayoutElement `json:"layout"`
 	Creator    int             `json:"creator"`
