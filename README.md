@@ -94,3 +94,60 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
 
 })();
 ```
+
+## Layout
+
+The layout functionality in this project allows users to create and manage customizable layouts. Here's an overview of how it works:
+
+### Structure
+
+- `UserLayout`: Represents a user's layout, including background, layout elements, creator, and editors.
+- `LayoutElement`: Represents an individual element in the layout, with properties like position, type, and visibility.
+
+### Permissions
+
+- Creator: The user who created the layout. Has full edit permissions.
+- Editors: Users who have been granted permission to edit the layout.
+- Viewers: All other users who can view the layout but cannot edit it.
+
+### Public vs Private Elements
+
+- Each `LayoutElement` has a `Public` boolean field.
+- If `Public` is true, the element is visible to all users.
+- If `Public` is false, the element is only visible to the creator and editors.
+
+### Key Operations
+
+1. **GetUserLayout**: 
+   - Retrieves a user's layout.
+   - Filters out private elements if the requester doesn't have edit permissions.
+
+2. **UpdateLayoutFull**: 
+   - Updates the entire layout.
+   - Requires edit permissions.
+   - Logs the change.
+
+3. **AddEditor**: 
+   - Adds a new editor to the layout.
+   - Only the creator can perform this action.
+   - Logs the change.
+
+4. **RemoveEditor**: 
+   - Removes an editor from the layout.
+   - Only the creator can perform this action.
+   - Logs the change.
+
+5. **IsEditor**: 
+   - Checks if a user has edit permissions for a specific layout.
+
+### Logging
+
+All significant changes to layouts (updates, adding/removing editors) are logged using the `LogLayoutChange` method. This helps in tracking the history of changes made to layouts.
+
+### Best Practices
+
+- Always check permissions before allowing edits to a layout.
+- Use the `Public` field to control the visibility of sensitive layout elements.
+- Log all significant changes to maintain an audit trail.
+
+For more detailed information on each operation, refer to the method documentation in the `layout` package.
