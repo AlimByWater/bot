@@ -3,13 +3,7 @@ package layout
 import (
 	"arimadj-helper/internal/entity"
 	"context"
-	"errors"
 	"fmt"
-)
-
-var (
-	ErrNoPermission = errors.New("you don't have permission to edit this layout")
-	ErrLayoutNotFound = errors.New("layout not found")
 )
 
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
@@ -19,7 +13,7 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 	}
 
 	if !layout.IsPublic && !m.hasViewPermission(layout, initiatorUserID) {
-		return entity.UserLayout{}, ErrNoPermission
+		return entity.UserLayout{}, entity.ErrNoPermission
 	}
 
 	return layout, nil
@@ -32,7 +26,7 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID i
 	}
 
 	if !m.hasEditPermission(currentLayout, initiatorUserID) {
-		return ErrNoPermission
+		return entity.ErrNoPermission
 	}
 
 	updatedLayout.Creator = currentLayout.Creator

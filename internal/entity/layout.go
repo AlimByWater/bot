@@ -1,5 +1,12 @@
 package entity
 
+import "errors"
+
+var (
+	ErrNoPermission   = errors.New("you don't have permission to edit this layout")
+	ErrLayoutNotFound = errors.New("layout not found")
+)
+
 type UserLayout struct {
 	UserID     string          `json:"userId"`
 	LayoutID   string          `json:"layoutId"`

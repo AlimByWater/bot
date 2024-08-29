@@ -2,7 +2,6 @@ package layout_methods
 
 import (
 	"arimadj-helper/internal/entity"
-	"arimadj-helper/internal/usecase/layout"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -43,9 +42,9 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 	err = ul.layout.UpdateLayoutFull(c.Request.Context(), wantedUserID, initiatorUserID, updatedLayout)
 	if err != nil {
 		switch {
-		case errors.Is(err, layout.ErrNoPermission):
+		case errors.Is(err, entity.ErrNoPermission):
 			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to edit this layout"})
-		case errors.Is(err, layout.ErrLayoutNotFound):
+		case errors.Is(err, entity.ErrLayoutNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Layout not found"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update layout"})
