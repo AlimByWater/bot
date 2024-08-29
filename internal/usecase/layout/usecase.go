@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"arimadj-helper/internal/entity"
 	"context"
 	"log/slog"
 	"sync"
