@@ -9,17 +9,25 @@ import (
 type cacheUC interface {
 }
 
+type repoUC interface {
+	LayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error)
+	LayoutByID(ctx context.Context, layoutID string) (entity.UserLayout, error)
+	UpdateLayout(ctx context.Context, layout entity.UserLayout) error
+}
+
 type Module struct {
 	logger *slog.Logger
 	ctx    context.Context
 
 	cache cacheUC
+	repo  repoUC
 	mu    sync.Mutex
 }
 
-func New(cache cacheUC) *Module {
+func New(cache cacheUC, repo repoUC) *Module {
 	return &Module{
 		cache: cache,
+		repo:  repo,
 	}
 }
 
