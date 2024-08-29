@@ -6,7 +6,9 @@ import (
 	"errors"
 )
 
-func (m *Module) GetUserLayout(ctx context.Context, userID int) (entity.UserLayout, error) {
+var ErrNoPermission = errors.New("you don't have permission to edit this layout")
+
+func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
 	// Реализация получения макета пользователя
 	return entity.UserLayout{}, nil
 }
@@ -17,17 +19,8 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID i
 		return err
 	}
 
-	isCreator := currentLayout.Creator == initiatorUserID
-	isEditor := false
-	for _, editor := range currentLayout.Editors {
-		if editor == initiatorUserID {
-			isEditor = true
-			break
-		}
-	}
-
-	if !isCreator && !isEditor {
-		return errors.New("you don't have permission to edit this layout")
+	if !m.hasEditPermission(currentLayout, initiatorUserID) {
+		return ErrNoPermission
 	}
 
 	// Сохраняем создателя и редакторов
@@ -40,17 +33,29 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID i
 	return nil
 }
 
-func (m *Module) AddEditor(ctx context.Context, layoutID string, editorID string) error {
+func (m *Module) AddEditor(ctx context.Context, layoutID string, editorID int) error {
 	// Реализация добавления редактора
 	return nil
 }
 
-func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID string) error {
+func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID int) error {
 	// Реализация удаления редактора
 	return nil
 }
 
-func (m *Module) IsEditor(ctx context.Context, layoutID string, userID string) (bool, error) {
+func (m *Module) IsEditor(ctx context.Context, layoutID string, userID int) (bool, error) {
 	// Реализация проверки, является ли пользователь редактором
 	return false, nil
+}
+
+func (m *Module) hasEditPermission(layout entity.UserLayout, userID int) bool {
+	if layout.Creator == userID {
+		return true
+	}
+	for _, editor := range layout.Editors {
+		if editor == userID {
+			return true
+		}
+	}
+	return false
 }

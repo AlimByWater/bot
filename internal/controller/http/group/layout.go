@@ -10,6 +10,11 @@ import (
 
 type layoutUC interface {
 	CheckAccessTokenByUserID(ctx context.Context, token string, userID int) (bool, error)
+	GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error)
+	UpdateLayoutFull(ctx context.Context, userID, initiatorUserID int, updatedLayout entity.UserLayout) error
+	AddEditor(ctx context.Context, layoutID string, editorID int) error
+	RemoveEditor(ctx context.Context, layoutID string, editorID int) error
+	IsEditor(ctx context.Context, layoutID string, userID int) (bool, error)
 }
 
 // NewLayoutGroup создает группу хендлеров
