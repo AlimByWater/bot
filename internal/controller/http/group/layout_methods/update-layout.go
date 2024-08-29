@@ -5,22 +5,18 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
-// updateLayout структура для обработки обновления макета
 type updateLayout struct {
 	layout layoutUC
 }
 
-// method возвращает HTTP метод для обновления макета
 func (ul updateLayout) method() string {
 	return http.MethodPut
 }
 
-// path возвращает путь для обновления макета
 func (ul updateLayout) path() string {
-	return "/layout/:userID"
+	return "/layout/:id"
 }
 
 // sendEvent обрабатывает запрос на обновление макета
@@ -31,19 +27,14 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 		return
 	}
 
-	wantedUserID, err := strconv.Atoi(c.Param("userID"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
+	layoutID := c.Param("id")
 	var updatedLayout entity.UserLayout
 	if err := c.ShouldBindJSON(&updatedLayout); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = ul.layout.UpdateLayoutFull(c.Request.Context(), wantedUserID, initiatorUserID, updatedLayout)
+	err = ul.layout.UpdateLayoutFull(c.Request.Context(), layoutID, initiatorUserID, updatedLayout)
 	if err != nil {
 		switch {
 		case errors.Is(err, entity.ErrNoPermission):
@@ -59,7 +50,6 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Макет успешно обновлен"})
 }
 
-// NewUpdateLayout создает новый обработчик для обновления макета
 func NewUpdateLayout(usecase layoutUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
 		ul := updateLayout{layout: usecase}

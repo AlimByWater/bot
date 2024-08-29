@@ -7,31 +7,29 @@ import (
 	"strings"
 )
 
-// NewLayoutGroup создает группу хендлеров
-func NewLayoutGroup(tc tokenChecker, h ...func() (method string, path string, handlerFunc gin.HandlerFunc)) Layout {
+func NewUserGroup(tc tokenChecker, h ...func() (method string, path string, handlerFunc gin.HandlerFunc)) Layout {
 	return Layout{
 		tokenChecker: tc,
 		handlers:     h,
 	}
 }
 
-type Layout struct {
+type User struct {
 	tokenChecker tokenChecker
 	handlers     []func() (method string, path string, handlerFunc gin.HandlerFunc)
 }
 
-// Path ...
-func (Layout) Path() string {
-	return "/layout"
+func (User) Path() string {
+	return "/user"
 }
 
 // Handlers ...
-func (g Layout) Handlers() []func() (method string, path string, handlerFunc gin.HandlerFunc) {
-	return g.handlers
+func (u User) Handlers() []func() (method string, path string, handlerFunc gin.HandlerFunc) {
+	return u.handlers
 }
 
 // Auth миддлвейр авторизаций
-func (g Layout) Auth() gin.HandlerFunc {
+func (u User) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var token, userID = "", 0
 
@@ -70,7 +68,7 @@ func (g Layout) Auth() gin.HandlerFunc {
 			return
 		}
 
-		valid, err := g.tokenChecker.CheckAccessTokenByUserID(c.Request.Context(), token, userID)
+		valid, err := u.tokenChecker.CheckAccessTokenByUserID(c.Request.Context(), token, userID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return

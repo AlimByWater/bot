@@ -1,4 +1,4 @@
-package layout_methods
+package user_method
 
 import (
 	"github.com/gin-gonic/gin"
@@ -6,36 +6,34 @@ import (
 	"strconv"
 )
 
-// getUserLayout структура для обработки получения макета пользователя
 type getUserLayout struct {
 	layout layoutUC
 }
 
-// method возвращает HTTP метод для получения макета пользователя
 func (gul getUserLayout) method() string {
 	return http.MethodGet
 }
 
-// path возвращает путь для получения макета пользователя
 func (gul getUserLayout) path() string {
-	return "/layout/:userID"
+	return "/:userID/layout"
 }
 
-// sendEvent обрабатывает запрос на получение макета пользователя
-func (gul getUserLayout) sendEvent(c *gin.Context) {
+// layoutByUserID обрабатывает запрос на получение макета пользователя
+func (gul getUserLayout) layoutByUserID(c *gin.Context) {
 	initiatorUserID, err := getUserID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	wantedUserID, err := strconv.Atoi(c.Param("userID"))
+	paramUserID, err := strconv.Atoi(c.Param("userID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+
 	}
 
-	layout, err := gul.layout.GetUserLayout(c.Request.Context(), wantedUserID, initiatorUserID)
+	layout, err := gul.layout.GetUserLayout(c.Request.Context(), paramUserID, initiatorUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -48,6 +46,6 @@ func (gul getUserLayout) sendEvent(c *gin.Context) {
 func NewGetUserLayout(usecase layoutUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
 		gul := getUserLayout{layout: usecase}
-		return gul.method(), gul.path(), gul.sendEvent
+		return gul.method(), gul.path(), gul.layoutByUserID
 	}
 }
