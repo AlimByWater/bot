@@ -12,6 +12,8 @@ type layoutUC interface {
 	GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error)
 	GetLayout(ctx context.Context, layoutID string, initiatorUserID int) (entity.UserLayout, error)
 	UpdateLayoutFull(ctx context.Context, layoutID string, initiatorUserID int, layout entity.UserLayout) error
+	AddLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error
+	RemoveLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error
 }
 
 func getUserID(c *gin.Context) (int, error) {
