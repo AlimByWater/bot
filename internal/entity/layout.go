@@ -34,7 +34,7 @@ type LayoutElement struct {
 	Type       string     `json:"type"`
 	Position   Position   `json:"position"`
 	Properties Properties `json:"properties"`
-	Visibility string     `json:"visibility"`
+	Public     bool       `json:"public"`
 	Removable  bool       `json:"removable"`
 }
 

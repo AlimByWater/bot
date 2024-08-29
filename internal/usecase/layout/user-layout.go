@@ -18,6 +18,17 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 		return entity.UserLayout{}, entity.ErrNoPermission
 	}
 
+	// Filter LayoutElements if the initiator is not the creator or an editor
+	if !m.hasEditPermission(layout, initiatorUserID) {
+		filteredElements := make([]entity.LayoutElement, 0, len(layout.Layout))
+		for _, element := range layout.Layout {
+			if element.Public {
+				filteredElements = append(filteredElements, element)
+			}
+		}
+		layout.Layout = filteredElements
+	}
+
 	return layout, nil
 }
 
