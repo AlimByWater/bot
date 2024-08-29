@@ -1,0 +1,40 @@
+package entity
+
+type UserLayout struct {
+	UserID     string          `json:"userId"`
+	LayoutID   string          `json:"layoutId"`
+	IsPublic   bool            `json:"isPublic"`
+	Background Background      `json:"background"`
+	Layout     []LayoutElement `json:"layout"`
+}
+
+type Background struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+type LayoutElement struct {
+	ElementID  string     `json:"elementId"`
+	Type       string     `json:"type"`
+	Position   Position   `json:"position"`
+	Properties Properties `json:"properties"`
+	Visibility string     `json:"visibility"`
+	Removable  bool       `json:"removable"`
+}
+
+type Position struct {
+	Row    int `json:"row"`
+	Column int `json:"column"`
+	Height int `json:"height"`
+	Width  int `json:"width"`
+}
+
+type Properties struct {
+	Icon          string `json:"icon"`
+	Title         string `json:"title"`
+	NavigationURL string `json:"navigationUrl,omitempty"`
+	CurrentValue  int    `json:"currentValue,omitempty"`
+	MinValue      int    `json:"minValue,omitempty"`
+	MaxValue      int    `json:"maxValue,omitempty"`
+	Value         int    `json:"value,omitempty"`
+}
