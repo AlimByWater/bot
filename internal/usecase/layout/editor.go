@@ -9,25 +9,24 @@ import (
 // AddLayoutEditor добавляет редактора к макету
 func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
 	// Проверяем, имеет ли инициатор права на редактирование макета
-	layout, err := m.GetLayout(ctx, layoutID, initiatorUserID)
+	isOwner, err := m.repo.IsLayoutOwner(ctx, layoutID, initiatorUserID)
 	if err != nil {
-		return fmt.Errorf("failed to get layout: %w", err)
+		return fmt.Errorf("failed to check layout ownership: %w", err)
 	}
-
-	// Проверяем, не является ли editorID уже редактором
-	for _, editor := range layout.Editors {
-		if editor == editorID {
-			return nil
-		}
+	if !isOwner {
+		return errors.New("initiator does not have permission to add editors")
 	}
 
 	// Добавляем нового редактора
-	layout.Editors = append(layout.Editors, editorID)
-
-	// Сохраняем обновленный макет
-	err = m.repo.UpdateLayout(ctx, layout)
+	err = m.repo.AddLayoutEditor(ctx, layoutID, editorID)
 	if err != nil {
-		return fmt.Errorf("failed to update layout: %w", err)
+		return fmt.Errorf("failed to add layout editor: %w", err)
+	}
+
+	// Логируем изменение
+	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "AddLayoutEditor", fmt.Sprintf("Added editor %d", editorID))
+	if err != nil {
+		m.logger.Error("Failed to log layout change", "error", err)
 	}
 
 	return nil
@@ -36,30 +35,24 @@ func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiator
 // RemoveLayoutEditor удаляет редактора из макета
 func (m *Module) RemoveLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
 	// Проверяем, имеет ли инициатор права на редактирование макета
-	layout, err := m.GetLayout(ctx, layoutID, initiatorUserID)
+	isOwner, err := m.repo.IsLayoutOwner(ctx, layoutID, initiatorUserID)
 	if err != nil {
-		return fmt.Errorf("failed to get layout: %w", err)
+		return fmt.Errorf("failed to check layout ownership: %w", err)
+	}
+	if !isOwner {
+		return errors.New("initiator does not have permission to remove editors")
 	}
 
-	// Ищем редактора для удаления
-	found := false
-	for i, editor := range layout.Editors {
-		if editor == editorID {
-			// Удаляем редактора из списка
-			layout.Editors = append(layout.Editors[:i], layout.Editors[i+1:]...)
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return errors.New("editor not found in this layout")
-	}
-
-	// Сохраняем обновленный макет
-	err = m.repo.UpdateLayout(ctx, layout)
+	// Удаляем редактора
+	err = m.repo.RemoveLayoutEditor(ctx, layoutID, editorID)
 	if err != nil {
-		return fmt.Errorf("failed to update layout: %w", err)
+		return fmt.Errorf("failed to remove layout editor: %w", err)
+	}
+
+	// Логируем изменение
+	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "RemoveLayoutEditor", fmt.Sprintf("Removed editor %d", editorID))
+	if err != nil {
+		m.logger.Error("Failed to log layout change", "error", err)
 	}
 
 	return nil
