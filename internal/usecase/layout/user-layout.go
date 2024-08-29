@@ -33,8 +33,8 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 }
 
 // UpdateLayoutFull обновляет макет пользователя полностью
-func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID int, updatedLayout entity.UserLayout) error {
-	currentLayout, err := m.repo.LayoutByUserID(ctx, userID)
+func (m *Module) UpdateLayoutFull(ctx context.Context, layoutID string, initiatorUserID int, updatedLayout entity.UserLayout) error {
+	currentLayout, err := m.repo.LayoutByID(ctx, layoutID)
 	if err != nil {
 		return fmt.Errorf("не удалось получить текущий макет: %w", err)
 	}
@@ -45,17 +45,43 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, userID, initiatorUserID i
 
 	updatedLayout.Creator = currentLayout.Creator
 	updatedLayout.Editors = currentLayout.Editors
+	updatedLayout.LayoutID = layoutID
 
 	err = m.repo.UpdateLayout(ctx, updatedLayout)
 	if err != nil {
 		return fmt.Errorf("не удалось обновить макет: %w", err)
 	}
 
-	err = m.logLayoutChange(ctx, initiatorUserID, updatedLayout.LayoutID, "UpdateLayoutFull", fmt.Sprintf("Макет обновлен для пользователя %d", userID))
+	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "UpdateLayoutFull", fmt.Sprintf("Макет обновлен"))
 	if err != nil {
 		m.logger.Error("Не удалось записать изменение макета", "error", err)
 	}
 	return nil
+}
+
+// GetLayout получает макет по его ID с учетом прав доступа инициатора
+func (m *Module) GetLayout(ctx context.Context, layoutID string, initiatorUserID int) (entity.UserLayout, error) {
+	layout, err := m.repo.LayoutByID(ctx, layoutID)
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("не удалось получить макет: %w", err)
+	}
+
+	if !m.hasViewPermission(layout, initiatorUserID) {
+		return entity.UserLayout{}, entity.ErrNoPermission
+	}
+
+	// Фильтрация элементов макета, если инициатор не является создателем или редактором
+	if !m.hasEditPermission(layout, initiatorUserID) {
+		filteredElements := make([]entity.LayoutElement, 0, len(layout.Layout))
+		for _, element := range layout.Layout {
+			if element.Public {
+				filteredElements = append(filteredElements, element)
+			}
+		}
+		layout.Layout = filteredElements
+	}
+
+	return layout, nil
 }
 
 // AddEditor добавляет нового редактора к макету
