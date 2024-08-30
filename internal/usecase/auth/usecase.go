@@ -35,12 +35,14 @@ type Module struct {
 	//tokens    map[int]entity.Token
 
 	repo repository
+	users *users.Module
 }
 
-func NewModule(cfg config, repo repository) *Module {
+func NewModule(cfg config, repo repository, users *users.Module) *Module {
 	return &Module{
 		cfg:       cfg,
 		repo:      repo,
+		users:     users,
 		tokensMap: sync.Map{},
 		mu:        sync.RWMutex{},
 	}

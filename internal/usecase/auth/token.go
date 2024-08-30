@@ -3,6 +3,7 @@ package auth
 import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
+	"arimadj-helper/internal/usecase/users"
 	"context"
 	"database/sql"
 	"errors"
@@ -78,14 +79,14 @@ func (m *Module) GenerateTokenForTelegram(ctx context.Context, telegramLogin ent
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
-		user, err = m.repo.CreateOrUpdateUser(ctx, entity.User{
+		user, err = m.users.CreateUser(ctx, entity.User{
 			TelegramID:       telegramLogin.TelegramID,
 			TelegramUsername: data.User.Username,
 			Firstname:        data.User.FirstName,
 		})
 		if err != nil {
-			m.logger.LogAttrs(ctx, slog.LevelError, "create or update user", logger.AppendErrorToLogs(attrs, err)...)
-			return entity.Token{}, fmt.Errorf("create or update user: %w", err)
+			m.logger.LogAttrs(ctx, slog.LevelError, "create user", logger.AppendErrorToLogs(attrs, err)...)
+			return entity.Token{}, fmt.Errorf("create user: %w", err)
 		}
 	}
 
