@@ -1,23 +1,16 @@
 package redis
 
 import (
+	"arimadj-helper/internal/entity"
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/redis/go-redis/v9"
-	"arimadj-helper/internal/entity"
 )
 
 var ErrLayoutIDRequired = fmt.Errorf("layout id is required")
 var ErrLayoutNotFound = fmt.Errorf("layout not found")
 var ErrIncrementReachedMaxNumber = fmt.Errorf("increment reached max number of retries")
-
-const (
-	maxRetries = 3
-)
 
 // SaveOrUpdateLayout сохраняет или обновляет макет
 func (m *Module) SaveOrUpdateLayout(ctx context.Context, layout entity.UserLayout) error {
