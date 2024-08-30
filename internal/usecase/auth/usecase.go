@@ -24,6 +24,10 @@ type repository interface {
 	//TokenByUserID(ctx context.Context, userID int) (entity.Token, error)
 }
 
+type userCreator interface {
+	CreateUser(ctx context.Context, user entity.User) (entity.User, error)
+}
+
 type Module struct {
 	ctx       context.Context
 	cfg       config
@@ -34,11 +38,11 @@ type Module struct {
 	tokensMap sync.Map
 	//tokens    map[int]entity.Token
 
-	repo repository
-	users *users.Module
+	repo  repository
+	users userCreator
 }
 
-func NewModule(cfg config, repo repository, users *users.Module) *Module {
+func NewModule(cfg config, repo repository, users userCreator) *Module {
 	return &Module{
 		cfg:       cfg,
 		repo:      repo,

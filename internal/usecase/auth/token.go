@@ -3,7 +3,6 @@ package auth
 import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
-	"arimadj-helper/internal/usecase/users"
 	"context"
 	"database/sql"
 	"errors"
