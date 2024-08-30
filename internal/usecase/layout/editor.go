@@ -25,7 +25,7 @@ func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiator
 
 	// Инвалидируем кэш для данного макета
 	cacheKey := fmt.Sprintf("layout:%s", layoutID)
-	err = m.cache.Delete(ctx, cacheKey)
+	err = m.cache.RemoveFromCache(ctx, cacheKey)
 	if err != nil {
 		m.logger.Error("Failed to invalidate layout cache", "error", err)
 	}
@@ -58,7 +58,7 @@ func (m *Module) RemoveLayoutEditor(ctx context.Context, layoutID string, initia
 
 	// Инвалидируем кэш для данного макета
 	cacheKey := fmt.Sprintf("layout:%s", layoutID)
-	err = m.cache.Delete(ctx, cacheKey)
+	err = m.cache.RemoveFromCache(ctx, cacheKey)
 	if err != nil {
 		m.logger.Error("Failed to invalidate layout cache", "error", err)
 	}
