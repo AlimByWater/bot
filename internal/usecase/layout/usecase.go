@@ -9,6 +9,9 @@ import (
 
 // cacheUC интерфейс для работы с кэшем
 type cacheUC interface {
+	Get(ctx context.Context, key string) (interface{}, error)
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+	Delete(ctx context.Context, key string) error
 }
 
 // repoUC интерфейс для работы с репозиторием макетов
