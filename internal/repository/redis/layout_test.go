@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-var redisModule *redisRepo.Module
-
 func TestSaveLayoutSucceeds(t *testing.T) {
 	teardown := setupTest(t)
 	defer teardown(t)
