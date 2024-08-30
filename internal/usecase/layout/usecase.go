@@ -20,6 +20,7 @@ type repoUC interface {
 	IsLayoutOwner(ctx context.Context, layoutID string, userID int) (bool, error)
 	AddLayoutEditor(ctx context.Context, layoutID string, editorID int) error
 	RemoveLayoutEditor(ctx context.Context, layoutID string, editorID int) error
+	GetDefaultLayout(ctx context.Context) (entity.UserLayout, error)
 }
 
 // Module представляет собой модуль для работы с макетами
