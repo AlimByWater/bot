@@ -11,20 +11,8 @@ import (
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
 	layout, err := m.repo.LayoutByUserID(ctx, userID)
 	if err != nil {
-		// Если макет не найден, генерируем стандартный макет
 		if err == entity.ErrLayoutNotFound {
-			defaultLayout, err := m.repo.GetDefaultLayout(ctx)
-			if err != nil {
-				return entity.UserLayout{}, fmt.Errorf("не удалось получить стандартный макет: %w", err)
-			}
-			defaultLayout.UserID = fmt.Sprintf("%d", userID)
-			defaultLayout.LayoutID = fmt.Sprintf("default-%d", userID)
-			defaultLayout.Creator = userID
-			err = m.repo.UpdateLayout(ctx, defaultLayout)
-			if err != nil {
-				return entity.UserLayout{}, fmt.Errorf("не удалось сохранить стандартный макет: %w", err)
-			}
-			return defaultLayout, nil
+			return m.generateAndSaveDefaultLayout(ctx, userID)
 		}
 		return entity.UserLayout{}, fmt.Errorf("не удалось получить макет пользователя: %w", err)
 	}
@@ -143,4 +131,20 @@ func (m *Module) logLayoutChange(ctx context.Context, userID int, layoutID strin
 		return fmt.Errorf("не удалось записать изменение макета: %w", err)
 	}
 	return nil
+}
+
+// generateAndSaveDefaultLayout генерирует и сохраняет стандартный макет для пользователя
+func (m *Module) generateAndSaveDefaultLayout(ctx context.Context, userID int) (entity.UserLayout, error) {
+	defaultLayout, err := m.repo.GetDefaultLayout(ctx)
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("не удалось получить стандартный макет: %w", err)
+	}
+	defaultLayout.UserID = fmt.Sprintf("%d", userID)
+	defaultLayout.LayoutID = fmt.Sprintf("default-%d", userID)
+	defaultLayout.Creator = userID
+	err = m.repo.UpdateLayout(ctx, defaultLayout)
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("не удалось сохранить стандартный макет: %w", err)
+	}
+	return defaultLayout, nil
 }
