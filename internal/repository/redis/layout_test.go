@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestSaveLayoutSucceeds(t *testing.T) {
+func TestSaveOrUpdateLayoutSucceeds(t *testing.T) {
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -24,7 +24,7 @@ func TestSaveLayoutSucceeds(t *testing.T) {
 		Editors: []int{12345},
 	}
 
-	err := redisModule.SaveLayout(context.Background(), layout)
+	err := redisModule.SaveOrUpdateLayout(context.Background(), layout)
 	require.NoError(t, err)
 }
 
@@ -44,11 +44,11 @@ func TestGetLayoutSucceeds(t *testing.T) {
 		Creator: 12345,
 		Editors: []int{12345},
 	}
-	err := redisModule.SaveLayout(context.Background(), layout)
+	err := redisModule.SaveOrUpdateLayout(context.Background(), layout)
 	require.NoError(t, err)
 
 	// Retrieving the layout
-	retrievedLayout, err := redisModule.GetLayout(context.Background(), "user123", "layout123")
+	retrievedLayout, err := redisModule.GetLayout(context.Background(), layout.LayoutID)
 	require.NoError(t, err)
 	require.Equal(t, layout.Background.Type, retrievedLayout.Background.Type)
 	require.Equal(t, layout.Background.Value, retrievedLayout.Background.Value)
@@ -59,12 +59,12 @@ func TestGetLayoutReturnsErrorWhenNoLayout(t *testing.T) {
 	defer teardown(t)
 
 	// Attempting to retrieve a layout when none exists
-	_, err := redisModule.GetLayout(context.Background(), "nonexistent_user", "nonexistent_layout")
+	_, err := redisModule.GetLayout(context.Background(), "nonexistent_layout")
 	require.Error(t, err)
 	require.Equal(t, redisRepo.ErrLayoutNotFound, err)
 }
 
-func TestSaveLayoutUpdatesExistingLayout(t *testing.T) {
+func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -80,7 +80,7 @@ func TestSaveLayoutUpdatesExistingLayout(t *testing.T) {
 		Editors: []int{12345},
 	}
 
-	err := redisModule.SaveLayout(context.Background(), initialLayout)
+	err := redisModule.SaveOrUpdateLayout(context.Background(), initialLayout)
 	require.NoError(t, err)
 
 	updatedLayout := entity.UserLayout{
@@ -95,10 +95,10 @@ func TestSaveLayoutUpdatesExistingLayout(t *testing.T) {
 		Editors: []int{12345, 67890},
 	}
 
-	err = redisModule.SaveLayout(context.Background(), updatedLayout)
+	err = redisModule.SaveOrUpdateLayout(context.Background(), updatedLayout)
 	require.NoError(t, err)
 
-	retrievedLayout, err := redisModule.GetLayout(context.Background(), "user123", "layout123")
+	retrievedLayout, err := redisModule.GetLayout(context.Background(), updatedLayout.LayoutID)
 	require.NoError(t, err)
 	require.Equal(t, updatedLayout.Background.Type, retrievedLayout.Background.Type)
 	require.Equal(t, updatedLayout.Background.Value, retrievedLayout.Background.Value)
