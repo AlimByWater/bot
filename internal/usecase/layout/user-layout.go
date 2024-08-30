@@ -11,6 +11,15 @@ import (
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
 	layout, err := m.repo.LayoutByUserID(ctx, userID)
 	if err != nil {
+		// Если макет не найден, генерируем стандартный макет
+		if err == entity.ErrLayoutNotFound {
+			defaultLayout := m.generateDefaultLayout(userID)
+			err = m.repo.UpdateLayout(ctx, defaultLayout)
+			if err != nil {
+				return entity.UserLayout{}, fmt.Errorf("не удалось сохранить стандартный макет: %w", err)
+			}
+			return defaultLayout, nil
+		}
 		return entity.UserLayout{}, fmt.Errorf("не удалось получить макет пользователя: %w", err)
 	}
 
@@ -30,6 +39,32 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 	}
 
 	return layout, nil
+}
+
+// generateDefaultLayout создает стандартный макет для пользователя
+func (m *Module) generateDefaultLayout(userID int) entity.UserLayout {
+	return entity.UserLayout{
+		UserID:   fmt.Sprintf("%d", userID),
+		LayoutID: fmt.Sprintf("default-%d", userID),
+		Background: entity.Background{
+			Type:  "color",
+			Value: "#FFFFFF",
+		},
+		Layout: []entity.LayoutElement{
+			{
+				ID:     "welcome-message",
+				Type:   "text",
+				Public: true,
+				Content: map[string]interface{}{
+					"text": "Добро пожаловать в ваш новый макет!",
+				},
+				Position: entity.Position{X: 0, Y: 0},
+				Size:     entity.Size{Width: 300, Height: 50},
+			},
+		},
+		Creator: userID,
+		Editors: []int{},
+	}
 }
 
 // UpdateLayoutFull обновляет макет пользователя полностью
