@@ -10,10 +10,8 @@ import (
 
 // GetUserLayout получает макет пользователя с учетом прав доступа инициатора
 func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int) (entity.UserLayout, error) {
-	cacheKey := fmt.Sprintf("user_layout:%d", userID)
-	
 	// Попытка получить макет из кэша
-	cachedLayout, err := m.cache.GetFromCache(ctx, cacheKey)
+	cachedLayout, err := m.cache.GetLayout(ctx, fmt.Sprintf("%d", userID))
 	if err == nil {
 		layout, ok := cachedLayout.(entity.UserLayout)
 		if ok {
@@ -42,7 +40,7 @@ func (m *Module) GetUserLayout(ctx context.Context, userID, initiatorUserID int)
 	}
 
 	// Сохраняем макет в кэш
-	err = m.cache.SetInCache(ctx, cacheKey, layout, 30*time.Minute)
+	err = m.cache.SetLayout(ctx, fmt.Sprintf("%d", userID), layout, 30*time.Minute)
 	if err != nil {
 		m.logger.Error("Не удалось сохранить макет в кэш", "error", err)
 	}
@@ -85,8 +83,7 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, layoutID string, initiato
 	}
 
 	// Обновляем кэш
-	cacheKey := fmt.Sprintf("user_layout:%s", updatedLayout.UserID)
-	err = m.cache.SetInCache(ctx, cacheKey, updatedLayout, 30*time.Minute)
+	err = m.cache.SetLayout(ctx, updatedLayout.UserID, updatedLayout, 30*time.Minute)
 	if err != nil {
 		m.logger.Error("Не удалось обновить макет в кэше", "error", err)
 	}
@@ -100,10 +97,8 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, layoutID string, initiato
 
 // GetLayout получает макет по его ID с учетом прав доступа инициатора
 func (m *Module) GetLayout(ctx context.Context, layoutID string, initiatorUserID int) (entity.UserLayout, error) {
-	cacheKey := fmt.Sprintf("layout:%s", layoutID)
-	
 	// Попытка получить макет из кэша
-	cachedLayout, err := m.cache.GetFromCache(ctx, cacheKey)
+	cachedLayout, err := m.cache.GetLayout(ctx, layoutID)
 	if err == nil {
 		layout, ok := cachedLayout.(entity.UserLayout)
 		if ok {
@@ -118,7 +113,7 @@ func (m *Module) GetLayout(ctx context.Context, layoutID string, initiatorUserID
 	}
 
 	// Сохраняем макет в кэш
-	err = m.cache.SetInCache(ctx, cacheKey, layout, 30*time.Minute)
+	err = m.cache.SetLayout(ctx, layoutID, layout, 30*time.Minute)
 	if err != nil {
 		m.logger.Error("Не удалось сохранить макет в кэш", "error", err)
 	}
