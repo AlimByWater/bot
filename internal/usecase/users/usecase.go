@@ -17,18 +17,23 @@ type repository interface {
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
 }
 
+type layoutCreator interface {
+	GenerateAndSaveDefaultLayout(ctx context.Context, userID int) (entity.UserLayout, error)
+}
+
 type Module struct {
 	logger *slog.Logger
 	ctx    context.Context
 
-	cache cacheUC
-	repo  repository
+	cache  cacheUC
+	repo   repository
+	layout layoutCreator
 
 	onlineUsersCount atomic.Int64
 	mu               sync.Mutex
 }
 
-func New(cache cacheUC, repo repository) *Module {
+func New(cache cacheUC, repo repository, layout layoutCreator) *Module {
 	return &Module{
 		cache: cache,
 		repo:  repo,
