@@ -3,9 +3,9 @@ package redis
 import (
 	"arimadj-helper/internal/entity"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"github.com/valyala/fastjson"
 )
 
 var ErrLayoutIDRequired = fmt.Errorf("layout id is required")
@@ -24,13 +24,11 @@ func (m *Module) SaveOrUpdateLayout(ctx context.Context, layout entity.UserLayou
 			return fmt.Errorf("failed to get layout: %w", err)
 		}
 
-		layoutJSON, err := json.Marshal(layout)
-		if err != nil {
-			return fmt.Errorf("failed to marshal layout: %w", err)
-		}
+		var arena fastjson.Arena
+		layoutJSON := layout.MarshalFastJSON(&arena)
 
 		_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-			pipe.HSet(ctx, fmt.Sprintf("layout:%s", layout.LayoutID), "data", string(layoutJSON))
+			pipe.HSet(ctx, fmt.Sprintf("layout:%s", layout.LayoutID), "data", layoutJSON.String())
 			return nil
 		})
 		return err
@@ -66,13 +64,18 @@ func (m *Module) GetLayout(ctx context.Context, layoutID string) (entity.UserLay
 		return entity.UserLayout{}, fmt.Errorf("failed to get layout: %w", err)
 	}
 
-	var layout entity.UserLayout
-	err = json.Unmarshal([]byte(layoutJSON), &layout)
+	var p fastjson.Parser
+	v, err := p.Parse(layoutJSON)
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("failed to parse layout JSON: %w", err)
+	}
+
+	layout, err := entity.UnmarshalUserLayoutFastJSON(v)
 	if err != nil {
 		return entity.UserLayout{}, fmt.Errorf("failed to unmarshal layout: %w", err)
 	}
 
-	return layout, nil
+	return *layout, nil
 }
 
 // DeleteLayout удаляет макет из кэша
@@ -129,13 +132,18 @@ func (m *Module) GetAllLayouts(ctx context.Context) ([]entity.UserLayout, error)
 				return nil, fmt.Errorf("failed to get layout data: %w", err)
 			}
 
-			var layout entity.UserLayout
-			err = json.Unmarshal([]byte(layoutJSON), &layout)
+			var p fastjson.Parser
+			v, err := p.Parse(layoutJSON)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse layout JSON: %w", err)
+			}
+
+			layout, err := entity.UnmarshalUserLayoutFastJSON(v)
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal layout: %w", err)
 			}
 
-			layouts = append(layouts, layout)
+			layouts = append(layouts, *layout)
 		}
 
 		if cursor == 0 { // no more keys
