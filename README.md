@@ -38,7 +38,7 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
     
 ```javascript
 // ==UserScript==
-// @name         Get SoundCloud Track Info
+// @name         Get SoundCloud Track Info 2
 // @namespace    http://tampermonkey.net/
 // @version      0.1
 // @description  Extracts track title and artist name from SoundCloud every second and sends it to a server
@@ -58,7 +58,9 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
         const trackLinkElement = document.querySelector('.playbackSoundBadge__titleLink');
         const durationElement = document.querySelector('.playbackTimeline__duration span[aria-hidden="true"]');
 //         const artworkUrlElement = document.evaluate("//meta[@property='og:image']/@content", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;/
-             const artworkUrlElement = document.querySelector('meta[property="og:image"]');
+//             const artworkUrlElement = document.querySelector('meta[property="og:image"]');
+         const artworkSpanElement = document.querySelector('.playbackSoundBadge__avatar span');
+
                 const releaseDateElement = document.querySelector('.soundTitle__uploadTime span[datetime]');
         const tagElements = document.querySelectorAll('.sc-tag');
 
@@ -66,9 +68,15 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
         const artistName = artistNameElement ? artistNameElement.textContent : 'Unknown';
         const trackLink = trackLinkElement ? trackLinkElement.href : 'Unknown';
         const duration = durationElement ? durationElement.textContent.trim() : '05:31';
-        const artworkUrl = artworkUrlElement ? artworkUrlElement.getAttribute('content') : '';
+       // const artworkUrl = artworkUrlElement ? artworkUrlElement.getAttribute('content') : '';
          const releaseDate = releaseDateElement ? releaseDateElement.getAttribute('datetime') : '';
         const tags = Array.from(tagElements).map(tag => tag.textContent.trim());
+
+        let artworkUrl = '';
+        if (artworkSpanElement) {
+            const backgroundImage = artworkSpanElement.style.backgroundImage;
+            artworkUrl = backgroundImage.slice(5, -2); // Убираем 'url(' и ')'
+        }
 
         console.log(artworkUrl)
         return { trackTitle, artistName, trackLink, duration, artworkUrl, releaseDate, tags};
@@ -76,7 +84,7 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
 
     // Отправка данных на сервер
     function sendTrackInfoToServer(trackInfo) {
-        fetch('http://localhost:8080/api/submit', {
+        fetch('https://elysiumfm.ru/api/tampermonkey/submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -89,6 +97,7 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
     // Извлечение данных и отправка на сервер каждые 1000 мс (1 секунда)
     setInterval(function() {
         const trackInfo = getTrackInfo();
+        if (trackInfo.trackLink === 'unknown') {return};
         sendTrackInfoToServer(trackInfo);
     }, 10000);
 
