@@ -1,10 +1,6 @@
 package redis_test
 
 import (
-	"arimadj-helper/internal/application/config"
-	"arimadj-helper/internal/application/config/config_module"
-	"arimadj-helper/internal/application/env"
-	"arimadj-helper/internal/application/env/test"
 	"arimadj-helper/internal/entity"
 	redisRepo "arimadj-helper/internal/repository/redis"
 	"context"
@@ -13,42 +9,6 @@ import (
 )
 
 var redisModule *redisRepo.Module
-
-func testConfig(t *testing.T) *config_module.Redis {
-	t.Helper()
-
-	t.Setenv("ENV", "test")
-	testEnv := test.New()
-	envModule := env.New(testEnv)
-	storage, err := envModule.Init()
-	if err != nil {
-		t.Fatalf("Failed to initialize env module: %v", err)
-	}
-
-	redisCfg := config_module.NewRedisConfig()
-	cfg := config.New(redisCfg)
-	err = cfg.Init(storage)
-	if err != nil {
-		t.Fatalf("Failed to initialize config: %v", err)
-	}
-
-	return redisCfg
-}
-
-func setupTest(t *testing.T) func(t *testing.T) {
-	t.Helper()
-
-	cfg := testConfig(t)
-	redisModule = redisRepo.New(cfg)
-	err := redisModule.Init(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("Failed to initialize redis repository: %v", err)
-	}
-
-	return func(t *testing.T) {
-		err = redisModule.Close()
-	}
-}
 
 func TestSaveLayoutSucceeds(t *testing.T) {
 	teardown := setupTest(t)
