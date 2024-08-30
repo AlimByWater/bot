@@ -14,12 +14,12 @@ var (
 
 // UserLayout представляет собой структуру макета пользователя
 type UserLayout struct {
-	UserID     string          `json:"userId"`     // Идентификатор пользователя
-	LayoutID   string          `json:"layoutId"`   // Уникальный идентификатор макета
-	Background Background      `json:"background"` // Фон макета
-	Layout     []LayoutElement `json:"layout"`     // Элементы макета
-	Creator    int             `json:"creator"`    // Идентификатор создателя макета
-	Editors    []int           `json:"editors"`    // Список идентификаторов редакторов макета
+	UserID     string          `json:"userId" redis:"userId"`         // Идентификатор пользователя
+	LayoutID   string          `json:"layoutId" redis:"layoutId"`     // Уникальный идентификатор макета
+	Background Background      `json:"background" redis:"background"` // Фон макета
+	Layout     []LayoutElement `json:"layout" redis:"layout"`         // Элементы макета
+	Creator    int             `json:"creator" redis:"creator"`       // Идентификатор создателя макета
+	Editors    []int           `json:"editors" redis:"editors"`       // Список идентификаторов редакторов макета
 }
 
 // LayoutChange представляет собой структуру для логирования изменений макета
@@ -33,35 +33,35 @@ type LayoutChange struct {
 
 // Background представляет собой структуру фона макета
 type Background struct {
-	Type  string `json:"type"`  // Тип фона (например, "цвет", "изображение")
-	Value string `json:"value"` // Значение фона (например, "#FFFFFF" для цвета или URL для изображения)
+	Type  string `json:"type" redis:"type"`   // Тип фона (например, "цвет", "изображение")
+	Value string `json:"value" redis:"value"` // Значение фона (например, "#FFFFFF" для цвета или URL для изображения)
 }
 
 // LayoutElement представляет собой структуру элемента макета
 type LayoutElement struct {
-	ElementID  string     `json:"elementId"`  // Уникальный идентификатор элемента
-	Type       string     `json:"type"`       // Тип элемента (например, "кнопка", "текст")
-	Position   Position   `json:"position"`   // Позиция элемента в макете
-	Properties Properties `json:"properties"` // Свойства элемента
-	Public     bool       `json:"public"`     // Флаг публичности элемента
-	Removable  bool       `json:"removable"`  // Флаг возможности удаления элемента
+	ElementID  string     `json:"elementId" redis:"elementId"`   // Уникальный идентификатор элемента
+	Type       string     `json:"type" redis:"type"`             // Тип элемента (например, "кнопка", "текст")
+	Position   Position   `json:"position" redis:"position"`     // Позиция элемента в макете
+	Properties Properties `json:"properties" redis:"properties"` // Свойства элемента
+	Public     bool       `json:"public" redis:"public"`         // Флаг публичности элемента
+	Removable  bool       `json:"removable" redis:"removable"`   // Флаг возможности удаления элемента
 }
 
 // Position представляет собой структуру позиции элемента в макете
 type Position struct {
-	Row    int `json:"row"`    // Номер строки
-	Column int `json:"column"` // Номер столбца
-	Height int `json:"height"` // Высота элемента
-	Width  int `json:"width"`  // Ширина элемента
+	Row    int `json:"row" redis:"row"`       // Номер строки
+	Column int `json:"column" redis:"column"` // Номер столбца
+	Height int `json:"height" redis:"height"` // Высота элемента
+	Width  int `json:"width" redis:"width"`   // Ширина элемента
 }
 
 // Properties представляет собой структуру свойств элемента макета
 type Properties struct {
-	Icon          string `json:"icon"`                    // Иконка элемента
-	Title         string `json:"title"`                   // Заголовок элемента
-	NavigationURL string `json:"navigationUrl,omitempty"` // URL для навигации (если применимо)
-	CurrentValue  int    `json:"currentValue,omitempty"`  // Текущее значение (если применимо)
-	MinValue      int    `json:"minValue,omitempty"`      // Минимальное значение (если применимо)
-	MaxValue      int    `json:"maxValue,omitempty"`      // Максимальное значение (если применимо)
-	Value         int    `json:"value,omitempty"`         // Значение элемента (если применимо)
+	Icon          string `json:"icon" redis:"icon"`                             // Иконка элемента
+	Title         string `json:"title" redis:"title"`                           // Заголовок элемента
+	NavigationURL string `json:"navigationUrl,omitempty" redis:"navigationUrl"` // URL для навигации (если применимо)
+	CurrentValue  int    `json:"currentValue,omitempty" redis:"currentValue"`   // Текущее значение (если применимо)
+	MinValue      int    `json:"minValue,omitempty" redis:"minValue"`           // Минимальное значение (если применимо)
+	MaxValue      int    `json:"maxValue,omitempty" redis:"maxValue"`           // Максимальное значение (если применимо)
+	Value         int    `json:"value,omitempty" redis:"value"`                 // Значение элемента (если применимо)
 }
