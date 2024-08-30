@@ -44,6 +44,15 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	return nil
 }
 
+package users
+
+import (
+	"arimadj-helper/internal/entity"
+	"context"
+	"fmt"
+	"log/slog"
+)
+
 func (m *Module) CreateUser(ctx context.Context, user entity.User) (entity.User, error) {
 	createdUser, err := m.repo.CreateOrUpdateUser(ctx, user)
 	if err != nil {
