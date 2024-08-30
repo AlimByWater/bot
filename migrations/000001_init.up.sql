@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS elysium.song_plays (
                             play_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- Создание таблицы для веб-приложения событий
 CREATE TABLE IF NOT EXISTS elysium.web_app_events (
                           id SERIAL PRIMARY KEY,

@@ -58,7 +58,7 @@ func (g WebApp) Auth() gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user id", "user-id": userIDRaw})
 				return
 			}
-		} else if c.Param("token") != "" && c.Param("userId") != "" {
+		} else if c.Query("token") != "" && c.Query("userId") != "" {
 			var err error
 			token = c.Param("token")
 			userID, err = strconv.Atoi(c.Param("userId"))

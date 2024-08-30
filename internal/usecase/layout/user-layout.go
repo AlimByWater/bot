@@ -66,10 +66,6 @@ func (m *Module) GetLayout(ctx context.Context, layoutID string, initiatorUserID
 		return entity.UserLayout{}, fmt.Errorf("не удалось получить макет: %w", err)
 	}
 
-	if !m.hasViewPermission(layout, initiatorUserID) {
-		return entity.UserLayout{}, entity.ErrNoPermission
-	}
-
 	// Фильтрация элементов макета, если инициатор не является создателем или редактором
 	if !m.hasEditPermission(layout, initiatorUserID) {
 		filteredElements := make([]entity.LayoutElement, 0, len(layout.Layout))
@@ -82,53 +78,6 @@ func (m *Module) GetLayout(ctx context.Context, layoutID string, initiatorUserID
 	}
 
 	return layout, nil
-}
-
-// AddEditor добавляет нового редактора к макету
-func (m *Module) AddEditor(ctx context.Context, layoutID string, editorID int) error {
-	layout, err := m.repo.LayoutByID(ctx, layoutID)
-	if err != nil {
-		return fmt.Errorf("не удалось получить макет: %w", err)
-	}
-
-	layout.Editors = append(layout.Editors, editorID)
-
-	err = m.repo.UpdateLayout(ctx, layout)
-	if err != nil {
-		return fmt.Errorf("не удалось обновить макет с новым редактором: %w", err)
-	}
-
-	err = m.logLayoutChange(ctx, layout.Creator, layoutID, "AddEditor", fmt.Sprintf("Добавлен редактор %d к макету", editorID))
-	if err != nil {
-		m.logger.Error("Не удалось записать изменение макета", "error", err)
-	}
-	return nil
-}
-
-// RemoveEditor удаляет редактора из макета
-func (m *Module) RemoveEditor(ctx context.Context, layoutID string, editorID int) error {
-	layout, err := m.repo.LayoutByID(ctx, layoutID)
-	if err != nil {
-		return fmt.Errorf("не удалось получить макет: %w", err)
-	}
-
-	for i, editor := range layout.Editors {
-		if editor == editorID {
-			layout.Editors = append(layout.Editors[:i], layout.Editors[i+1:]...)
-			break
-		}
-	}
-
-	err = m.repo.UpdateLayout(ctx, layout)
-	if err != nil {
-		return fmt.Errorf("не удалось обновить макет после удаления редактора: %w", err)
-	}
-
-	err = m.logLayoutChange(ctx, layout.Creator, layoutID, "RemoveEditor", fmt.Sprintf("Удален редактор %d из макета", editorID))
-	if err != nil {
-		m.logger.Error("Не удалось записать изменение макета", "error", err)
-	}
-	return nil
 }
 
 // IsEditor проверяет, является ли пользователь редактором макета
@@ -170,7 +119,7 @@ func (m *Module) logLayoutChange(ctx context.Context, userID int, layoutID strin
 	}
 	err := m.repo.LogLayoutChange(ctx, change)
 	if err != nil {
-		m.logger.Error("Не удалось записать изменение макета", 
+		m.logger.Error("Не удалось записать изменение макета",
 			"error", err,
 			"userID", change.UserID,
 			"layoutID", change.LayoutID,
