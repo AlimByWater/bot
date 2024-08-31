@@ -13,7 +13,6 @@ func TestSaveOrUpdateLayoutSucceeds(t *testing.T) {
 	defer teardown(t)
 
 	layout := entity.UserLayout{
-		UserID:   "user123",
 		LayoutID: "layout123",
 		Background: entity.Background{
 			Type:  "color",
@@ -34,7 +33,6 @@ func TestGetLayoutSucceeds(t *testing.T) {
 
 	// Preparing a layout to be retrieved
 	layout := entity.UserLayout{
-		UserID:   "user123",
 		LayoutID: "layout123",
 		Background: entity.Background{
 			Type:  "image",
@@ -69,7 +67,6 @@ func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
 	defer teardown(t)
 
 	initialLayout := entity.UserLayout{
-		UserID:   "user123",
 		LayoutID: "layout123",
 		Background: entity.Background{
 			Type:  "color",
@@ -84,7 +81,6 @@ func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
 	require.NoError(t, err)
 
 	updatedLayout := entity.UserLayout{
-		UserID:   "user123",
 		LayoutID: "layout123",
 		Background: entity.Background{
 			Type:  "image",
@@ -103,4 +99,43 @@ func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
 	require.Equal(t, updatedLayout.Background.Type, retrievedLayout.Background.Type)
 	require.Equal(t, updatedLayout.Background.Value, retrievedLayout.Background.Value)
 	require.Equal(t, updatedLayout.Editors, retrievedLayout.Editors)
+}
+
+//
+//func TestGetLayoutSucceeds(t *testing.T) {
+//	teardown := setupTest(t)
+//	defer teardown(t)
+//
+//	layout := entity.UserLayout{
+//		UserID:   "user123",
+//		LayoutID: "layout123",
+//		Background: entity.Background{
+//			Type:  "color",
+//			Value: "#FFFFFF",
+//		},
+//		Layout:  []entity.LayoutElement{},
+//		Creator: 12345,
+//		Editors: []int{12345},
+//	}
+//
+//	err := redisModule.SaveOrUpdateLayout(context.Background(), layout)
+//	require.NoError(t, err)
+//
+//	retrievedLayout, err := redisModule.GetLayout(context.Background(), layout.LayoutID)
+//	require.NoError(t, err)
+//	require.Equal(t, layout.UserID, retrievedLayout.UserID)
+//	require.Equal(t, layout.LayoutID, retrievedLayout.LayoutID)
+//	require.Equal(t, layout.Background.Type, retrievedLayout.Background.Type)
+//	require.Equal(t, layout.Background.Value, retrievedLayout.Background.Value)
+//	require.Equal(t, layout.Creator, retrievedLayout.Creator)
+//	require.Equal(t, layout.Editors, retrievedLayout.Editors)
+//}
+
+func GetLayoutReturnsErrorWhenNoLayout(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	_, err := redisModule.GetLayout(context.Background(), "nonexistent_layout")
+	require.Error(t, err)
+	require.Equal(t, redisRepo.ErrLayoutNotFound, err)
 }

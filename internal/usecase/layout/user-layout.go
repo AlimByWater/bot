@@ -82,7 +82,7 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, layoutID string, initiato
 	}
 
 	// Обновляем кэш
-	err = m.cache.SetLayout(ctx, updatedLayout.UserID, updatedLayout, 30*time.Minute)
+	err = m.cache.SetLayout(ctx, updatedLayout.LayoutID, updatedLayout, 30*time.Minute)
 	if err != nil {
 		m.logger.Error("Не удалось обновить макет в кэше", "error", err)
 	}
@@ -176,7 +176,6 @@ func (m *Module) GenerateAndSaveDefaultLayout(ctx context.Context, userID int) (
 	if err != nil {
 		return entity.UserLayout{}, fmt.Errorf("не удалось получить стандартный макет: %w", err)
 	}
-	defaultLayout.UserID = fmt.Sprintf("%d", userID)
 	defaultLayout.LayoutID = fmt.Sprintf("default-%d", userID)
 	defaultLayout.Creator = userID
 	err = m.repo.UpdateLayout(ctx, defaultLayout)

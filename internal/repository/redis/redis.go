@@ -21,9 +21,6 @@ type Module struct {
 	client *redis.Client
 }
 
-// Убедитесь, что Module реализует интерфейс cacheUC
-var _ layout.cacheUC = (*Module)(nil)
-
 // New - создает новый модуль, на входе конфигурация и таблицы
 func New(cfg config) *Module {
 	return &Module{
