@@ -87,28 +87,22 @@ func (r *LayoutRepository) LogLayoutChange(ctx context.Context, change entity.La
 }
 
 func (r *LayoutRepository) IsLayoutOwner(ctx context.Context, layoutID string, userID int) (bool, error) {
-	query := `SELECT creator FROM user_layouts WHERE layout_id = $1`
-	var creator int
+	query := `SELECT EXISTS(SELECT 1 FROM user_layouts WHERE layout_id = $1 AND creator = $2)`
+	var isOwner bool
 
-	err := r.db.QueryRowContext(ctx, query, layoutID).Scan(&creator)
+	err := r.db.QueryRowContext(ctx, query, layoutID, userID).Scan(&isOwner)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
 		return false, fmt.Errorf("error checking layout ownership: %w", err)
 	}
 
-	return creator == userID, nil
+	return isOwner, nil
 }
 
 func (r *LayoutRepository) AddLayoutEditor(ctx context.Context, layoutID string, editorID int) error {
 	query := `
 		UPDATE user_layouts 
-		SET editors = CASE 
-			WHEN NOT $2::int = ANY(editors) THEN array_append(editors, $2::int)
-			ELSE editors
-		END
-		WHERE layout_id = $1
+		SET editors = array_append(editors, $2)
+		WHERE layout_id = $1 AND NOT $2 = ANY(editors)
 	`
 	result, err := r.db.ExecContext(ctx, query, layoutID, editorID)
 	if err != nil {
@@ -130,8 +124,8 @@ func (r *LayoutRepository) AddLayoutEditor(ctx context.Context, layoutID string,
 func (r *LayoutRepository) RemoveLayoutEditor(ctx context.Context, layoutID string, editorID int) error {
 	query := `
 		UPDATE user_layouts 
-		SET editors = array_remove(editors, $2::int)
-		WHERE layout_id = $1
+		SET editors = array_remove(editors, $2)
+		WHERE layout_id = $1 AND $2 = ANY(editors)
 	`
 	result, err := r.db.ExecContext(ctx, query, layoutID, editorID)
 	if err != nil {
