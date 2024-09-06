@@ -30,6 +30,10 @@ func (u User) Handlers() []func() (method string, path string, handlerFunc gin.H
 func (u User) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, userID, err := getTokenAndUserID(c)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
 
 		valid, err := u.tokenChecker.CheckAccessTokenByUserID(c.Request.Context(), token, userID)
 		if err != nil {

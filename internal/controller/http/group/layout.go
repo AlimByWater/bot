@@ -32,6 +32,10 @@ func (g Layout) Handlers() []func() (method string, path string, handlerFunc gin
 func (g Layout) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, userID, err := getTokenAndUserID(c)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
 
 		valid, err := g.tokenChecker.CheckAccessTokenByUserID(c.Request.Context(), token, userID)
 		if err != nil {

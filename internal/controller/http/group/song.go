@@ -32,6 +32,10 @@ func (s Song) Handlers() []func() (method string, path string, handlerFunc gin.H
 func (s Song) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, userID, err := getTokenAndUserID(c)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
 
 		valid, err := s.tokenChecker.CheckAccessTokenByUserID(c.Request.Context(), token, userID)
 		if err != nil {

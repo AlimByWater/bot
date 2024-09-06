@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -38,8 +37,11 @@ func (g WebApp) Handlers() []func() (method string, path string, handlerFunc gin
 func (g WebApp) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, userID, err := getTokenAndUserID(c)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
 
-		fmt.Printf("TOKEN AND USERID %v %v\n", token, userID)
 		valid, err := g.tokenChecker.CheckAccessTokenByUserID(c.Request.Context(), token, userID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
