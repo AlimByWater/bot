@@ -246,9 +246,10 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	view = cmdView
 
 	if err := view(ctx, update); err != nil {
-		b.logger.LogAttrs(ctx, slog.LevelError, "failed to execute view", logger.AppendErrorToLogs(attributes, err)...)
+		b.logger.LogAttrs(ctx, slog.LevelError, "failed to execute view", logger.AppendToLogs(logger.AppendErrorToLogs(attributes, err), slog.String("username", update.SentFrom().UserName))...)
 
-		if _, err := b.Api.Send(tgbotapi.NewMessage(b.chatIDForLogs, "Internal error")); err != nil {
+		if _, err := b.Api.Send(tgbotapi.NewMessage(b.chatIDForLogs,
+			fmt.Sprintf("Internal error: %s;\nusername: %s;\ntelegram_user_id: %d", err.Error(), update.SentFrom().UserName, update.SentFrom().ID))); err != nil {
 			b.logger.LogAttrs(ctx, slog.LevelError, "failed to send error message", logger.AppendErrorToLogs(attributes, err)...)
 		}
 	}
