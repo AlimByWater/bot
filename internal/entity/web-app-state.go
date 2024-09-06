@@ -13,6 +13,7 @@ const (
 	StateTypeInterface StateType = "interface"
 )
 
+// easyjson:json
 type WebAppState struct {
 	StateType  StateType       `json:"state_type"`
 	SessionID  string          `json:"session_id"`
@@ -21,11 +22,14 @@ type WebAppState struct {
 	Timestamp  time.Time       `json:"timestamp"`
 }
 
+// easyjson:json
 type InitStatePayload struct {
 }
 
+// easyjson:json
 type ActionStatePayload struct {
 }
 
+// easyjson:json
 type InterfaceStatePayload struct {
 }

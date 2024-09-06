@@ -4,10 +4,11 @@ import (
 	"arimadj-helper/internal/entity"
 	"context"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"sync"
 	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const (
@@ -44,12 +45,16 @@ type repository interface {
 	GetPlayedCountByID(ctx context.Context, songID int) (int, error)
 	GetPlayedCountByURL(ctx context.Context, url string) (int, error)
 	GetAllPlaysByURL(ctx context.Context, url string) ([]entity.SongPlay, error)
+	LogSongDownload(ctx context.Context, songID int, userID int, source string) error
 
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
+	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
 
 	SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error
 	SaveWebAppEvents(ctx context.Context, events []entity.WebAppEvent) error
 	GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error)
+
+	GetUserByID(ctx context.Context, userID int) (entity.User, error)
 
 	BatchAddSongToUserSongHistory(ctx context.Context, histories []entity.UserToSongHistory) error
 }
@@ -91,7 +96,7 @@ func New(cfg config, repo repository, cache cache, sc soundcloudDownloader) *Mod
 // Init инициализатор ...
 func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	m.ctx = ctx
-	m.logger = logger.With(slog.StringValue("🦕 " + m.cfg.GetBotName()))
+	m.logger = logger.With(slog.String("module", "🦕 "+m.cfg.GetBotName()))
 	if err := m.cfg.Validate(); err != nil {
 		return err
 	}

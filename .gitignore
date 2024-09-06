@@ -2,3 +2,4 @@
 /app
 /cmd
 .aider*
+*_easyjson.go

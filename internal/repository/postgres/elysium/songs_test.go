@@ -9,9 +9,10 @@ import (
 	"arimadj-helper/internal/repository/postgres"
 	"arimadj-helper/internal/repository/postgres/elysium"
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 var elysiumRepo *elysium.Repository
@@ -66,7 +67,6 @@ func TestCreateSong(t *testing.T) {
 			ArtistName:                "test-artist",
 			Title:                     "test-title",
 			CoverLink:                 "test-cover-link",
-			CoverPath:                 "test-cover-path",
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
@@ -95,7 +95,6 @@ func TestCreateSong(t *testing.T) {
 			ArtistName:                "test-artist",
 			Title:                     "test-title",
 			CoverLink:                 "test-cover-link",
-			CoverPath:                 "test-cover-path",
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
@@ -123,7 +122,6 @@ func TestSongByUrl(t *testing.T) {
 			ArtistName:                "test-artist",
 			Title:                     "SongByUrl with valid URL",
 			CoverLink:                 "test-cover-link",
-			CoverPath:                 "test-cover-path",
 			CoverTelegramFileID:       "test-cover-telegram-file-id",
 			SongTelegramMessageID:     123,
 			SongTelegramMessageChatID: 123,
@@ -152,93 +150,10 @@ func TestSongByUrl(t *testing.T) {
 	})
 }
 
-func TestGetPlayedCountByID(t *testing.T) {
+func TestLogSongDownloaded(t *testing.T) {
 	teardown := setupTest(t)
 	defer teardown(t)
 
-	t.Run("GetPlayedCountByID with valid song ID", func(t *testing.T) {
-		// Create a song
-		song := entity.Song{
-			URL:                       "test-url",
-			ArtistName:                "test-artist",
-			Title:                     "test-title",
-			CoverLink:                 "test-cover-link",
-			CoverPath:                 "test-cover-path",
-			CoverTelegramFileID:       "test-cover-telegram-file-id",
-			SongTelegramMessageID:     123,
-			SongTelegramMessageChatID: 123,
-			Tags:                      []string{"test-tag1", "test-tag2"},
-		}
-		createdSong, err := elysiumRepo.CreateSong(context.Background(), song)
-		require.NoError(t, err)
-
-		// Create an arbitrary number of plays for the song
-		for i := 0; i < 10; i++ {
-			err = elysiumRepo.CreatePlay(context.Background(), createdSong.ID)
-			require.NoError(t, err)
-		}
-
-		// Check the played count
-		count, err := elysiumRepo.GetPlayedCountByID(context.Background(), createdSong.ID)
-		require.NoError(t, err)
-		require.Equal(t, 10, count)
-
-		count, err = elysiumRepo.GetPlayedCountByURL(context.Background(), createdSong.URL)
-		require.NoError(t, err)
-		require.Equal(t, 10, count)
-		// Clean up
-		err = elysiumRepo.RemoveSong(context.Background(), createdSong.ID)
-		require.NoError(t, err)
-	})
-
-}
-
-func TestGetAllPlaysByURL(t *testing.T) {
-	teardown := setupTest(t)
-	defer teardown(t)
-
-	t.Run("GetAllPlaysByURL with valid URL", func(t *testing.T) {
-		// Create a song
-		song := entity.Song{
-			URL:                       "test-url",
-			ArtistName:                "test-artist",
-			Title:                     "test-title",
-			CoverLink:                 "test-cover-link",
-			CoverPath:                 "test-cover-path",
-			CoverTelegramFileID:       "test-cover-telegram-file-id",
-			SongTelegramMessageID:     123,
-			SongTelegramMessageChatID: 123,
-			Tags:                      []string{"test-tag1", "test-tag2"},
-		}
-		createdSong, err := elysiumRepo.CreateSong(context.Background(), song)
-		require.NoError(t, err)
-
-		// Create an arbitrary number of plays for the song
-		for i := 0; i < 10; i++ {
-			err = elysiumRepo.CreatePlay(context.Background(), createdSong.ID)
-			require.NoError(t, err)
-		}
-
-		// Check the plays by URL
-		songPlays, err := elysiumRepo.GetAllPlaysByURL(context.Background(), "test-url")
-		require.NoError(t, err)
-		require.NotNil(t, songPlays)
-		require.Equal(t, 10, len(songPlays))
-
-		// Clean up
-		err = elysiumRepo.RemoveSong(context.Background(), createdSong.ID)
-		require.NoError(t, err)
-	})
-
-	t.Run("GetAllPlaysByURL with non-existing URL", func(t *testing.T) {
-		plays, err := elysiumRepo.GetAllPlaysByURL(context.Background(), "non-existing-url")
-		require.NoError(t, err)
-		require.Equal(t, 0, len(plays))
-	})
-
-	t.Run("GetAllPlaysByURL with empty URL", func(t *testing.T) {
-		plays, err := elysiumRepo.GetAllPlaysByURL(context.Background(), "")
-		require.NoError(t, err)
-		require.Equal(t, 0, len(plays))
-	})
+	err := elysiumRepo.LogSongDownload(context.Background(), 1, 1, entity.SongDownloadSourceBot)
+	require.NoError(t, err)
 }

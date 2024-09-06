@@ -117,7 +117,7 @@ func (b *Bot) Run(ctx context.Context) {
 func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	defer func() {
 		if p := recover(); p != nil {
-			b.logger.Error("panic recovered: ", slog.AnyValue(p))
+			b.logger.Error("panic recovered: ", slog.Any("err", p))
 		}
 	}()
 
@@ -132,7 +132,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		_, err := b.repo.CreateOrUpdateUser(ctx, user)
 		if err != nil {
-			b.logger.Error("create user", slog.StringValue(err.Error()), slog.Int64("user_id", tgUser.ID))
+			b.logger.Error("create user", slog.String("err", err.Error()), slog.Int64("user_id", tgUser.ID))
 		}
 	}
 

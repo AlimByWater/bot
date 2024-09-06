@@ -1,176 +1,121 @@
 package entity
 
 import (
-	"errors"
-	"github.com/valyala/fastjson"
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
 var (
-	// ErrNoPermission возникает, когда у пользователя нет прав на редактирование макета
-	ErrNoPermission = errors.New("you don't have permission to edit this layout")
-	// ErrLayoutNotFound возникает, когда запрашиваемый макет не найден
-	ErrLayoutNotFound = errors.New("layout not found")
+	ErrLayoutNotFound           = fmt.Errorf("layout not found")
+	ErrNoPermissionToEditLayout = fmt.Errorf("no permission to edit layout")
 )
 
+// RootElement представляет собой структуру корневого элемента
+//
+//easyjson:json
+type RootElement struct {
+	ID                int        `json:"id" redis:"id"`
+	Type              string     `json:"type" redis:"type"`
+	Name              string     `json:"name" redis:"name"`
+	Description       string     `json:"description" redis:"description"`
+	DefaultProperties Properites `json:"default_properties" redis:"default_properties"`
+	IsPublic          bool       `json:"is_public" redis:"is_public"`
+	IsPaid            bool       `json:"is_paid" redis:"is_paid"`
+	CreatedAt         time.Time  `json:"created_at,omitempty" redis:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at,omitempty" redis:"updated_at"`
+}
+
 // UserLayout представляет собой структуру макета пользователя
+//
+//easyjson:json
 type UserLayout struct {
+	ID         int             `json:"id" redis:"id"`
 	Name       string          `json:"name" redis:"name"`
-	LayoutID   string          `json:"layoutId" redis:"layoutId"`     // Уникальный идентификатор макета
-	Background Background      `json:"background" redis:"background"` // Фон макета
-	Layout     []LayoutElement `json:"layout" redis:"layout"`         // Элементы макета
-	Creator    int             `json:"creator" redis:"creator"`       // Идентификатор создателя макета
-	Editors    []int           `json:"editors" redis:"editors"`       // Список идентификаторов редакторов макета
+	Background Background      `json:"background" redis:"background"`
+	Elements   []LayoutElement `json:"elements" redis:"elements"`
+	Creator    int             `json:"creator" redis:"creator"`
+	Editors    []int           `json:"editors" redis:"editors"`
+	CreatedAt  time.Time       `json:"created_at" redis:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at" redis:"updated_at"`
 }
 
-// MarshalFastJSON сериализует UserLayout в fastjson.Value
-func (ul *UserLayout) MarshalFastJSON(a *fastjson.Arena) *fastjson.Value {
-	o := a.NewObject()
-	o.Set("name", a.NewString(ul.Name))
-	o.Set("layoutId", a.NewString(ul.LayoutID))
+type Background map[string]interface{}
 
-	bg := a.NewObject()
-	bg.Set("type", a.NewString(ul.Background.Type))
-	bg.Set("value", a.NewString(ul.Background.Value))
-	o.Set("background", bg)
-
-	layout := a.NewArray()
-	for i, elem := range ul.Layout {
-		elemObj := a.NewObject()
-		elemObj.Set("elementId", a.NewString(elem.ElementID))
-		elemObj.Set("type", a.NewString(elem.Type))
-
-		pos := a.NewObject()
-		pos.Set("row", a.NewNumberInt(elem.Position.Row))
-		pos.Set("column", a.NewNumberInt(elem.Position.Column))
-		pos.Set("height", a.NewNumberInt(elem.Position.Height))
-		pos.Set("width", a.NewNumberInt(elem.Position.Width))
-		elemObj.Set("position", pos)
-
-		props := a.NewObject()
-		props.Set("icon", a.NewString(elem.Properties.Icon))
-		props.Set("title", a.NewString(elem.Properties.Title))
-		props.Set("navigationUrl", a.NewString(elem.Properties.NavigationURL))
-		props.Set("currentValue", a.NewNumberInt(elem.Properties.CurrentValue))
-		props.Set("minValue", a.NewNumberInt(elem.Properties.MinValue))
-		props.Set("maxValue", a.NewNumberInt(elem.Properties.MaxValue))
-		props.Set("value", a.NewNumberInt(elem.Properties.Value))
-		elemObj.Set("properties", props)
-
-		if elem.Public {
-			elemObj.Set("public", a.NewTrue())
-		} else {
-			elemObj.Set("public", a.NewFalse())
-		}
-
-		if elem.Removable {
-			elemObj.Set("removable", a.NewTrue())
-		} else {
-			elemObj.Set("removable", a.NewFalse())
-		}
-
-		layout.SetArrayItem(i, elemObj)
-	}
-	o.Set("layout", layout)
-
-	o.Set("creator", a.NewNumberInt(ul.Creator))
-
-	editors := a.NewArray()
-	for i, editor := range ul.Editors {
-		editors.SetArrayItem(i, a.NewNumberInt(editor))
-	}
-	o.Set("editors", editors)
-
-	return o
+func (b Background) Value() (driver.Value, error) {
+	return json.Marshal(b)
 }
 
-// UnmarshalUserLayoutFastJSON десериализует fastjson.Value в UserLayout
-func UnmarshalUserLayoutFastJSON(v *fastjson.Value) (*UserLayout, error) {
-	ul := &UserLayout{}
-	ul.Name = string(v.GetStringBytes("name"))
-	ul.LayoutID = string(v.GetStringBytes("layoutId"))
-
-	bg := v.Get("background")
-	ul.Background.Type = string(bg.GetStringBytes("type"))
-	ul.Background.Value = string(bg.GetStringBytes("value"))
-
-	layout := v.GetArray("layout")
-	for _, elem := range layout {
-		le := LayoutElement{}
-		le.ElementID = string(elem.GetStringBytes("elementId"))
-		le.Type = string(elem.GetStringBytes("type"))
-
-		pos := elem.Get("position")
-		le.Position.Row = pos.GetInt("row")
-		le.Position.Column = pos.GetInt("column")
-		le.Position.Height = pos.GetInt("height")
-		le.Position.Width = pos.GetInt("width")
-
-		props := elem.Get("properties")
-		le.Properties.Icon = string(props.GetStringBytes("icon"))
-		le.Properties.Title = string(props.GetStringBytes("title"))
-		le.Properties.NavigationURL = string(props.GetStringBytes("navigationUrl"))
-		le.Properties.CurrentValue = props.GetInt("currentValue")
-		le.Properties.MinValue = props.GetInt("minValue")
-		le.Properties.MaxValue = props.GetInt("maxValue")
-		le.Properties.Value = props.GetInt("value")
-
-		le.Public = elem.GetBool("public")
-		le.Removable = elem.GetBool("removable")
-
-		ul.Layout = append(ul.Layout, le)
+func (b *Background) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
 	}
 
-	ul.Creator = v.GetInt("creator")
+	return json.Unmarshal(bytes, &b)
 
-	editors := v.GetArray("editors")
-	for _, editor := range editors {
-		ul.Editors = append(ul.Editors, editor.GetInt())
+}
+
+// Position представляет собой структуру позиции элемента в макете
+//
+//easyjson:json
+type Position struct {
+	X      int `json:"x" redis:"x"`
+	Y      int `json:"y" redis:"y"`
+	Z      int `json:"z" redis:"z"`
+	Width  int `json:"width" redis:"width"`
+	Height int `json:"height" redis:"height"`
+}
+
+// LayoutElement представляет собой структуру элемента макета
+//
+//easyjson:json
+type LayoutElement struct {
+	ID          int64       `json:"id" redis:"id"`
+	RootElement RootElement `json:"root_element" redis:"root_element"`
+	Position    Position    `json:"position" redis:"position"`
+	Properties  Properites  `json:"properties" redis:"properties"`
+	IsPublic    bool        `json:"is_public" redis:"is_public"`
+	IsRemovable bool        `json:"is_removable" redis:"is_removable"`
+}
+
+type Properites map[string]interface{}
+
+func (p Properites) Value() (driver.Value, error) {
+	return json.Marshal(p)
+}
+
+func (p *Properites) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
 	}
 
-	return ul, nil
+	return json.Unmarshal(b, &p)
 }
 
 // LayoutChange представляет собой структуру для логирования изменений макета
 type LayoutChange struct {
-	UserID    int       `json:"userId"`    // Идентификатор пользователя, внесшего изменения
-	LayoutID  string    `json:"layoutId"`  // Идентификатор измененного макета
-	Timestamp time.Time `json:"timestamp"` // Время внесения изменений
-	Action    string    `json:"action"`    // Тип действия (например, "обновление", "добавление элемента")
-	Details   string    `json:"details"`   // Дополнительные детали изменения
+	ID         int                    `json:"id" redis:"id"`
+	UserID     int                    `json:"user_id" redis:"user_id"`
+	LayoutID   int                    `json:"layout_id" redis:"layout_id"`
+	ChangeType string                 `json:"change_type" redis:"change_type"`
+	Details    map[string]interface{} `json:"details" redis:"details"`
+	Timestamp  time.Time              `json:"timestamp" redis:"timestamp"`
 }
 
-// Background представляет собой структуру фона макета
-type Background struct {
-	Type  string `json:"type" redis:"type"`   // Тип фона (например, "цвет", "изображение")
-	Value string `json:"value" redis:"value"` // Значение фона (например, "#FFFFFF" для цвета или URL для изображения)
+type ChangeDetails map[string]interface{}
+
+func (p ChangeDetails) Value() (driver.Value, error) {
+	return json.Marshal(p)
 }
 
-// LayoutElement представляет собой структуру элемента макета
-type LayoutElement struct {
-	ElementID  string     `json:"elementId" redis:"elementId"`   // Уникальный идентификатор элемента
-	Type       string     `json:"type" redis:"type"`             // Тип элемента (например, "кнопка", "текст")
-	Position   Position   `json:"position" redis:"position"`     // Позиция элемента в макете
-	Properties Properties `json:"properties" redis:"properties"` // Свойства элемента
-	Public     bool       `json:"public" redis:"public"`         // Флаг публичности элемента
-	Removable  bool       `json:"removable" redis:"removable"`   // Флаг возможности удаления элемента
-}
+func (p *ChangeDetails) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
 
-// Position представляет собой структуру позиции элемента в макете
-type Position struct {
-	Row    int `json:"row" redis:"row"`       // Номер строки
-	Column int `json:"column" redis:"column"` // Номер столбца
-	Height int `json:"height" redis:"height"` // Высота элемента
-	Width  int `json:"width" redis:"width"`   // Ширина элемента
-}
-
-// Properties представляет собой структуру свойств элемента макета
-type Properties struct {
-	Icon          string `json:"icon" redis:"icon"`                             // Иконка элемента
-	Title         string `json:"title" redis:"title"`                           // Заголовок элемента
-	NavigationURL string `json:"navigationUrl,omitempty" redis:"navigationUrl"` // URL для навигации (если применимо)
-	CurrentValue  int    `json:"currentValue,omitempty" redis:"currentValue"`   // Текущее значение (если применимо)
-	MinValue      int    `json:"minValue,omitempty" redis:"minValue"`           // Минимальное значение (если применимо)
-	MaxValue      int    `json:"maxValue,omitempty" redis:"maxValue"`           // Максимальное значение (если применимо)
-	Value         int    `json:"value,omitempty" redis:"value"`                 // Значение элемента (если применимо)
+	return json.Unmarshal(b, &p)
 }

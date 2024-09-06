@@ -2,7 +2,6 @@ package redis_test
 
 import (
 	"arimadj-helper/internal/entity"
-	redisRepo "arimadj-helper/internal/repository/redis"
 	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -13,12 +12,31 @@ func TestSaveOrUpdateLayoutSucceeds(t *testing.T) {
 	defer teardown(t)
 
 	layout := entity.UserLayout{
-		LayoutID: "layout123",
+		ID: 123,
 		Background: entity.Background{
-			Type:  "color",
-			Value: "#FFFFFF",
+			"type":  "color",
+			"value": "#FFFFFF",
 		},
-		Layout:  []entity.LayoutElement{},
+		Elements: []entity.LayoutElement{
+			{
+				RootElement: entity.RootElement{
+					ID: 1,
+				},
+				Properties: map[string]interface{}{
+					"size": "large",
+				},
+				Position: entity.Position{X: 10, Y: 20},
+			},
+			{
+				RootElement: entity.RootElement{
+					ID: 2,
+				},
+				Properties: map[string]interface{}{
+					"size": "small",
+				},
+				Position: entity.Position{X: 30, Y: 40},
+			},
+		},
 		Creator: 12345,
 		Editors: []int{12345},
 	}
@@ -33,23 +51,29 @@ func TestGetLayoutSucceeds(t *testing.T) {
 
 	// Preparing a layout to be retrieved
 	layout := entity.UserLayout{
-		LayoutID: "layout123",
+		ID:   1234,
+		Name: "default_layout_4",
 		Background: entity.Background{
-			Type:  "image",
-			Value: "https://example.com/image.jpg",
+			"type":  "image",
+			"value": "https://example.com/image.jpg",
 		},
-		Layout:  []entity.LayoutElement{},
-		Creator: 12345,
-		Editors: []int{12345},
+		Elements: []entity.LayoutElement{},
+		Creator:  12345,
+		Editors:  []int{12345},
 	}
 	err := redisModule.SaveOrUpdateLayout(context.Background(), layout)
 	require.NoError(t, err)
 
 	// Retrieving the layout
-	retrievedLayout, err := redisModule.GetLayout(context.Background(), layout.LayoutID)
+	retrievedLayout, err := redisModule.GetLayout(context.Background(), layout.ID)
 	require.NoError(t, err)
-	require.Equal(t, layout.Background.Type, retrievedLayout.Background.Type)
-	require.Equal(t, layout.Background.Value, retrievedLayout.Background.Value)
+	require.Equal(t, layout.Background["type"], retrievedLayout.Background["type"])
+	require.Equal(t, layout.Background["value"], retrievedLayout.Background["value"])
+
+	retrievedLayout, err = redisModule.GetLayoutByName(context.Background(), layout.Name)
+	require.NoError(t, err)
+	require.Equal(t, layout.Background["type"], retrievedLayout.Background["type"])
+	require.Equal(t, layout.Background["value"], retrievedLayout.Background["value"])
 }
 
 func TestGetLayoutReturnsErrorWhenNoLayout(t *testing.T) {
@@ -57,9 +81,9 @@ func TestGetLayoutReturnsErrorWhenNoLayout(t *testing.T) {
 	defer teardown(t)
 
 	// Attempting to retrieve a layout when none exists
-	_, err := redisModule.GetLayout(context.Background(), "nonexistent_layout")
+	_, err := redisModule.GetLayout(context.Background(), -1)
 	require.Error(t, err)
-	require.Equal(t, redisRepo.ErrLayoutNotFound, err)
+	require.Equal(t, entity.ErrLayoutNotFound, err)
 }
 
 func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
@@ -67,38 +91,39 @@ func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
 	defer teardown(t)
 
 	initialLayout := entity.UserLayout{
-		LayoutID: "layout123",
+		ID: 123,
 		Background: entity.Background{
-			Type:  "color",
-			Value: "#000000",
+			"type":  "color",
+			"value": "#000000",
 		},
-		Layout:  []entity.LayoutElement{},
-		Creator: 12345,
-		Editors: []int{12345},
+		Elements: []entity.LayoutElement{},
+		Creator:  12345,
+		Editors:  []int{12345},
 	}
 
 	err := redisModule.SaveOrUpdateLayout(context.Background(), initialLayout)
 	require.NoError(t, err)
 
 	updatedLayout := entity.UserLayout{
-		LayoutID: "layout123",
+		ID: 123,
 		Background: entity.Background{
-			Type:  "image",
-			Value: "https://example.com/new_image.jpg",
+			"type":  "image",
+			"value": "https://example.com/new_image.jpg",
 		},
-		Layout:  []entity.LayoutElement{},
-		Creator: 12345,
-		Editors: []int{12345, 67890},
+		Elements: []entity.LayoutElement{},
+		Creator:  12345,
+		Editors:  []int{12345, 67890},
 	}
 
 	err = redisModule.SaveOrUpdateLayout(context.Background(), updatedLayout)
 	require.NoError(t, err)
 
-	retrievedLayout, err := redisModule.GetLayout(context.Background(), updatedLayout.LayoutID)
+	retrievedLayout, err := redisModule.GetLayout(context.Background(), updatedLayout.ID)
 	require.NoError(t, err)
-	require.Equal(t, updatedLayout.Background.Type, retrievedLayout.Background.Type)
-	require.Equal(t, updatedLayout.Background.Value, retrievedLayout.Background.Value)
+	require.Equal(t, updatedLayout.Background["type"], retrievedLayout.Background["type"])
+	require.Equal(t, updatedLayout.Background["value"], retrievedLayout.Background["value"])
 	require.Equal(t, updatedLayout.Editors, retrievedLayout.Editors)
+
 }
 
 //
@@ -130,12 +155,3 @@ func TestSaveOrUpdateLayoutUpdatesExistingLayout(t *testing.T) {
 //	require.Equal(t, layout.Creator, retrievedLayout.Creator)
 //	require.Equal(t, layout.Editors, retrievedLayout.Editors)
 //}
-
-func GetLayoutReturnsErrorWhenNoLayout(t *testing.T) {
-	teardown := setupTest(t)
-	defer teardown(t)
-
-	_, err := redisModule.GetLayout(context.Background(), "nonexistent_layout")
-	require.Error(t, err)
-	require.Equal(t, redisRepo.ErrLayoutNotFound, err)
-}

@@ -1,10 +1,12 @@
 package layout_methods
 
 import (
+	http2 "arimadj-helper/internal/controller/http"
 	"arimadj-helper/internal/entity"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type updateLayout struct {
@@ -16,18 +18,74 @@ func (ul updateLayout) method() string {
 }
 
 func (ul updateLayout) path() string {
-	return "/layout/:id"
+	return "/:id"
 }
 
-// sendEvent обрабатывает запрос на обновление макета
-func (ul updateLayout) sendEvent(c *gin.Context) {
-	initiatorUserID, err := getUserID(c)
+// updateLayout обрабатывает запрос на обновление макета
+func (ul updateLayout) updateLayout(c *gin.Context) {
+	initiatorUserID, err := http2.GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	layoutID := c.Param("id")
+	layoutIDStr := c.Param("id")
+	layoutID, err := strconv.Atoi(layoutIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid layout ID"})
+		return
+	}
+
+	// {
+	//	"name": "New Name",
+	//	"background": {
+	//		"type": "color",
+	//		"value": "#FFFFFF"
+	//	},
+	//	"elements": [
+	//		{
+	//			"id": 145,
+	//			"root_element_id": 1,
+	//			"type": "clickable_navigable",
+	//			"position": {
+	//				"x": 1,
+	//				"y": 1,
+	//				"z_index": 1,
+	//				"width": 1,
+	//				"height": 1
+	//			},
+	//			"properties": {
+	//				"icon": "path/to/icon1.png",
+	//				"title": "Navigation Item",
+	//				"navigationUrl": "/some-page"
+	//			},
+	//			"is_public": true,
+	//			"is_removable": true
+	//		},
+	//		{
+	//			"id": 145,
+	//			"root_element_id": 2,
+	//			"type": "clickable_navigable",
+	//			"position": {
+	//				"x": 1,
+	//				"y": 1,
+	//				"z_index": 1,
+	//				"width": 1,
+	//				"height": 1
+	//			},
+	//			"properties": {
+	//				"icon": "path/to/icon1.png",
+	//				"title": "Navigation Item",
+	//				"navigationUrl": "/some-page"
+	//			},
+	//			"is_public": true,
+	//			"is_removable": true
+	//		},
+	//	],
+	//	"creator": 123,
+	//	"editors": [123, 456]
+	// }
+
 	var updatedLayout entity.UserLayout
 	if err := c.ShouldBindJSON(&updatedLayout); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -37,7 +95,7 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 	err = ul.layout.UpdateLayoutFull(c.Request.Context(), layoutID, initiatorUserID, updatedLayout)
 	if err != nil {
 		switch {
-		case errors.Is(err, entity.ErrNoPermission):
+		case errors.Is(err, entity.ErrNoPermissionToEditLayout):
 			c.JSON(http.StatusForbidden, gin.H{"error": "У вас нет прав на редактирование этого макета"})
 		case errors.Is(err, entity.ErrLayoutNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Макет не найден"})
@@ -53,6 +111,6 @@ func (ul updateLayout) sendEvent(c *gin.Context) {
 func NewUpdateLayout(usecase layoutUC) func() (method string, path string, handlerFunc gin.HandlerFunc) {
 	return func() (method string, path string, handlerFunc gin.HandlerFunc) {
 		ul := updateLayout{layout: usecase}
-		return ul.method(), ul.path(), ul.sendEvent
+		return ul.method(), ul.path(), ul.updateLayout
 	}
 }

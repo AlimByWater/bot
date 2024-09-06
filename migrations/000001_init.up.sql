@@ -64,6 +64,13 @@ CREATE TABLE IF NOT EXISTS elysium.user_to_song_history (
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS elysium.songs_downloads (
+                       song_id INTEGER NOT NULL REFERENCES elysium.songs(id) ON DELETE CASCADE,
+                       user_id BIGINT NOT NULL REFERENCES elysium.users(id) ON DELETE CASCADE,
+                       source VARCHAR(255) NOT NULL DEFAULT '',
+                       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Создание индексов для быстрого поиска и уникальности
 CREATE INDEX IF NOT EXISTS idx_users_username ON elysium.users(telegram_username);
 CREATE INDEX IF NOT EXISTS idx_users_username ON elysium.users(telegram_id);

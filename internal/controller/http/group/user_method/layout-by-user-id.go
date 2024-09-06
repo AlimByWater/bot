@@ -1,6 +1,7 @@
 package user_method
 
 import (
+	http2 "arimadj-helper/internal/controller/http"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -20,7 +21,7 @@ func (gul getUserLayout) path() string {
 
 // layoutByUserID обрабатывает запрос на получение макета пользователя
 func (gul getUserLayout) layoutByUserID(c *gin.Context) {
-	initiatorUserID, err := getUserID(c)
+	initiatorUserID, err := http2.GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

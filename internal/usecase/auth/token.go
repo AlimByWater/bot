@@ -107,7 +107,7 @@ func (m *Module) GenerateTokenForTelegram(ctx context.Context, telegramLogin ent
 		RefreshToken: refreshToken,
 	}
 
-	m.tokensMap.Store(user.ID, token)
+	go m.cacheToken(ctx, token)
 
 	return token, nil
 }
@@ -167,10 +167,7 @@ func (m *Module) RefreshToken(ctx context.Context, refreshToken string) (entity.
 		RefreshToken: newRefreshToken,
 	}
 
-	_, ok := m.tokensMap.Swap(userID, token)
-	if !ok {
-		return entity.Token{}, fmt.Errorf("swap token: not found")
-	}
+	go m.cacheToken(ctx, token)
 
 	return token, nil
 }
@@ -204,4 +201,12 @@ func (m *Module) parseTelegramInitDate(initData string) (initdata.InitData, erro
 	}
 
 	return parsedData, nil
+}
+
+func (m *Module) cacheToken(ctx context.Context, token entity.Token) {
+	m.tokensMap.Store(token.UserID, token)
+	err := m.cache.SetToken(ctx, token)
+	if err != nil {
+		m.logger.Error("Failed to cache token", slog.String("error", err.Error()), slog.Int("userID", token.UserID), slog.String("method", "cacheToken"))
+	}
 }

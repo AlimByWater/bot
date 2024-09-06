@@ -2,6 +2,7 @@ package entity
 
 import "time"
 
+// easyjson:json
 type User struct {
 	ID               int       `db:"id" json:"id"`
 	TelegramID       int64     `db:"telegram_id" json:"telegram_id"`
@@ -11,6 +12,7 @@ type User struct {
 }
 
 // Song represents a song in the database
+// easyjson:json
 type Song struct {
 	ID                        int       `db:"id" json:"id"`
 	URL                       string    `db:"url" json:"url"`
@@ -27,6 +29,7 @@ type Song struct {
 }
 
 // UserSongDownload represents a record of a user downloading a song
+// easyjson:json
 type UserSongDownload struct {
 	ID           int       `db:"id" json:"id"`
 	UserID       int       `db:"user_id" json:"user_id"`
@@ -35,6 +38,7 @@ type UserSongDownload struct {
 }
 
 // SongPlay represents a record of a song being played
+// easyjson:json
 type SongPlay struct {
 	ID       int       `db:"id" json:"id"`
 	SongID   int       `db:"song_id" json:"song_id"`

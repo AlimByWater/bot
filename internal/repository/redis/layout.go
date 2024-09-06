@@ -5,37 +5,87 @@ import (
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"github.com/valyala/fastjson"
+	"time"
 )
 
-var ErrLayoutIDRequired = fmt.Errorf("layout id is required")
-var ErrLayoutNotFound = fmt.Errorf("layout not found")
-var ErrIncrementReachedMaxNumber = fmt.Errorf("increment reached max number of retries")
+var defaultExpiredTime = time.Hour * 24
+
+func (m *Module) GetLayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error) {
+	if userID == 0 {
+		return entity.UserLayout{}, entity.ErrCacheLayoutIDRequired
+	}
+
+	layoutJSON, err := m.client.HGet(ctx, fmt.Sprintf("layout_user_id:%d", userID), "data").Result()
+	if err != nil {
+		if err == redis.Nil {
+			return entity.UserLayout{}, entity.ErrLayoutNotFound
+		}
+		return entity.UserLayout{}, fmt.Errorf("failed to get layout: %w", err)
+	}
+
+	var layout entity.UserLayout
+	err = layout.UnmarshalJSON([]byte(layoutJSON))
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("failed to unmarshal layout: %w", err)
+	}
+
+	return layout, nil
+}
+
+func (m *Module) GetLayoutByName(ctx context.Context, layoutName string) (entity.UserLayout, error) {
+	if layoutName == "" {
+		return entity.UserLayout{}, entity.ErrCacheLayoutIDRequired
+	}
+
+	layoutJSON, err := m.client.HGet(ctx, fmt.Sprintf("layout_name:%s", layoutName), "data").Result()
+	if err != nil {
+		if err == redis.Nil {
+			return entity.UserLayout{}, entity.ErrLayoutNotFound
+		}
+		return entity.UserLayout{}, fmt.Errorf("failed to get layout: %w", err)
+	}
+
+	var layout entity.UserLayout
+	err = layout.UnmarshalJSON([]byte(layoutJSON))
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("failed to unmarshal layout: %w", err)
+	}
+
+	return layout, nil
+}
 
 // SaveOrUpdateLayout сохраняет или обновляет макет
 func (m *Module) SaveOrUpdateLayout(ctx context.Context, layout entity.UserLayout) error {
-	if layout.LayoutID == "" {
-		return ErrLayoutIDRequired
+	if layout.ID == 0 {
+		return entity.ErrCacheLayoutIDRequired
 	}
 
 	txf := func(tx *redis.Tx) error {
-		_, err := tx.HGet(ctx, fmt.Sprintf("layout:%s", layout.LayoutID), "user_id").Result()
+		_, err := tx.HGet(ctx, fmt.Sprintf("layout:%d", layout.ID), "user_id").Result()
 		if err != nil && err != redis.Nil {
 			return fmt.Errorf("failed to get layout: %w", err)
 		}
 
-		var arena fastjson.Arena
-		layoutJSON := layout.MarshalFastJSON(&arena)
+		layoutJSON, err := layout.MarshalJSON()
+		if err != nil {
+			return fmt.Errorf("failed to marshal layout: %w", err)
+		}
 
 		_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-			pipe.HSet(ctx, fmt.Sprintf("layout:%s", layout.LayoutID), "data", layoutJSON.String())
+			pipe.HSet(ctx, fmt.Sprintf("layout:%d", layout.ID), "data", string(layoutJSON))
+			pipe.HSet(ctx, fmt.Sprintf("layout_name:%s", layout.Name), "data", string(layoutJSON))
+			pipe.HSet(ctx, fmt.Sprintf("layout_user_id:%d", layout.Creator), "data", string(layoutJSON))
+
+			pipe.Expire(ctx, fmt.Sprintf("layout:%d", layout.ID), defaultExpiredTime)
+			pipe.Expire(ctx, fmt.Sprintf("layout_name:%s", layout.Name), defaultExpiredTime)
+			pipe.Expire(ctx, fmt.Sprintf("layout_user_id:%d", layout.Creator), defaultExpiredTime)
 			return nil
 		})
 		return err
 	}
 
 	for i := 0; i < maxRetries; i++ {
-		err := m.client.Watch(ctx, txf, fmt.Sprintf("layout:%s", layout.LayoutID))
+		err := m.client.Watch(ctx, txf, fmt.Sprintf("layout:%d", layout.ID))
 		if err == nil {
 			return nil
 		}
@@ -47,44 +97,43 @@ func (m *Module) SaveOrUpdateLayout(ctx context.Context, layout entity.UserLayou
 		return fmt.Errorf("failed to save or update layout: %w", err)
 	}
 
-	return ErrIncrementReachedMaxNumber
+	return entity.ErrCacheIncrementReachedMaxNumber
 }
 
 // GetLayout получает макет из кэша по ID
-func (m *Module) GetLayout(ctx context.Context, layoutID string) (entity.UserLayout, error) {
-	if layoutID == "" {
-		return entity.UserLayout{}, ErrLayoutIDRequired
+func (m *Module) GetLayout(ctx context.Context, layoutID int) (entity.UserLayout, error) {
+	if layoutID == 0 {
+		return entity.UserLayout{}, entity.ErrCacheLayoutIDRequired
 	}
 
-	layoutJSON, err := m.client.HGet(ctx, fmt.Sprintf("layout:%s", layoutID), "data").Result()
+	layoutJSON, err := m.client.HGet(ctx, fmt.Sprintf("layout:%d", layoutID), "data").Result()
 	if err != nil {
 		if err == redis.Nil {
-			return entity.UserLayout{}, ErrLayoutNotFound
+			return entity.UserLayout{}, entity.ErrLayoutNotFound
 		}
 		return entity.UserLayout{}, fmt.Errorf("failed to get layout: %w", err)
 	}
 
-	var p fastjson.Parser
-	v, err := p.Parse(layoutJSON)
-	if err != nil {
-		return entity.UserLayout{}, fmt.Errorf("failed to parse layout JSON: %w", err)
-	}
-
-	layout, err := entity.UnmarshalUserLayoutFastJSON(v)
+	var layout entity.UserLayout
+	err = layout.UnmarshalJSON([]byte(layoutJSON))
 	if err != nil {
 		return entity.UserLayout{}, fmt.Errorf("failed to unmarshal layout: %w", err)
 	}
 
-	return *layout, nil
+	if err != nil {
+		return entity.UserLayout{}, fmt.Errorf("failed to unmarshal layout: %w", err)
+	}
+
+	return layout, nil
 }
 
 // DeleteLayout удаляет макет из кэша
-func (m *Module) DeleteLayout(ctx context.Context, layoutID string) error {
-	if layoutID == "" {
-		return ErrLayoutIDRequired
+func (m *Module) DeleteLayout(ctx context.Context, layoutID int) error {
+	if layoutID == 0 {
+		return entity.ErrCacheLayoutIDRequired
 	}
 
-	_, err := m.client.Del(ctx, fmt.Sprintf("layout:%s", layoutID)).Result()
+	_, err := m.client.Del(ctx, fmt.Sprintf("layout:%d", layoutID)).Result()
 	if err != nil {
 		return fmt.Errorf("failed to delete layout: %w", err)
 	}
@@ -132,18 +181,13 @@ func (m *Module) GetAllLayouts(ctx context.Context) ([]entity.UserLayout, error)
 				return nil, fmt.Errorf("failed to get layout data: %w", err)
 			}
 
-			var p fastjson.Parser
-			v, err := p.Parse(layoutJSON)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse layout JSON: %w", err)
-			}
-
-			layout, err := entity.UnmarshalUserLayoutFastJSON(v)
+			var layout entity.UserLayout
+			err = layout.UnmarshalJSON([]byte(layoutJSON))
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal layout: %w", err)
 			}
 
-			layouts = append(layouts, *layout)
+			layouts = append(layouts, layout)
 		}
 
 		if cursor == 0 { // no more keys

@@ -17,22 +17,29 @@ var (
 	ErrInvalidToken        = fmt.Errorf("invalid token")
 )
 
+// easyjson:json
 type Token struct {
-	UserID       int    `json:"user_id"`
-	AccessToken  string `json:"access_token,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty"`
+	UserID       int    `json:"user_id" redis:"user_id"`
+	AccessToken  string `json:"access_token,omitempty" redis:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty" redis:"refresh_token"`
 }
 
+// CustomClaims ...
+// easyjson:json
 type CustomClaims struct {
 	TokenType TokenType `json:"type"`
 	jwt.RegisteredClaims
 }
 
+// TelegramLoginInfo ...
+// easyjson:json
 type TelegramLoginInfo struct {
 	TelegramID int64  `json:"telegram_id"`
 	InitData   string `json:"init_data"`
 }
 
+// TelegramRefreshTokenInfo ...
+// easyjson:json
 type TelegramRefreshTokenInfo struct {
 	RefreshToken string `json:"refresh_token"`
 }

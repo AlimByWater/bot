@@ -5,26 +5,29 @@ import (
 	"context"
 	"log/slog"
 	"sync"
-	"time"
 )
 
 // cacheUC интерфейс для работы с кэшем
 type cacheUC interface {
-	GetLayout(ctx context.Context, layoutID string) (interface{}, error)
-	SetLayout(ctx context.Context, layoutID string, value interface{}, expiration time.Duration) error
-	DeleteLayout(ctx context.Context, layoutID string) error
+	GetLayout(ctx context.Context, layoutID int) (entity.UserLayout, error)
+	SaveOrUpdateLayout(ctx context.Context, layout entity.UserLayout) error
+	DeleteLayout(ctx context.Context, layoutID int) error
+	GetLayoutByName(ctx context.Context, layoutName string) (entity.UserLayout, error)
+	GetLayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error)
 }
 
 // repoUC интерфейс для работы с репозиторием макетов
 type repoUC interface {
 	LayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error)
-	LayoutByID(ctx context.Context, layoutID string) (entity.UserLayout, error)
-	UpdateLayout(ctx context.Context, layout entity.UserLayout) error
+	LayoutByID(ctx context.Context, layoutID int) (entity.UserLayout, error)
+	UpdateLayoutFull(ctx context.Context, layout entity.UserLayout) error
 	LogLayoutChange(ctx context.Context, change entity.LayoutChange) error
-	IsLayoutOwner(ctx context.Context, layoutID string, userID int) (bool, error)
-	AddLayoutEditor(ctx context.Context, layoutID string, editorID int) error
-	RemoveLayoutEditor(ctx context.Context, layoutID string, editorID int) error
+	IsLayoutOwner(ctx context.Context, layoutID int, userID int) (bool, error)
+	AddLayoutEditor(ctx context.Context, layoutID int, editorID int) error
+	RemoveLayoutEditor(ctx context.Context, layoutID int, editorID int) error
 	GetDefaultLayout(ctx context.Context) (entity.UserLayout, error)
+	LayoutByName(ctx context.Context, layoutName string) (entity.UserLayout, error)
+	CreateLayout(ctx context.Context, layout entity.UserLayout) error
 }
 
 // Module представляет собой модуль для работы с макетами

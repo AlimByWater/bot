@@ -240,6 +240,19 @@ RETURNING id, play_time
 	return songPlay, nil
 }
 
+func (r *Repository) LogSongDownload(ctx context.Context, songID int, userID int, source string) error {
+	query := `
+		INSERT INTO elysium.songs_downloads (song_id, user_id, source)
+		VALUES ($1, $2, $3)
+	`
+	_, err := r.db.ExecContext(ctx, query, songID, userID, source)
+	if err != nil {
+		return fmt.Errorf("exec context: %w", err)
+	}
+
+	return nil
+}
+
 //func (r *Repository) SongPlayed1(info entity.TrackInfo) error {
 //	err := r.execTX(ctx, func(q *queries) error {
 //		inValues := "phone, telegram, username"

@@ -7,7 +7,7 @@ import (
 )
 
 // AddLayoutEditor добавляет редактора к макету
-func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
+func (m *Module) AddLayoutEditor(ctx context.Context, layoutID int, initiatorUserID, editorID int) error {
 	// Проверяем, имеет ли инициатор права на редактирование макета
 	isOwner, err := m.repo.IsLayoutOwner(ctx, layoutID, initiatorUserID)
 	if err != nil {
@@ -30,7 +30,7 @@ func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiator
 	}
 
 	// Логируем изменение
-	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "AddLayoutEditor", fmt.Sprintf("Added editor %d", editorID))
+	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "AddLayoutEditor", nil)
 	if err != nil {
 		m.logger.Error("Failed to log layout change", "error", err)
 	}
@@ -39,7 +39,7 @@ func (m *Module) AddLayoutEditor(ctx context.Context, layoutID string, initiator
 }
 
 // RemoveLayoutEditor удаляет редактора из макета
-func (m *Module) RemoveLayoutEditor(ctx context.Context, layoutID string, initiatorUserID, editorID int) error {
+func (m *Module) RemoveLayoutEditor(ctx context.Context, layoutID int, initiatorUserID, editorID int) error {
 	// Проверяем, имеет ли инициатор права на редактирование макета
 	isOwner, err := m.repo.IsLayoutOwner(ctx, layoutID, initiatorUserID)
 	if err != nil {
@@ -62,7 +62,7 @@ func (m *Module) RemoveLayoutEditor(ctx context.Context, layoutID string, initia
 	}
 
 	// Логируем изменение
-	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "RemoveLayoutEditor", fmt.Sprintf("Removed editor %d", editorID))
+	err = m.logLayoutChange(ctx, initiatorUserID, layoutID, "RemoveLayoutEditor", nil)
 	if err != nil {
 		m.logger.Error("Failed to log layout change", "error", err)
 	}

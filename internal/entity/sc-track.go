@@ -7,6 +7,7 @@ import (
 )
 
 // TrackInfo структура трека
+// easyjson:json
 type TrackInfo struct {
 	TrackTitle string   `json:"trackTitle"`
 	ArtistName string   `json:"artistName"`

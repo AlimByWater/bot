@@ -19,6 +19,7 @@ type config interface {
 type Module struct {
 	cfg    config
 	client *redis.Client
+	logger *slog.Logger
 }
 
 // New - создает новый модуль, на входе конфигурация и таблицы
@@ -28,7 +29,9 @@ func New(cfg config) *Module {
 	}
 }
 
-func (m *Module) Init(ctx context.Context, _ *slog.Logger) (err error) {
+func (m *Module) Init(ctx context.Context, logger *slog.Logger) (err error) {
+	m.logger = logger.With(slog.String("module", "redis"))
+
 	if err := m.cfg.Validate(); err != nil {
 		return fmt.Errorf("redis config validate: %w", err)
 	}

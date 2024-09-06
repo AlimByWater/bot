@@ -1,6 +1,7 @@
 package layout_methods
 
 import (
+	http2 "arimadj-helper/internal/controller/http"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -15,18 +16,24 @@ func (rle removeLayoutEditor) method() string {
 }
 
 func (rle removeLayoutEditor) path() string {
-	return "/layout/:id/editor/:editorId"
+	return "/:id/editor/:editorId"
 }
 
 // removeLayoutEditor обрабатывает запрос на удаление редактора макета
 func (rle removeLayoutEditor) removeLayoutEditor(c *gin.Context) {
-	initiatorUserID, err := getUserID(c)
+	initiatorUserID, err := http2.GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	layoutID := c.Param("id")
+	layoutIDStr := c.Param("id")
+	layoutID, err := strconv.Atoi(layoutIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid layout ID"})
+		return
+	}
+
 	editorIDStr := c.Param("editorId")
 
 	editorID, err := strconv.Atoi(editorIDStr)

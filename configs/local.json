@@ -4,26 +4,26 @@
     "Port": ":443"
   },
   "Demethra": {
-    "BotToken": "7486051673:AAEg2bzMqec1NkFK8tHycLn8gvGxK6xQ6ww",
+    "BotToken": "7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8",
     "BotName": "t.me/elysium_demethra_bot",
     "ChatIDForLogs": -1002044294733,
-    "ElysiumFmID": -1001934236726,
-    "ElysiumForumID": -1002224939217,
-    "ElysiumFmCommentID": -1002044294733,
+    "ElysiumFmID": -1002129034021,
+    "ElysiumForumID": -1002124956071,
+    "ElysiumFmCommentID": -1002164548613,
     "TracksDbChannel": -1002243776940,
-    "CurrentTrackMessageID": 271,
+    "CurrentTrackMessageID": 13832,
     "ListenerIdleTimeoutInMinutes": 3
   },
   "ArimaDJ": {
     "BotToken": "7447550770:AAHaO6tRmqNtb53fD9cIXPJVjYi1mHN3i_0",
-    "BotName":  "t.me/arima_dj_bot",
+    "BotName": "t.me/arima_dj_bot",
     "ChatIDForLogs": -1002044294733
   },
   "Postgres": {
     "User": "elysium",
-    "Password":"OJocasd923sa0d3",
+    "Password": "OJocasd923sa0d3",
     "Name": "elysium",
-    "Host": "91.206.15.29",
+    "Host": "postgres",
     "Port": 4568,
     "Driver": "postgres",
     "SSLMode": "disable",
@@ -34,13 +34,13 @@
     "DownloadPath": "../../app/temp"
   },
   "Redis": {
-    "Host": "91.206.15.29",
+    "Host": "redis",
     "Port": 6379,
     "Password": "OJocasd923sa0d4"
   },
   "Auth": {
-    "Secret": "test-secret",
-    "TelegramBotToken": "7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo",
+    "Secret": "test-secret-elysium",
+    "TelegramBotToken": "7486051673:AAEg2bzMqec1NkFK8tHycLn8gvGxK6xQ6ww",
     "ApiKey": "1234515151"
   }
 }

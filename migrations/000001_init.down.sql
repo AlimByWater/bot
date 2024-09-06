@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS elysium.songs_downloads;
+
 DROP TABLE IF EXISTS elysium.user_to_song_history;
 
 DROP TABLE IF EXISTS elysium.user_session_durations;

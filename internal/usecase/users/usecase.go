@@ -18,7 +18,7 @@ type repository interface {
 }
 
 type layoutCreator interface {
-	GenerateAndSaveDefaultLayout(ctx context.Context, userID int) (entity.UserLayout, error)
+	GenerateAndSaveDefaultLayout(ctx context.Context, userID int, username string) (entity.UserLayout, error)
 }
 
 type Module struct {
@@ -35,8 +35,9 @@ type Module struct {
 
 func New(cache cacheUC, repo repository, layout layoutCreator) *Module {
 	return &Module{
-		cache: cache,
-		repo:  repo,
+		cache:  cache,
+		repo:   repo,
+		layout: layout,
 	}
 }
 

@@ -5,11 +5,14 @@ import (
 	"arimadj-helper/internal/application/config/config_module"
 	"arimadj-helper/internal/application/env"
 	"arimadj-helper/internal/application/env/test"
+	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
 	redisRepo "arimadj-helper/internal/repository/redis"
 	"context"
 	"errors"
 	"github.com/stretchr/testify/require"
+	"log/slog"
+	"os"
 	"testing"
 	"time"
 )
@@ -40,9 +43,19 @@ func testConfig(t *testing.T) *config_module.Redis {
 func setupTest(t *testing.T) func(t *testing.T) {
 	t.Helper()
 
+	loggerModule := logger.New(
+		logger.Options{
+			AppName: "test-bot-manager",
+			Writer:  os.Stdout,
+			HandlerOptions: &slog.HandlerOptions{
+				Level: slog.LevelDebug,
+			},
+		},
+	)
+
 	cfg := testConfig(t)
 	redisModule = redisRepo.New(cfg)
-	err := redisModule.Init(context.Background(), nil)
+	err := redisModule.Init(context.Background(), loggerModule)
 	if err != nil {
 		t.Fatalf("Failed to initialize postgres repository: %v", err)
 

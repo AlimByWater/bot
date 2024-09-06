@@ -15,11 +15,9 @@ func (m *Module) CreateUser(ctx context.Context, user entity.User) (entity.User,
 	}
 
 	// Create default layout for the new user
-	_, err = m.layout.GenerateAndSaveDefaultLayout(ctx, createdUser.ID)
+	_, err = m.layout.GenerateAndSaveDefaultLayout(ctx, createdUser.ID, user.TelegramUsername)
 	if err != nil {
 		m.logger.Error("Failed to create default layout for user", slog.Any("error", err), slog.Any("userID", createdUser.ID))
-		// We don't return an error here because the user was successfully created
-		// and the layout creation is a secondary operation
 	}
 
 	return createdUser, nil

@@ -18,10 +18,14 @@ type repository interface {
 	GetUserByID(ctx context.Context, userID int) (entity.User, error)
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
-
-	AllTokens(ctx context.Context) ([]entity.Token, error)
 	//SaveOrUpdateToken(ctx context.Context, token entity.Token) error
 	//TokenByUserID(ctx context.Context, userID int) (entity.Token, error)
+}
+
+type externalCache interface {
+	GetToken(ctx context.Context, userID int) (entity.Token, error)
+	SetToken(ctx context.Context, token entity.Token) error
+	AllTokens(ctx context.Context) ([]entity.Token, error)
 }
 
 type userCreator interface {
@@ -36,18 +40,19 @@ type Module struct {
 
 	mu        sync.RWMutex
 	tokensMap sync.Map
-	//tokens    map[int]entity.Token
+	cache     externalCache
 
 	repo  repository
 	users userCreator
 }
 
-func NewModule(cfg config, repo repository, users userCreator) *Module {
+func NewModule(cfg config, cache externalCache, repo repository, users userCreator) *Module {
 	return &Module{
 		cfg:       cfg,
 		repo:      repo,
 		users:     users,
 		tokensMap: sync.Map{},
+		cache:     cache,
 		mu:        sync.RWMutex{},
 	}
 }
@@ -61,7 +66,7 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 
 	m.jwtSecret = []byte(m.cfg.GetSecret())
 
-	tokens, err := m.repo.AllTokens(ctx)
+	tokens, err := m.cache.AllTokens(ctx)
 	if err != nil {
 		return fmt.Errorf("all tokens: %w", err)
 	}

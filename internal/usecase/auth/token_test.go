@@ -9,7 +9,10 @@ import (
 	"arimadj-helper/internal/entity"
 	"arimadj-helper/internal/repository/postgres"
 	"arimadj-helper/internal/repository/postgres/elysium"
+	"arimadj-helper/internal/repository/redis"
 	"arimadj-helper/internal/usecase/auth"
+	"arimadj-helper/internal/usecase/layout"
+	"arimadj-helper/internal/usecase/users"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,7 +25,7 @@ import (
 
 var module *auth.Module
 
-func testConfig(t *testing.T) (*config_module.Postgres, *config_module.Auth) {
+func testConfig(t *testing.T) (*config_module.Postgres, *config_module.Auth, *config_module.Redis) {
 	t.Helper()
 
 	t.Setenv("ENV", "test")
@@ -35,13 +38,14 @@ func testConfig(t *testing.T) (*config_module.Postgres, *config_module.Auth) {
 
 	postgresCfg := config_module.NewPostgresConfig()
 	authCfg := config_module.NewAuthConfig()
-	cfg := config.New(postgresCfg, authCfg)
+	redisCfg := config_module.NewRedisConfig()
+	cfg := config.New(postgresCfg, authCfg, redisCfg)
 	err = cfg.Init(storage)
 	if err != nil {
 		t.Fatalf("Failed to initialize config: %v", err)
 	}
 
-	return postgresCfg, authCfg
+	return postgresCfg, authCfg, redisCfg
 }
 
 func setupTest(t *testing.T) func(t *testing.T) {
@@ -58,19 +62,31 @@ func setupTest(t *testing.T) func(t *testing.T) {
 		},
 	)
 
-	postgresCfg, authCfg := testConfig(t)
+	postgresCfg, authCfg, redisCfg := testConfig(t)
 	elysiumRepo := elysium.NewRepository()
 	repo := postgres.New(postgresCfg, elysiumRepo)
 	err := repo.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
-	module = auth.NewModule(authCfg, elysiumRepo)
+	redisModule := redis.New(redisCfg)
+	err = redisModule.Init(ctx, loggerModule)
+	require.NoError(t, err)
+
+	layoutUC := layout.New(redisModule, elysiumRepo)
+	layoutUC.Init(ctx, loggerModule)
+
+	userUC := users.New(redisModule, elysiumRepo, layoutUC)
+	err = userUC.Init(ctx, loggerModule)
+	require.NoError(t, err)
+
+	module = auth.NewModule(authCfg, redisModule, elysiumRepo, userUC)
 	err = module.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
 	// Return a teardown function to clean up after the test
 	return func(t *testing.T) {
 		repo.Close()
+		redisModule.Close()
 	}
 }
 

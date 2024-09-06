@@ -1,12 +1,15 @@
 package demethra
 
 import (
+	"arimadj-helper/internal/entity"
 	"context"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log/slog"
 	"net/url"
 	"slices"
 	"strings"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type CommandFunc func(ctx context.Context, update tgbotapi.Update) error
@@ -102,6 +105,18 @@ func (b *Bot) cmdDownloadInline() CommandFunc {
 		_, err = b.Api.Send(forwardMsg)
 		if err != nil {
 			return fmt.Errorf("forward message: %w", err)
+		}
+
+		// просто логируем факт скачивания
+		user, err := b.repo.GetUserByTelegramID(ctx, update.CallbackQuery.From.ID)
+		if err != nil {
+			b.logger.Error("get user by telegram id", slog.String("error", err.Error()), slog.Int64("telegram_id", update.CallbackQuery.From.ID), slog.String("method", "cmdDownloadInline"))
+		} else {
+			err := b.repo.LogSongDownload(ctx, song.ID, user.ID, entity.SongDownloadSourceBot)
+			if err != nil {
+				b.logger.Error("log song download", slog.String("error", err.Error()), slog.Int("song_id", song.ID), slog.Int("user_id", user.ID), slog.String("method", "cmdDownloadInline"))
+			}
+
 		}
 
 		return nil
