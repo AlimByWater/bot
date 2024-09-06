@@ -183,7 +183,7 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 				Reader: file,
 			},
 		},
-		Caption:   `||[элизиум \\[ラジオ\\]](t.me/elysium_fm)||`,
+		Caption:   `[элизиум \\[ラジオ\\]](t.me/elysium_fm)`,
 		ParseMode: "MarkdownV2",
 		Title:     info.TrackTitle,
 		Performer: info.ArtistName,
