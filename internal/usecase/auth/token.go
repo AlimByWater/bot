@@ -189,9 +189,9 @@ func (m *Module) generateJWTToken(_ context.Context, userID int, tokenType entit
 func (m *Module) parseTelegramInitDate(initData string) (initdata.InitData, error) {
 	err := initdata.Validate(initData, m.cfg.GetTelegramBotToken(), 24*time.Hour)
 	if err != nil {
-		err := initdata.Validate(initData, "7287354736:AAFzL0cNnIJhS3BasddwkmcQ07qtmw-a2AE", 24*time.Hour)
-		if err != nil {
-			return initdata.InitData{}, fmt.Errorf("invalid init data: %w", err)
+		err2 := initdata.Validate(initData, "7287354736:AAFzL0cNnIJhS3BasddwkmcQ07qtmw-a2AE", 24*time.Hour)
+		if err2 != nil {
+			return initdata.InitData{}, fmt.Errorf("invalid init data: %w; %s", err, err2.Error())
 		}
 	}
 
