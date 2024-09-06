@@ -23,6 +23,7 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 	}
 
 	track.TrackTitle = strings.Replace(track.TrackTitle, "Current track: ", "", 1)
+	track.CoverLink = strings.Replace(track.CoverLink, "t50x50", "t500x500", 1)
 	track.CoverLink = strings.Replace(track.CoverLink, "t120x120", "t500x500", 1)
 
 	ctx := context.TODO()
