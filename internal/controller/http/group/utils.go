@@ -37,9 +37,5 @@ func getTokenAndUserID(c *gin.Context) (token string, userID int, err error) {
 		return
 	}
 
-	if token == "test-token" && userID == 5 {
-		return
-	}
-
 	return
 }
