@@ -49,7 +49,7 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 
 	gin.SetMode(m.cfg.GetMode())
 	router := gin.New()
-	router.Use(ginRecovery(m.logger), cors(m.logger))
+	router.Use(ginRecovery(m.logger), cors(m.logger), ginLogger(m.logger))
 
 	// добавляем группы эндпоинтов
 	for _, g := range m.groups {

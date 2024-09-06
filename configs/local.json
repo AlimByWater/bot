@@ -24,7 +24,7 @@
     "Password": "OJocasd923sa0d3",
     "Name": "elysium",
     "Host": "postgres",
-    "Port": 4568,
+    "Port": 5432,
     "Driver": "postgres",
     "SSLMode": "disable",
     "MaxConn": 10
