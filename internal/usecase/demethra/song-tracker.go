@@ -286,7 +286,7 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 		BaseEdit: tgbotapi.BaseEdit{
 			BaseChatMessage: tgbotapi.BaseChatMessage{
 				MessageID:  b.currentTrackMessageID,
-				ChatConfig: tgbotapi.ChatConfig{ChatID: b.mainChannelID},
+				ChatConfig: tgbotapi.ChatConfig{ChatID: b.forumID},
 			},
 			ReplyMarkup: &keyboard,
 		},
