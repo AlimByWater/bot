@@ -30,7 +30,7 @@ func (m *Module) CheckAccessTokenByUserID(ctx context.Context, token string, use
 	})
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "parse with claims", logger.AppendErrorToLogs(attributes, err)...)
-		return false, fmt.Errorf("parse with claims: %w", err)
+		return false, fmt.Errorf("parse with claims: %w %s %s", err, token, string(m.jwtSecret))
 	}
 
 	if claims.TokenType != entity.TokenTypeAccess {
