@@ -10,7 +10,6 @@ import (
 func getTokenAndUserID(c *gin.Context) (token string, userID int, err error) {
 	// токен и user-id могут быть либо в хедерах, либо в параметрах запроса(в случае вебсокета)
 	if c.Request.Header.Get("Authorization") != "" && c.Request.Header.Get("x-user-id") != "" {
-		var err error
 		reqToken := c.Request.Header.Get("Authorization")
 		splitToken := strings.Split(reqToken, "Bearer ")
 		if len(splitToken) != 2 {
@@ -27,7 +26,6 @@ func getTokenAndUserID(c *gin.Context) (token string, userID int, err error) {
 			return
 		}
 	} else if c.Param("token") != "" && c.Param("userId") != "" {
-		var err error
 		token = c.Param("token")
 		userID, err = strconv.Atoi(c.Param("userId"))
 		if err != nil {
