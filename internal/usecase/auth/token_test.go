@@ -151,3 +151,17 @@ func addNum(nums []int) {
 func addNums(nums []int) {
 	nums = append(nums, 5, 6)
 }
+
+func TestModule_CheckAccessTokenByUserID(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	token := entity.Token{
+		UserID:       123,
+		AccessToken:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoiYWNjZXNzIiwic3ViIjoiNSIsImV4cCI6MTcyNTY1ODUyMCwiaWF0IjoxNzI1NjUxMzIwfQ.YGuF-Js6YVprTgxi78DPeLSWCAXis5TpHAsi4evkB38",
+		RefreshToken: "5",
+	}
+
+	_, err := module.CheckAccessTokenByUserID(context.Background(), token.AccessToken, token.UserID)
+	require.NoError(t, err)
+}
