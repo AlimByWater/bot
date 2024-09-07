@@ -25,6 +25,7 @@ type config interface {
 	GetElysiumFmCommentID() int64
 	GetTracksDbChannel() int64
 	GetCurrentTrackMessageID() int
+	GetSongMetadataFilePath() string
 	Validate() error
 }
 

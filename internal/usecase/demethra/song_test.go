@@ -6,15 +6,18 @@ import (
 	"arimadj-helper/internal/application/env"
 	"arimadj-helper/internal/application/env/test"
 	"arimadj-helper/internal/application/logger"
+	"arimadj-helper/internal/entity"
 	"arimadj-helper/internal/repository/postgres"
 	"arimadj-helper/internal/repository/postgres/elysium"
 	"arimadj-helper/internal/repository/redis"
 	"arimadj-helper/internal/usecase/demethra"
 	"context"
+	"github.com/essentialkaos/go-icecast"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"os"
 	"testing"
+	"time"
 )
 
 var module *demethra.Module
@@ -99,5 +102,50 @@ func TestSendSongByTrackLink(t *testing.T) {
 
 		err := module.SendSongByTrackLink(context.Background(), userID, link)
 		require.Error(t, err)
+	})
+}
+
+func TestIceacst(t *testing.T) {
+	api, err := icecast.NewAPI("http://127.0.0.1:8008", "alim", "hackme8")
+	require.NoError(t, err)
+
+	//stats, err := api.GetStats()
+	//require.NoError(t, err)
+	//fmt.Println(stats)
+	ticke := time.NewTicker(time.Second * 1)
+	for range ticke.C {
+		err = api.UpdateMeta("/stream", icecast.TrackMeta{
+			Title:   "test",
+			Artist:  "Arima DJ",
+			URL:     "https://soundcloud.com/uiceheidd/tell-me-you-love-me",
+			Artwork: "https://i1.sndcdn.com/artworks-oQRvHcKyeO921Eve-FeUQMA-t50x50.jpg",
+		})
+
+		require.NoError(t, err)
+	}
+
+}
+
+func TestUpdateSongMetadataFile(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	t.Run("Success", func(t *testing.T) {
+		track := entity.TrackInfo{
+			TrackTitle: "test-title",
+			ArtistName: "test-artist",
+			TrackLink:  "test-link",
+			CoverLink:  "test-cover-link",
+		}
+		module.UpdateSongMetadataFile(track)
+
+		track = entity.TrackInfo{
+			TrackTitle: "test-title23",
+			ArtistName: "test-artist23",
+			TrackLink:  "test-link3",
+			CoverLink:  "test-cover-link",
+		}
+		module.UpdateSongMetadataFile(track)
+
 	})
 }

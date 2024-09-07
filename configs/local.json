@@ -12,7 +12,8 @@
     "ElysiumFmCommentID": -1002164548613,
     "TracksDbChannel": -1002243776940,
     "CurrentTrackMessageID": 18245,
-    "ListenerIdleTimeoutInMinutes": 3
+    "ListenerIdleTimeoutInMinutes": 3,
+    "SongMetadataFilePath": "/app/song-metadata.txt"
   },
   "ArimaDJ": {
     "BotToken": "7447550770:AAHaO6tRmqNtb53fD9cIXPJVjYi1mHN3i_0",

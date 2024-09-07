@@ -12,6 +12,7 @@ type Demethra struct {
 	TracksDbChannel              int64
 	CurrentTrackMessageID        int
 	ListenerIdleTimeoutInMinutes int
+	SongMetadataFilePath         string
 }
 
 func NewDemethraConfig() *Demethra {
@@ -27,6 +28,7 @@ func (c Demethra) GetElysiumFmCommentID() int64         { return c.ElysiumFmComm
 func (c Demethra) GetTracksDbChannel() int64            { return c.TracksDbChannel }
 func (c Demethra) GetCurrentTrackMessageID() int        { return c.CurrentTrackMessageID }
 func (c Demethra) GetListenerIdleTimeoutInMinutes() int { return c.ListenerIdleTimeoutInMinutes }
+func (c Demethra) GetSongMetadataFilePath() string      { return c.SongMetadataFilePath }
 
 func (c Demethra) Validate() error {
 	return validation.ValidateStruct(&c,
@@ -39,5 +41,6 @@ func (c Demethra) Validate() error {
 		validation.Field(&c.TracksDbChannel, validation.Required),
 		validation.Field(&c.CurrentTrackMessageID, validation.Required),
 		validation.Field(&c.ListenerIdleTimeoutInMinutes, validation.Required),
+		validation.Field(&c.SongMetadataFilePath, validation.Required),
 	)
 }
