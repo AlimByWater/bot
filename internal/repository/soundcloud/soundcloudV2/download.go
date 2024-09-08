@@ -119,11 +119,11 @@ func validateDownload(dlpath string, trackName string) (string, error) {
 // download the track
 func Download(track DownloadTrack, dlpath string) (string, error) {
 	// TODO: Prompt Y/N if the file exists and rename by adding _<random/date>.<ext>
-	trackName := strconv.FormatInt(time.Now().Unix(), 10) + "." + track.Ext
-	path, err := validateDownload(dlpath, trackName)
-	if err != nil {
-		return "", fmt.Errorf("validate download: %w", err)
-	}
+	path := path.Join(dlpath, strconv.FormatInt(time.Now().Unix(), 10)+"."+track.Ext)
+	//path, err := validateDownload(dlpath, trackName)
+	//if err != nil {
+	//	return "", fmt.Errorf("validate download: %w", err)
+	//}
 
 	// check if the track is hls
 	if track.Quality != "low" {
@@ -164,7 +164,7 @@ func Download(track DownloadTrack, dlpath string) (string, error) {
 	if track.Ext == "ogg" {
 		newPath := strings.Replace(path, ".ogg", ".mp3", 1)
 		cmd := exec.Command("ffmpeg", "-i", path, newPath)
-		_, err = cmd.CombinedOutput()
+		_, err := cmd.CombinedOutput()
 		if err != nil {
 			return "", fmt.Errorf("ffmpeg: %w", err)
 		}
