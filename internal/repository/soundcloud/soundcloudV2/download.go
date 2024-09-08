@@ -12,8 +12,10 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // expand the given path ~/Desktop to the current logged in user /home/<username>/Desktop
@@ -117,7 +119,7 @@ func validateDownload(dlpath string, trackName string) (string, error) {
 // download the track
 func Download(track DownloadTrack, dlpath string) (string, error) {
 	// TODO: Prompt Y/N if the file exists and rename by adding _<random/date>.<ext>
-	trackName := track.SoundData.Title + "." + track.Ext
+	trackName := strconv.FormatInt(time.Now().Unix(), 10) + "." + track.Ext
 	path, err := validateDownload(dlpath, trackName)
 	if err != nil {
 		return "", fmt.Errorf("validate download: %w", err)

@@ -78,7 +78,7 @@ func TestModule_DownloadTrackByURL(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	trackUrl := "https://soundcloud.com/chouchou2222/dywtfsr"
+	trackUrl := "https://soundcloud.com/love_again/dj-lostboi-x-young-thug?in=sungodarima/sets/copy-of-related-tracks-500-dj/s-zzFAANRSzyr&si=15b323716ebc4df691fa147b589201aa&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"
 	info := entity.TrackInfo{
 		TrackTitle: "chou chou",
 		ArtistName: "do you want to feel something real?",
