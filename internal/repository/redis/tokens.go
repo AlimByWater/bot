@@ -13,7 +13,6 @@ var tokenKeyPrefix = "token_user_id"
 
 func (m *Module) SetToken(ctx context.Context, token entity.Token) error {
 	txf := func(tx *redis.Tx) error {
-		// если найден - обновляем его
 		_, err := tx.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 			tokenJson, err := token.MarshalJSON()
 			if err != nil {
@@ -26,8 +25,9 @@ func (m *Module) SetToken(ctx context.Context, token entity.Token) error {
 		return err
 	}
 
+	var err error
 	for i := 0; i < maxRetries; i++ {
-		err := m.client.Watch(ctx, txf, fmt.Sprintf("%s:%d", tokenKeyPrefix, token.UserID))
+		err = m.client.Watch(ctx, txf, fmt.Sprintf("%s:%d", tokenKeyPrefix, token.UserID))
 		if err == nil {
 			return nil
 		}
@@ -39,7 +39,7 @@ func (m *Module) SetToken(ctx context.Context, token entity.Token) error {
 		return fmt.Errorf("failed to save or update token: %w", err)
 	}
 
-	return entity.ErrCacheIncrementReachedMaxNumber
+	return err
 }
 
 func (m *Module) GetToken(ctx context.Context, userID int) (entity.Token, error) {

@@ -13,9 +13,9 @@ func TestSetToken(t *testing.T) {
 	defer teardown(t)
 
 	token := entity.Token{
-		UserID:       256789,
-		AccessToken:  "access-token",
-		RefreshToken: "refresh-token",
+		UserID:       5,
+		AccessToken:  "",
+		RefreshToken: "",
 	}
 
 	err := redisModule.SetToken(context.Background(), token)

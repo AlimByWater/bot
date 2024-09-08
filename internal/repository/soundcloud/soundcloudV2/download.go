@@ -244,6 +244,8 @@ func DownloadByUrl(url string, dlpath string, info entity.TrackInfo) (string, er
 			return "", fmt.Errorf("get artist: %w", err)
 		}
 
+		info.ArtistName = strings.Replace(info.ArtistName, " | Listen online for free on SoundCloud", "", 1)
+
 	}
 	err = SetTitleArtistCoverImage(filePath, info.TrackTitle, info.ArtistName, imgdata)
 	if err != nil {
