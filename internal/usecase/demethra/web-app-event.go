@@ -103,11 +103,10 @@ func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEv
 
 	err := initdata.Validate(payload.RawInitData, m.cfg.GetBotToken(), 24*time.Hour)
 	if err != nil {
-		err2 := initdata.Validate(payload.RawInitData, "7287354736:AAFzL0cNnIJhS3BasddwkmcQ07qtmw-a2AE", 24*time.Hour)
+		err2 := initdata.Validate(payload.RawInitData, "7486051673:AAEg2bzMqec1NkFK8tHycLn8gvGxK6xQ6ww", 24*time.Hour)
 		if err2 != nil {
 			return fmt.Errorf("invalid init data: %w: %w", err, err2)
 		}
-
 	}
 
 	parsedData, err := initdata.Parse(payload.RawInitData)

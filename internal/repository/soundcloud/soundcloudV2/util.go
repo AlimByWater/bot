@@ -100,7 +100,7 @@ func GetSoundMetaData(apiUrl string) (*SoundData, error) {
 	statusCode, body, err := Get(apiUrl)
 
 	if err != nil || statusCode != http.StatusOK {
-		return nil, fmt.Errorf("error while requesting : %s , error : %w", apiUrl, err)
+		return nil, fmt.Errorf("error while requesting : %s , error : %s", apiUrl, err.Error())
 	}
 
 	var sound SoundData
