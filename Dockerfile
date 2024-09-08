@@ -10,5 +10,6 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/bot /app/bot
 COPY --from=builder /app/configs /app/configs
+RUN mkdir /app/temp
 EXPOSE 443
 ENTRYPOINT ["./bot"]
