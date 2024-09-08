@@ -303,7 +303,7 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 					if update.Message.Chat.Type == entity.ChatTypePrivate {
 						chatId := update.FromChat().ChatConfig().ChatID
 						//rand.Seed(time.Now().Unix())
-						msg := tgbotapi.NewMessage(chatId, `Скачиваю.||Надеюсь у меня получится.||`)
+						msg := tgbotapi.NewMessage(chatId, `Скачиваю\.||Надеюсь у меня получится\.||`)
 						msg.ReplyParameters.MessageID = update.Message.MessageID
 						msg.ParseMode = "MarkdownV2"
 
@@ -315,6 +315,14 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 
 					songPath, err := b.sc.DownloadTrackByURL(ctx, v, entity.TrackInfo{})
 					if err != nil {
+						msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось скачать(")
+						msg.ReplyParameters.MessageID = update.Message.MessageID
+
+						//msg.ReplyMarkup = inlineKeyboard
+						if _, err2 := b.Api.Send(msg); err2 != nil {
+							b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
+						}
+
 						return false, fmt.Errorf("download track by url: %w", err)
 					}
 					defer func(songPath string) {
@@ -326,6 +334,13 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 
 					err = b.sengSongToChat(update, songPath)
 					if err != nil {
+						msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось отправить(")
+						msg.ReplyParameters.MessageID = update.Message.MessageID
+
+						//msg.ReplyMarkup = inlineKeyboard
+						if _, err2 := b.Api.Send(msg); err2 != nil {
+							b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
+						}
 						return false, fmt.Errorf("send track to chat: %w", err)
 					}
 
