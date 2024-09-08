@@ -299,6 +299,19 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 						}
 					}
 
+					var replyMessage tgbotapi.Message
+					if update.Message.Chat.Type == entity.ChatTypePrivate {
+						chatId := update.FromChat().ChatConfig().ChatID
+						//rand.Seed(time.Now().Unix())
+						msg := tgbotapi.NewMessage(chatId, "Скачиваю(надеюсь у меня получиться)")
+						msg.ReplyParameters.MessageID = update.Message.MessageID
+
+						//msg.ReplyMarkup = inlineKeyboard
+						if replyMessage, err = b.Api.Send(msg); err != nil {
+							b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
+						}
+					}
+
 					songPath, err := b.sc.DownloadTrackByURL(ctx, v, entity.TrackInfo{})
 					if err != nil {
 						return false, fmt.Errorf("download track by url: %w", err)
@@ -310,7 +323,15 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 						}
 					}(songPath)
 
-					err = b.sengSongToChat(update.Message.Chat.ID, songPath)
+					if replyMessage.MessageID != 0 {
+						delMessageReq := tgbotapi.NewDeleteMessage(replyMessage.Chat.ID, replyMessage.MessageID)
+						_, err = b.Api.Send(delMessageReq)
+						if err != nil {
+							b.logger.LogAttrs(ctx, slog.LevelError, "delete reply message for audio request", logger.AppendErrorToLogs(attrs, err)...)
+						}
+					}
+
+					err = b.sengSongToChat(update, songPath)
 					if err != nil {
 						return false, fmt.Errorf("send track to chat: %w", err)
 					}
@@ -346,7 +367,7 @@ func (b *Bot) forwardSongToChat(chatID int64, song entity.Song) error {
 	return nil
 }
 
-func (b *Bot) sengSongToChat(chatID int64, songPath string) error {
+func (b *Bot) sengSongToChat(u tgbotapi.Update, songPath string) error {
 	file, err := os.Open(songPath)
 	if err != nil {
 		return fmt.Errorf("open song: %w", err)
@@ -366,7 +387,10 @@ func (b *Bot) sengSongToChat(chatID int64, songPath string) error {
 		BaseFile: tgbotapi.BaseFile{
 			BaseChat: tgbotapi.BaseChat{
 				ChatConfig: tgbotapi.ChatConfig{
-					ChatID: chatID,
+					ChatID: u.Message.Chat.ID,
+				},
+				ReplyParameters: tgbotapi.ReplyParameters{
+					MessageID: u.Message.MessageID,
 				},
 			},
 			File: tgbotapi.FileReader{
