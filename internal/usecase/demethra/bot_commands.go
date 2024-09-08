@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -93,9 +94,17 @@ func (b *Bot) cmdDownloadInline() CommandFunc {
 		if len(data) != 2 {
 			return fmt.Errorf("invalid data format: %s", update.CallbackQuery.Data)
 		}
-		url := "https://soundcloud.com/" + data[1]
 
-		song, err := b.repo.SongByUrl(ctx, url)
+		if data[0] == "" {
+			return fmt.Errorf("download inline: empty data")
+		}
+
+		songID, err := strconv.Atoi(data[1])
+		if err != nil {
+			return fmt.Errorf("download inline: invalid song id: %w: %s", err, data[1])
+		}
+
+		song, err := b.repo.SongByID(ctx, songID)
 		if err != nil {
 			return fmt.Errorf("get song by URL: %w", err)
 		}
