@@ -32,7 +32,7 @@
   },
   "Soundcloud": {
     "ProxyURL": "",
-    "DownloadPath": "../../app/temp"
+    "DownloadPath": "/app/temp"
   },
   "Redis": {
     "Host": "redis",
