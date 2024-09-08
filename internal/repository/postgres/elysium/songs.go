@@ -52,6 +52,53 @@ GROUP BY s.id
 	return song, nil
 }
 
+func (r *Repository) SongByID(ctx context.Context, id int) (entity.Song, error) {
+	var song entity.Song
+
+	query := fmt.Sprintf(`
+SELECT 
+	s.id,
+	s.url,
+	s.artist_name,
+	s.title,
+	s.cover_link,
+	s.cover_telegram_file_id,
+	s.song_telegram_message_id,
+	s.song_telegram_message_chat_id,
+	COALESCE(count(usd.id), 0) download_count,
+	COALESCE(count(sp.id), 0) plays_count,
+	s.tags,
+	s.date_create
+FROM elysium.songs s
+	LEFT JOIN elysium.user_song_downloads usd ON s.id = usd.song_id
+	LEFT JOIN elysium.song_plays sp ON s.id = sp.song_id
+WHERE s.id = $1 
+GROUP BY s.id
+`)
+
+	err := r.db.QueryRowContext(ctx, query, id).
+		Scan(
+			&song.ID,
+			&song.URL,
+			&song.ArtistName,
+			&song.Title,
+			&song.CoverLink,
+			&song.CoverTelegramFileID,
+			&song.SongTelegramMessageID,
+			&song.SongTelegramMessageChatID,
+			&song.DownloadCount,
+			&song.PlaysCount,
+			pq.Array(&song.Tags),
+			&song.DateCreate,
+		)
+	if err != nil {
+		return entity.Song{}, fmt.Errorf("scan: %w", err)
+	}
+
+	return song, nil
+
+}
+
 // CreateSong создает новый трек в базе данных
 func (r *Repository) CreateSong(ctx context.Context, song entity.Song) (entity.Song, error) {
 	query := fmt.Sprintf(`

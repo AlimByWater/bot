@@ -157,3 +157,12 @@ func TestLogSongDownloaded(t *testing.T) {
 	err := elysiumRepo.LogSongDownload(context.Background(), 1, 1, entity.SongDownloadSourceBot)
 	require.NoError(t, err)
 }
+
+func TestSongByID(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	song, err := elysiumRepo.SongByID(context.Background(), 241)
+	require.NoError(t, err)
+	t.Log(song.SongTelegramMessageID)
+}

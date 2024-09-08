@@ -39,6 +39,7 @@ type cache interface {
 
 type repository interface {
 	SongByUrl(ctx context.Context, url string) (entity.Song, error)
+	SongByID(ctx context.Context, id int) (entity.Song, error)
 	CreateSong(ctx context.Context, song entity.Song) (entity.Song, error)
 	CreateSongAndAddToPlayed(ctx context.Context, song entity.Song) (entity.Song, error)
 	SongPlayed(ctx context.Context, songID int) (entity.SongPlay, error)

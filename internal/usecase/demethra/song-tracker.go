@@ -4,8 +4,6 @@ import (
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
@@ -13,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 )
 
 func (m *Module) NextSong(track entity.TrackInfo) {
@@ -36,26 +33,13 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 		slog.String("METHOD", "next song"),
 	}
 
-	songChan := make(chan entity.Song)
-	defer close(songChan)
-	wg := sync.WaitGroup{}
-
 	song, err := m.repo.SongByUrl(ctx, track.TrackLink)
 	if err != nil { // при любой ошибки и если трек не найден
-		wg.Add(1)
-		go func(sCh chan entity.Song) {
-			defer wg.Done()
-			newSong, err := m.downloadAndCreateNewSong(track)
-			if err != nil {
-				fmt.Println(track.TrackLink)
-				m.logger.LogAttrs(ctx, slog.LevelWarn, "download and create new song", logger.AppendErrorToLogs(attributes, err)...)
-			}
 
-			sCh <- newSong
-		}(songChan)
-
-		if !errors.Is(err, sql.ErrNoRows) {
-			m.logger.LogAttrs(ctx, slog.LevelWarn, "get song by url", logger.AppendErrorToLogs(attributes, err)...)
+		song, err = m.downloadAndCreateNewSong(track)
+		if err != nil {
+			fmt.Println(track.TrackLink)
+			m.logger.LogAttrs(ctx, slog.LevelWarn, "download and create new song", logger.AppendErrorToLogs(attributes, err)...)
 		}
 	}
 
@@ -64,28 +48,22 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 	m.currentTrack = track
 	m.mu.Unlock()
 
-	msg, err := m.bot.updateCurrentTrackMessage(ctx, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
+	msg, err := m.bot.updateCurrentTrackMessage(ctx, song.ID, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "update current track", logger.AppendErrorToLogs(attributes, err)...)
 	}
 
 	go m.UpdateSongMetadataFile(track)
 
-	wg.Wait()
-
-	if song.ID == 0 { // Если трек не найден
-		song = <-songChan
+	// все еще может сложиться такая ситуация, что song не создался в базе
+	// тогда не имеет смысла создавать запись о проигранном треке в базе данных
+	if song.ID != 0 {
 		if song.ID != 0 && msg.MessageID != 0 { // Если трек создан
 			err = m.repo.SetCoverTelegramFileIDForSong(ctx, song.ID, msg.Photo[0].FileID)
 			if err != nil {
 				m.logger.LogAttrs(ctx, slog.LevelError, "set cover telegram file id", logger.AppendErrorToLogs(attributes, err)...)
 			}
 		}
-	}
-
-	// все еще может сложиться такая ситуация, что song не создался в базе
-	// тогда не имеет смысла создавать запись о проигранном треке в базе данных
-	if song.ID != 0 {
 		m.songPlayed(ctx, attributes, song.ID)
 	}
 }
@@ -253,9 +231,8 @@ func (b *Bot) downloadCover(link string) ([]byte, error) {
 }
 
 // updateCurrentTrackMessage обновляет сообщение с текущим треком в чате и возвращает обновленное сообщение
-func (b *Bot) updateCurrentTrackMessage(ctx context.Context, current, prev entity.TrackInfo, coverFileID string, attrs []slog.Attr) (tgbotapi.Message, error) {
+func (b *Bot) updateCurrentTrackMessage(ctx context.Context, songID int, current, prev entity.TrackInfo, coverFileID string, attrs []slog.Attr) (tgbotapi.Message, error) {
 	coverURl := current.CoverLink
-	trackURL := current.TrackLink
 	currentFmt := current.Format()
 	prevFmt := prev.Format()
 	visual := formatEscapeChars(fmt.Sprintf(`0:35 ━❍──────── %s
@@ -276,11 +253,7 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 		}
 	}
 
-	urlPart := strings.Split(trackURL, "https://soundcloud.com/")
-	data := "download?"
-	if len(urlPart) >= 1 {
-		data = data + urlPart[1]
-	}
+	data := fmt.Sprintf("download?%d", songID)
 
 	btn := tgbotapi.NewInlineKeyboardButtonData("Добавить в плеер", data)
 	row := tgbotapi.NewInlineKeyboardRow(btn)
