@@ -11,7 +11,8 @@ import (
 
 var tokenKeyPrefix = "token_user_id"
 
-func (m *Module) SetToken(ctx context.Context, token entity.Token) error {
+func (m *Module) SetToken(token entity.Token) error {
+	ctx := context.Background()
 	txf := func(tx *redis.Tx) error {
 		_, err := tx.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 			tokenJson, err := token.MarshalJSON()

@@ -110,7 +110,7 @@ func (m *Module) GenerateTokenForTelegram(ctx context.Context, telegramLogin ent
 		RefreshToken: refreshToken,
 	}
 
-	go m.cacheToken(ctx, token)
+	go m.cacheToken(token)
 
 	return token, nil
 }
@@ -170,7 +170,7 @@ func (m *Module) RefreshToken(ctx context.Context, refreshToken string) (entity.
 		RefreshToken: newRefreshToken,
 	}
 
-	go m.cacheToken(ctx, token)
+	go m.cacheToken(token)
 
 	return token, nil
 }
@@ -206,9 +206,9 @@ func (m *Module) parseTelegramInitDate(initData string) (initdata.InitData, erro
 	return parsedData, nil
 }
 
-func (m *Module) cacheToken(ctx context.Context, token entity.Token) {
+func (m *Module) cacheToken(token entity.Token) {
 	m.tokensMap.Store(token.UserID, token)
-	err := m.cache.SetToken(ctx, token)
+	err := m.cache.SetToken(token)
 	if err != nil {
 		m.logger.Error("Failed to cache token", slog.String("error", err.Error()), slog.Int("userID", token.UserID), slog.String("method", "cacheToken"))
 	}

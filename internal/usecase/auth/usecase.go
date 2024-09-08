@@ -24,7 +24,7 @@ type repository interface {
 
 type externalCache interface {
 	GetToken(ctx context.Context, userID int) (entity.Token, error)
-	SetToken(ctx context.Context, token entity.Token) error
+	SetToken(token entity.Token) error
 	AllTokens(ctx context.Context) ([]entity.Token, error)
 }
 
