@@ -303,7 +303,7 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 					if update.Message.Chat.Type == entity.ChatTypePrivate {
 						chatId := update.FromChat().ChatConfig().ChatID
 						//rand.Seed(time.Now().Unix())
-						msg := tgbotapi.NewMessage(chatId, `Скачиваю\.||Надеюсь у меня получится\.||`)
+						msg := tgbotapi.NewMessage(chatId, `Скачиваю\. ||Надеюсь у меня получится\.||`)
 						msg.ReplyParameters.MessageID = update.Message.MessageID
 						msg.ParseMode = "MarkdownV2"
 
