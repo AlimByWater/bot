@@ -13,6 +13,7 @@ type Demethra struct {
 	CurrentTrackMessageID        int
 	ListenerIdleTimeoutInMinutes int
 	SongMetadataFilePath         string
+	TelegramBotApiServer         string
 }
 
 func NewDemethraConfig() *Demethra {
@@ -29,6 +30,7 @@ func (c Demethra) GetTracksDbChannel() int64            { return c.TracksDbChann
 func (c Demethra) GetCurrentTrackMessageID() int        { return c.CurrentTrackMessageID }
 func (c Demethra) GetListenerIdleTimeoutInMinutes() int { return c.ListenerIdleTimeoutInMinutes }
 func (c Demethra) GetSongMetadataFilePath() string      { return c.SongMetadataFilePath }
+func (c Demethra) GetTelegramBotApiServer() string      { return c.TelegramBotApiServer }
 
 func (c Demethra) Validate() error {
 	return validation.ValidateStruct(&c,

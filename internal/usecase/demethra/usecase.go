@@ -26,6 +26,7 @@ type config interface {
 	GetTracksDbChannel() int64
 	GetCurrentTrackMessageID() int
 	GetSongMetadataFilePath() string
+	GetTelegramBotApiServer() string
 	Validate() error
 }
 
@@ -98,13 +99,23 @@ func New(cfg config, repo repository, cache cache, sc soundcloudDownloader) *Mod
 func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	m.ctx = ctx
 	m.logger = logger.With(slog.String("module", "🦕 "+m.cfg.GetBotName()))
-	if err := m.cfg.Validate(); err != nil {
+	err := m.cfg.Validate()
+	if err != nil {
 		return err
 	}
 
-	tgapi, err := tgbotapi.NewBotAPI(m.cfg.GetBotToken())
-	if err != nil {
-		return fmt.Errorf("new bot api: %w", err)
+	var tgapi *tgbotapi.BotAPI
+	if m.cfg.GetTelegramBotApiServer() != "" {
+		tgapi, err = tgbotapi.NewBotAPIWithAPIEndpoint(m.cfg.GetBotToken(), m.cfg.GetTelegramBotApiServer())
+		if err != nil {
+			return fmt.Errorf("new bot api with custom server: %w", err)
+		}
+
+	} else {
+		tgapi, err = tgbotapi.NewBotAPI(m.cfg.GetBotToken())
+		if err != nil {
+			return fmt.Errorf("new bot api: %w", err)
+		}
 	}
 
 	m.bot = newBot(ctx, m.repo, m.soundcloud, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
