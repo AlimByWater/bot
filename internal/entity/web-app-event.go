@@ -20,7 +20,7 @@ const (
 type WebAppEvent struct {
 	EventType  EventType       `json:"event_type"`
 	SessionID  string          `json:"session_id"`
-	TelegramID int64           `json:"telegram_user_id"`
+	TelegramID int64           `json:"telegram_id"`
 	Payload    json.RawMessage `json:"payload"`
 	Timestamp  time.Time       `json:"timestamp"`
 }

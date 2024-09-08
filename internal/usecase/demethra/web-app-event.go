@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) {
-	m.logger.Debug(fmt.Sprintf("Received WebAppEvent: Type=%s, UserID=%d, SessionID=%s", event.EventType, event.TelegramID, event.SessionID))
+	m.logger.Debug(fmt.Sprintf("Received WebAppEvent: Type=%s, TelegramUserID=%d, SessionID=%s", event.EventType, event.TelegramID, event.SessionID))
 	var err error
 	switch event.EventType {
 	case entity.EventTypeInitApp:
@@ -103,9 +103,9 @@ func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEv
 
 	err := initdata.Validate(payload.RawInitData, m.cfg.GetBotToken(), 24*time.Hour)
 	if err != nil {
-		err := initdata.Validate(payload.RawInitData, "7287354736:AAFzL0cNnIJhS3BasddwkmcQ07qtmw-a2AE", 24*time.Hour)
-		if err != nil {
-			return fmt.Errorf("invalid init data: %w", err)
+		err2 := initdata.Validate(payload.RawInitData, "7287354736:AAFzL0cNnIJhS3BasddwkmcQ07qtmw-a2AE", 24*time.Hour)
+		if err2 != nil {
+			return fmt.Errorf("invalid init data: %w: %w", err, err2)
 		}
 
 	}
