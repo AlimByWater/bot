@@ -7,6 +7,7 @@ import (
 	"arimadj-helper/internal/application/env/test"
 	"arimadj-helper/internal/application/logger"
 	"arimadj-helper/internal/entity"
+	"arimadj-helper/internal/repository/soundcloud/soundcloudV2"
 	"context"
 	"github.com/stretchr/testify/require"
 	"log/slog"
@@ -77,14 +78,31 @@ func TestModule_DownloadTrackByURL(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	trackUrl := "https://soundcloud.com/eastern-nurseries/fatak-romance-relic-tettix-hexer-to-the-beauty-of-being"
+	trackUrl := "https://soundcloud.com/chouchou2222/dywtfsr"
 	info := entity.TrackInfo{
-		TrackTitle: "test",
-		ArtistName: "test_artist",
+		TrackTitle: "chou chou",
+		ArtistName: "do you want to feel something real?",
 		TrackLink:  trackUrl,
 	}
 
 	trackPath, err := sc.DownloadTrackByURL(ctx, trackUrl, info)
 	require.NoError(t, err)
 	require.NotEmpty(t, trackPath)
+}
+
+func TestDownloadTrackByURLV2(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	trackUrl := "https://soundcloud.com/love_again/dj-lostboi-x-young-thug?in=sungodarima/sets/copy-of-related-tracks-500-dj/s-zzFAANRSzyr&si=15b323716ebc4df691fa147b589201aa&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing"
+	info := entity.TrackInfo{
+		TrackTitle: "Chou Chou ",
+		ArtistName: "do you want to feel something real?",
+		TrackLink:  trackUrl,
+		CoverLink:  "https://i1.sndcdn.com/artworks-nAHorXThQpzWN8pQ-CfwHEw-t500x500.jpg",
+	}
+
+	songPath, err := soundcloudV2.DownloadByUrl(trackUrl, "/Users/admin/go/src/arimadj-helper/", info)
+	require.NoError(t, err)
+	require.NotEmpty(t, songPath)
 }

@@ -3,10 +3,13 @@ package soundcloud
 import (
 	"arimadj-helper/internal/entity"
 	"arimadj-helper/internal/repository/soundcloud/pkg/soundcloud"
+	"arimadj-helper/internal/repository/soundcloud/soundcloudV2"
 	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 type configs interface {
@@ -51,14 +54,20 @@ func (m *Module) DownloadTrackByURL(ctx context.Context, trackUrl string, info e
 	var err error
 	var songPath string
 
-	for i := 0; i < 3; i++ {
-		songPath, err = m.sc.Download(ctx, trackUrl, info)
-		if err != nil {
-			continue
-		}
-		break
+	//for i := 0; i < 3; i++ {
+	//	songPath, err = m.sc.Download(ctx, trackUrl, info)
+	//	if err != nil {
+	//		continue
+	//	}
+	//	break
+	//}
+
+	urlParsed, err := url.Parse(trackUrl)
+	if urlParsed.RawQuery != "" {
+		trackUrl = strings.Replace(trackUrl, "?"+urlParsed.RawQuery, "", 1)
 	}
 
+	songPath, err = soundcloudV2.DownloadByUrl(trackUrl, m.cfg.GetDownloadPath(), info)
 	if err != nil {
 		return "", fmt.Errorf("download track: %w", err)
 	}
