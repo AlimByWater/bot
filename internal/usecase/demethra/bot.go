@@ -148,7 +148,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		}
 
 		// если сообщение пришло с форума, то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
-		if update.Message.Chat.ID == b.forumID && !update.Message.IsCommand() {
+		if !update.Message.IsCommand() {
 			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
