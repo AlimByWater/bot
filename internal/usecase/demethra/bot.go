@@ -303,8 +303,9 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 					if update.Message.Chat.Type == entity.ChatTypePrivate {
 						chatId := update.FromChat().ChatConfig().ChatID
 						//rand.Seed(time.Now().Unix())
-						msg := tgbotapi.NewMessage(chatId, "Скачиваю(надеюсь у меня получиться)")
+						msg := tgbotapi.NewMessage(chatId, `Скачиваю.||Надеюсь у меня получится.||`)
 						msg.ReplyParameters.MessageID = update.Message.MessageID
+						msg.ParseMode = "MarkdownV2"
 
 						//msg.ReplyMarkup = inlineKeyboard
 						if replyMessage, err = b.Api.Send(msg); err != nil {
@@ -323,17 +324,17 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 						}
 					}(songPath)
 
+					err = b.sengSongToChat(update, songPath)
+					if err != nil {
+						return false, fmt.Errorf("send track to chat: %w", err)
+					}
+
 					if replyMessage.MessageID != 0 {
 						delMessageReq := tgbotapi.NewDeleteMessage(replyMessage.Chat.ID, replyMessage.MessageID)
 						_, err = b.Api.Send(delMessageReq)
 						if err != nil {
 							b.logger.LogAttrs(ctx, slog.LevelError, "delete reply message for audio request", logger.AppendErrorToLogs(attrs, err)...)
 						}
-					}
-
-					err = b.sengSongToChat(update, songPath)
-					if err != nil {
-						return false, fmt.Errorf("send track to chat: %w", err)
 					}
 
 					return true, nil
@@ -397,7 +398,7 @@ func (b *Bot) sengSongToChat(u tgbotapi.Update, songPath string) error {
 				Reader: file,
 			},
 		},
-		Caption:   `||[elysium fm](t.me/elysium_fm)||`,
+		Caption:   `[элизиум \[ラジオ\]](t.me/elysium_fm)`,
 		ParseMode: "MarkdownV2",
 		Title:     title,
 		Performer: artist,

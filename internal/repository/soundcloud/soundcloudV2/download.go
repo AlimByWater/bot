@@ -4,6 +4,7 @@ import (
 	"arimadj-helper/internal/entity"
 	"errors"
 	"fmt"
+	"github.com/antchfx/htmlquery"
 	m "github.com/grafov/m3u8"
 	"io"
 	"net/http"
@@ -211,14 +212,39 @@ func DownloadByUrl(url string, dlpath string, info entity.TrackInfo) (string, er
 		return "", fmt.Errorf("download: %w", err)
 	}
 
-	url = strings.Replace(track.SoundData.ArtworkUrl, "large", "t500x500", 1)
+	artWorkurl := strings.Replace(track.SoundData.ArtworkUrl, "large", "t500x500", 1)
 
 	// fetching the data
-	statusCode, imgdata, err := Get(url)
+	statusCode, imgdata, err := Get(artWorkurl)
 	if err != nil || statusCode != http.StatusOK {
 		return "", fmt.Errorf("get artwork: %w", err)
 	}
 
+	if info.TrackTitle == "" || info.ArtistName == "" {
+		resp, err := http.Get(url)
+		if err != nil {
+			return "", fmt.Errorf("get so: %w", err)
+		}
+		defer resp.Body.Close()
+
+		doc, err := htmlquery.Parse(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("get artwork: %w", err)
+		}
+
+		info.TrackTitle, err = GetTitle(doc)
+		if err != nil {
+
+			return "", fmt.Errorf("get title: %w", err)
+		}
+
+		// Get artist
+		info.ArtistName, err = GetArtist(doc, info.TrackTitle)
+		if err != nil {
+			return "", fmt.Errorf("get artist: %w", err)
+		}
+
+	}
 	err = SetTitleArtistCoverImage(filePath, info.TrackTitle, info.ArtistName, imgdata)
 	if err != nil {
 		return "", fmt.Errorf("set title artist cover image: %w", err)
