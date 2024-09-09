@@ -23,6 +23,11 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 	track.CoverLink = strings.Replace(track.CoverLink, "t50x50", "t500x500", 1)
 	track.CoverLink = strings.Replace(track.CoverLink, "t120x120", "t500x500", 1)
 
+	m.mu.Lock()
+	m.prevTrack = m.currentTrack
+	m.currentTrack = track
+	m.mu.Unlock()
+
 	ctx := context.TODO()
 
 	// если текущий трек не пустой, то добавляем его в историю прослушивания всем текущим слушателям
@@ -35,18 +40,12 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 
 	song, err := m.repo.SongByUrl(ctx, track.TrackLink)
 	if err != nil { // при любой ошибки и если трек не найден
-		m.logger.LogAttrs(ctx, slog.LevelWarn, "song not found", logger.AppendErrorToLogs(attributes, err)...)
 		song, err = m.downloadAndCreateNewSong(track)
 		if err != nil {
 			fmt.Println(track.TrackLink)
 			m.logger.LogAttrs(ctx, slog.LevelWarn, "download and create new song", logger.AppendErrorToLogs(attributes, err)...)
 		}
 	}
-
-	m.mu.Lock()
-	m.prevTrack = m.currentTrack
-	m.currentTrack = track
-	m.mu.Unlock()
 
 	msg, err := m.bot.updateCurrentTrackMessage(ctx, song.ID, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
 	if err != nil {
