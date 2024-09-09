@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS elysium.user_layouts (
     id SERIAL PRIMARY KEY,
     name VARCHAR(250) UNIQUE NOT NULL CHECK (name <> ''),
     creator_id BIGINT NOT NULL REFERENCES elysium.users(id),
+    stream_url VARCHAR(250) NOT NULL DEFAULT 'https://elysiumfm.ru/stream',
     background JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

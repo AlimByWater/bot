@@ -142,13 +142,6 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 		slog.String("METHOD", "download and create new song"),
 	}
 
-	//************ КАЧАЕМ ОБЛОЖКУ  *************** //
-	//coverFile, err := m.downloadCover(info.CoverLink)
-	//if err != nil {
-	//	m.logger.LogAttrs(ctx, slog.LevelError, "download cover", logger.AppendErrorToLogs(attributes, err)...)
-	//	return entity.Song{}, fmt.Errorf("download cover: %w", err)
-	//}
-	//****************** ******************////
 	songPath, err := m.soundcloud.DownloadTrackByURL(ctx, info.TrackLink, info)
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "download track by url", logger.AppendErrorToLogs(attributes, err)...)
@@ -289,7 +282,7 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 
 	responseMsg, err := b.Api.Send(msg)
 	if err != nil {
-		return tgbotapi.Message{}, fmt.Errorf("send: %w %s", err, coverURl)
+		return tgbotapi.Message{}, fmt.Errorf("send: %w", err)
 	}
 
 	return responseMsg, nil

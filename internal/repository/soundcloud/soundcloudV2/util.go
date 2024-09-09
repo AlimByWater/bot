@@ -27,7 +27,7 @@ func GetClientId(url string) (string, error) {
 	statusCode, bodyData, err := Get(url)
 
 	if err != nil {
-		log.Fatalf("An Error : %s happended while requesting : %s", err, url)
+		return "", fmt.Errorf("get %s: %w", url, err)
 	}
 	if statusCode != http.StatusOK {
 		return "", fmt.Errorf("unexpected status code: %d", statusCode)

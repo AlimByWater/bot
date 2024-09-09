@@ -10,7 +10,7 @@ import (
 
 func (r *Repository) GetDefaultLayout(ctx context.Context) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, background, created_at, updated_at
+    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE name = 'default_layout_1'
     LIMIT 1
@@ -20,6 +20,7 @@ func (r *Repository) GetDefaultLayout(ctx context.Context) (entity.UserLayout, e
 		&layout.ID,
 		&layout.Name,
 		&layout.Creator,
+		&layout.StreamURL,
 		&layout.Background,
 		&layout.CreatedAt,
 		&layout.UpdatedAt,
@@ -43,7 +44,7 @@ func (r *Repository) GetDefaultLayout(ctx context.Context) (entity.UserLayout, e
 
 func (r *Repository) LayoutByName(ctx context.Context, layoutName string) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, background, created_at, updated_at
+    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE name = $1
     `
@@ -52,6 +53,7 @@ func (r *Repository) LayoutByName(ctx context.Context, layoutName string) (entit
 		&layout.ID,
 		&layout.Name,
 		&layout.Creator,
+		&layout.StreamURL,
 		&layout.Background,
 		&layout.CreatedAt,
 		&layout.UpdatedAt,
@@ -83,7 +85,7 @@ func (r *Repository) LayoutByName(ctx context.Context, layoutName string) (entit
 // LayoutByUserID получает макет пользователя по его ID
 func (r *Repository) LayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, background, created_at, updated_at
+    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE creator_id = $1
     LIMIT 1
@@ -93,6 +95,7 @@ func (r *Repository) LayoutByUserID(ctx context.Context, userID int) (entity.Use
 		&layout.ID,
 		&layout.Name,
 		&layout.Creator,
+		&layout.StreamURL,
 		&layout.Background,
 		&layout.CreatedAt,
 		&layout.UpdatedAt,
@@ -124,7 +127,7 @@ func (r *Repository) LayoutByUserID(ctx context.Context, userID int) (entity.Use
 // LayoutByID получает макет по его ID
 func (r *Repository) LayoutByID(ctx context.Context, layoutID int) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, background, created_at, updated_at
+    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE id = $1
     `
@@ -133,6 +136,7 @@ func (r *Repository) LayoutByID(ctx context.Context, layoutID int) (entity.UserL
 		&layout.ID,
 		&layout.Name,
 		&layout.Creator,
+		&layout.StreamURL,
 		&layout.Background,
 		&layout.CreatedAt,
 		&layout.UpdatedAt,
@@ -240,10 +244,10 @@ func (r *Repository) UpdateLayoutFull(ctx context.Context, layout entity.UserLay
 	err := r.execTX(ctx, func(q *queries) error {
 		updateQuery := `
 			UPDATE elysium.user_layouts
-			SET name = $1, background = $2, updated_at = CURRENT_TIMESTAMP
-			WHERE id = $3
+			SET name = $1, background = $2, stream_url = $3, updated_at = CURRENT_TIMESTAMP
+			WHERE id = $4
 			`
-		_, err := q.db.ExecContext(ctx, updateQuery, layout.Name, layout.Background, layout.ID)
+		_, err := q.db.ExecContext(ctx, updateQuery, layout.Name, layout.Background, layout.StreamURL, layout.ID)
 		if err != nil {
 			return fmt.Errorf("update layout: %w", err)
 		}
@@ -349,11 +353,11 @@ func (r *Repository) RemoveLayoutEditor(ctx context.Context, layoutID int, edito
 func (r *Repository) CreateLayout(ctx context.Context, layout entity.UserLayout) error {
 	err := r.execTX(ctx, func(q *queries) error {
 		insertLayoutQuery := `
-		INSERT INTO elysium.user_layouts (name, creator_id, background)
-		VALUES ($1, $2, $3)
+		INSERT INTO elysium.user_layouts (name, creator_id, stream_url, background)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at
 		`
-		err := q.db.QueryRowContext(ctx, insertLayoutQuery, layout.Name, layout.Creator, layout.Background).
+		err := q.db.QueryRowContext(ctx, insertLayoutQuery, layout.Name, layout.Creator, layout.StreamURL, layout.Background).
 			Scan(&layout.ID, &layout.CreatedAt, &layout.UpdatedAt)
 		if err != nil {
 			return fmt.Errorf("insert layout: %w", err)

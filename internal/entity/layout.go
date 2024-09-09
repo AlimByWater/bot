@@ -34,6 +34,7 @@ type UserLayout struct {
 	ID         int             `json:"id" redis:"id"`
 	Name       string          `json:"name" redis:"name"`
 	Background Background      `json:"background" redis:"background"`
+	StreamURL  string          `json:"stream_url" redis:"stream_url"`
 	Elements   []LayoutElement `json:"elements" redis:"elements"`
 	Creator    int             `json:"creator" redis:"creator"`
 	Editors    []int           `json:"editors" redis:"editors"`

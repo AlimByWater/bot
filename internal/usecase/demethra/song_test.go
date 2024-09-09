@@ -11,13 +11,16 @@ import (
 	"arimadj-helper/internal/repository/postgres/elysium"
 	"arimadj-helper/internal/repository/redis"
 	"arimadj-helper/internal/usecase/demethra"
+	"bufio"
 	"context"
+	"fmt"
 	"github.com/essentialkaos/go-icecast"
 	"github.com/stretchr/testify/require"
 	"log/slog"
+	"net/http"
 	"os"
+	"strconv"
 	"testing"
-	"time"
 )
 
 var module *demethra.Module
@@ -106,23 +109,23 @@ func TestSendSongByTrackLink(t *testing.T) {
 }
 
 func TestIceacst(t *testing.T) {
-	api, err := icecast.NewAPI("http://127.0.0.1:8008", "alim", "hackme8")
+	api, err := icecast.NewAPI("http://91.206.15.29:8000", "alim", "hackme8")
 	require.NoError(t, err)
 
-	//stats, err := api.GetStats()
-	//require.NoError(t, err)
-	//fmt.Println(stats)
-	ticke := time.NewTicker(time.Second * 1)
-	for range ticke.C {
-		err = api.UpdateMeta("/stream", icecast.TrackMeta{
-			Title:   "test",
-			Artist:  "Arima DJ",
-			URL:     "https://soundcloud.com/uiceheidd/tell-me-you-love-me",
-			Artwork: "https://i1.sndcdn.com/artworks-oQRvHcKyeO921Eve-FeUQMA-t50x50.jpg",
-		})
-
-		require.NoError(t, err)
-	}
+	stats, err := api.GetStats()
+	require.NoError(t, err)
+	fmt.Println(stats)
+	//ticke := time.NewTicker(time.Second * 1)
+	//for range ticke.C {
+	//	err = api.UpdateMeta("/stream", icecast.TrackMeta{
+	//		Title:   "test",
+	//		Artist:  "Arima DJ",
+	//		URL:     "https://soundcloud.com/uiceheidd/tell-me-you-love-me",
+	//		Artwork: "https://i1.sndcdn.com/artworks-oQRvHcKyeO921Eve-FeUQMA-t50x50.jpg",
+	//	})
+	//
+	//	require.NoError(t, err)
+	//}
 
 }
 
@@ -148,4 +151,42 @@ func TestUpdateSongMetadataFile(t *testing.T) {
 		module.UpdateSongMetadataFile(track)
 
 	})
+}
+
+func TestIcecastMetadata(t *testing.T) {
+	client := &http.Client{}
+	streamUrl := "https://elysiumfm.ru/stream"
+	req, _ := http.NewRequest("GET", streamUrl, nil)
+	req.Header.Set("Icy-MetaData", "1")
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	// We sent "Icy-MetaData", we should have a "icy-metaint" in return
+	ih := resp.Header.Get("icy-metaint")
+	require.NotEmpty(t, ih)
+	// "icy-metaint" is how often (in bytes) should we receive the meta
+	ib, err := strconv.Atoi(ih)
+	require.NoError(t, err)
+
+	reader := bufio.NewReader(resp.Body)
+
+	// skip the first mp3 frame
+	c, err := reader.Discard(ib)
+	require.NoError(t, err)
+	// If we didn't received ib bytes, the stream is ended
+	if c != ib {
+		t.Fatal("stream ended prematurally")
+	}
+
+	// get the size byte, that is the metadata length in bytes / 16
+	sb, err := reader.ReadByte()
+	require.NoError(t, err)
+	ms := int(sb * 16)
+
+	// read the ms first bytes it will contain metadata
+	m, err := reader.Peek(ms)
+	require.NoError(t, err)
+
+	t.Log(string(m))
 }
