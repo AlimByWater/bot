@@ -35,7 +35,7 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 
 	song, err := m.repo.SongByUrl(ctx, track.TrackLink)
 	if err != nil { // при любой ошибки и если трек не найден
-
+		m.logger.LogAttrs(ctx, slog.LevelWarn, "song not found", logger.AppendErrorToLogs(attributes, err)...)
 		song, err = m.downloadAndCreateNewSong(track)
 		if err != nil {
 			fmt.Println(track.TrackLink)
