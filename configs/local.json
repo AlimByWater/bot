@@ -32,7 +32,7 @@
     "MaxConn": 10
   },
   "Soundcloud": {
-    "ProxyURL": "",
+    "ProxyURL": "http://bL6Rzf:TVWJC5@45.137.42.186:8000",
     "DownloadPath": "/app/temp"
   },
   "Redis": {

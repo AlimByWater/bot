@@ -1,6 +1,7 @@
 package soundcloudV2
 
 import (
+	"arimadj-helper/internal/entity"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	"github.com/bogem/id3v2"
 	"golang.org/x/net/html"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -17,14 +18,13 @@ import (
 	"sync"
 )
 
-func GetClientId(url string) (string, error) {
+func (m *Module) GetClientId(url string) (string, error) {
 
 	if url == "" {
-		// the best url ever, if you find this then you're so cool :D I love you :DDD
 		url = "https://soundcloud.com/ahmed-yehia0"
 	}
 
-	statusCode, bodyData, err := Get(url)
+	statusCode, bodyData, err := m.Get(url)
 
 	if err != nil {
 		return "", fmt.Errorf("get %s: %w", url, err)
@@ -42,9 +42,9 @@ func GetClientId(url string) (string, error) {
 	}
 
 	// making a GET request to find the client_id
-	resp, err := http.Get(apiurl)
+	resp, err := m.httpClient.Get(apiurl)
 	if err != nil {
-		fmt.Printf("Something went wrong while requesting : %s , Error : %s", apiurl, err)
+		return "", fmt.Errorf("something went wrong while requesting: %w", err)
 	}
 
 	// reading the body
@@ -63,8 +63,9 @@ func GetClientId(url string) (string, error) {
 	return matches[0][1], nil
 }
 
-func Get(url string) (int, []byte, error) {
-	resp, err := http.Get(url)
+func (m *Module) Get(u string) (int, []byte, error) {
+
+	resp, err := m.httpClient.Get(u)
 
 	if err != nil {
 		return -1, nil, err
@@ -82,7 +83,7 @@ func Get(url string) (int, []byte, error) {
 	return resp.StatusCode, bodyBytes, nil
 }
 
-func GetTrackInfoAPIUrl(urlx string, clientId string) string {
+func (m *Module) GetTrackInfoAPIUrl(urlx string, clientId string) string {
 	v := url.Values{}
 
 	// setting all the query params
@@ -90,20 +91,20 @@ func GetTrackInfoAPIUrl(urlx string, clientId string) string {
 	v.Set("format", "json")
 	v.Set("client_id", clientId)
 
-	encodedUrl := ResolveApiUrl + v.Encode()
+	encodedUrl := entity.ResolveApiUrl + v.Encode()
 
 	return encodedUrl
 }
 
-func GetSoundMetaData(apiUrl string) (*SoundData, error) {
+func (m *Module) GetSoundMetaData(apiUrl string) (*entity.SoundData, error) {
 
-	statusCode, body, err := Get(apiUrl)
+	statusCode, body, err := m.Get(apiUrl)
 
 	if err != nil || statusCode != http.StatusOK {
-		return nil, fmt.Errorf("error while requesting : %s , error : %s", apiUrl, err.Error())
+		return nil, fmt.Errorf("error while requesting %s , status: %d; error : %v", apiUrl, statusCode, err)
 	}
 
-	var sound SoundData
+	var sound entity.SoundData
 	err = json.Unmarshal(body, &sound)
 	if err != nil {
 		return nil, fmt.Errorf("error while unmarshalling the json: %w", err)
@@ -112,20 +113,20 @@ func GetSoundMetaData(apiUrl string) (*SoundData, error) {
 	return &sound, nil
 }
 
-func GetFormattedDL(track *SoundData, clientId string) []DownloadTrack {
+func (m *Module) GetFormattedDL(track *entity.SoundData, clientId string) []entity.DownloadTrack {
 
 	ext := "mp3" // the default extension type
-	tracks := make([]DownloadTrack, 0)
+	tracks := make([]entity.DownloadTrack, 0)
 	data := track.Transcodes.Transcodings
 	var wg sync.WaitGroup
 
 	for _, tcode := range data {
 		wg.Add(1)
-		go func(tcode Transcode) {
+		go func(tcode entity.Transcode) {
 			defer wg.Done()
 
-			url := tcode.ApiUrl + "?client_id=" + clientId
-			statusCode, body, err := Get(url)
+			u := tcode.ApiUrl + "?client_id=" + clientId
+			statusCode, body, err := m.Get(u)
 			if err != nil && statusCode != http.StatusOK {
 				return
 			}
@@ -133,13 +134,14 @@ func GetFormattedDL(track *SoundData, clientId string) []DownloadTrack {
 			if q == "high" {
 				ext = "ogg"
 			}
-			mediaUrl := Media{}
-			dec := json.NewDecoder(bytes.NewReader(body))
-			if err := dec.Decode(&mediaUrl); err != nil {
-				log.Println("Error decoding json: ", err)
+			mediaUrl := entity.Media{}
+			err = mediaUrl.UnmarshalJSON(body)
+			//dec := json.NewDecoder(bytes.NewReader(body))
+			if err != nil {
+				m.logger.Error("Error unmarshal media json", slog.String("err", err.Error()), slog.String("u", u))
 				return
 			}
-			tmpTrack := DownloadTrack{
+			tmpTrack := entity.DownloadTrack{
 				Url:       mediaUrl.Url,
 				Quality:   q,
 				SoundData: track,
@@ -164,7 +166,7 @@ func mapQuality(url string, format string) string {
 	return "low"
 }
 
-func getTrack(downloadTracks []DownloadTrack) DownloadTrack {
+func getTrack(downloadTracks []entity.DownloadTrack) entity.DownloadTrack {
 	var defaultQuality = "medium"
 	// show available download options
 	qualities := getQualities(downloadTracks)
@@ -174,7 +176,7 @@ func getTrack(downloadTracks []DownloadTrack) DownloadTrack {
 
 }
 
-func chooseTrackDownload(tracks []DownloadTrack, target string) DownloadTrack {
+func chooseTrackDownload(tracks []entity.DownloadTrack, target string) entity.DownloadTrack {
 	for _, track := range tracks {
 		if track.Quality == target {
 			return track
@@ -185,7 +187,7 @@ func chooseTrackDownload(tracks []DownloadTrack, target string) DownloadTrack {
 
 // get all the available qualities inside the track
 // used to choose a track to download based on the target quality
-func getQualities(tracks []DownloadTrack) []string {
+func getQualities(tracks []entity.DownloadTrack) []string {
 	qualities := make([]string, 0)
 	for _, track := range tracks {
 		// check the default one
@@ -249,16 +251,15 @@ func SetTitleArtistCoverImage(filepath, title, artist string, image []byte) erro
 
 }
 
-// GetTitle will return the title of the song
-func GetTitle(doc *html.Node) (string, error) {
+// getTitle will return the title of the song
+func getTitle(doc *html.Node) (string, error) {
 	// XPath query
 	titlePath := "//meta[@property='og:title']/@content"
 
 	// Query the document for the title node
 	nodes, err := htmlquery.QueryAll(doc, titlePath)
 	if err != nil {
-		fmt.Println("Error executing XPath query:", err)
-		return "", err
+		return "", fmt.Errorf("error executing XPath query: %w", err)
 	}
 
 	// Check if any nodes were found
@@ -271,8 +272,8 @@ func GetTitle(doc *html.Node) (string, error) {
 	return "", fmt.Errorf("no title found")
 }
 
-// GetArtist will return the artist of the song
-func GetArtist(doc *html.Node, songTitle string) (string, error) {
+// getArtist will return the artist of the song
+func getArtist(doc *html.Node, songTitle string) (string, error) {
 	// XPath query to find the title
 	titlePath := "//title"
 
@@ -286,7 +287,7 @@ func GetArtist(doc *html.Node, songTitle string) (string, error) {
 		if len(t) > 1 {
 			return t[1], nil
 		}
-		fmt.Println(t)
+
 	}
 
 	return "", fmt.Errorf("no artist found")

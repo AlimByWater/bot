@@ -31,7 +31,7 @@
     "MaxConn": 10
   },
   "Soundcloud": {
-    "ProxyURL": "http://fi6dlzgv41-corp.mobile.res-country-TR-state-325361-city-325363-hold-session-session-667e8de518597:Nb1PdLCwQEBD3vld@93.190.138.107:9999",
+    "ProxyURL": "http://bL6Rzf:TVWJC5@45.137.42.186:8000",
     "DownloadPath": "/Users/admin/go/src/arimadj-helper/"
   },
   "Redis": {
