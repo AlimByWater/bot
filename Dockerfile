@@ -12,9 +12,5 @@ COPY --from=builder /app/bot /app/bot
 COPY --from=builder /app/configs /app/configs
 RUN mkdir /app/temp
 
-RUN apk update
-RUN apk upgrade
-RUN apk add --no-cache ffmpeg
-
 EXPOSE 443
 ENTRYPOINT ["./bot"]

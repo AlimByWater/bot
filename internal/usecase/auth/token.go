@@ -33,7 +33,7 @@ func (m *Module) CheckAccessTokenByUserID(ctx context.Context, token string, use
 	})
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "parse with claims", logger.AppendErrorToLogs(attributes, err)...)
-		return false, fmt.Errorf("parse with claims: %w %s %s", err, token, string(m.jwtSecret))
+		return false, fmt.Errorf("parse with claims: %w", err)
 	}
 
 	if claims.TokenType != entity.TokenTypeAccess {
@@ -186,7 +186,6 @@ func (m *Module) generateJWTToken(_ context.Context, userID int, tokenType entit
 	})
 
 	return token.SignedString(m.jwtSecret)
-
 }
 
 func (m *Module) parseTelegramInitDate(initData string) (initdata.InitData, error) {
