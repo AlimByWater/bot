@@ -81,7 +81,7 @@ func main() {
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
 		api.NewUserGroup(authUC,
-			user_method.NewGetUserLayout(layoutUC),
+			user_method.NewGetUserLayout(layoutUC), // /api/user/:userID/layout
 		),
 		api.NewSongGroup(authUC,
 			song_methods.NewSongByURL(demethraUC), // /api/song/url/:url

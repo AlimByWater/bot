@@ -16,7 +16,7 @@ func (gul getUserLayout) method() string {
 }
 
 func (gul getUserLayout) path() string {
-	return "/:userID/layout"
+	return "/layout/:userID"
 }
 
 // layoutByUserID обрабатывает запрос на получение макета пользователя
