@@ -1,4 +1,4 @@
-package user_method
+package layout_methods
 
 import (
 	http2 "arimadj-helper/internal/controller/http"
@@ -16,7 +16,7 @@ func (gul getUserLayout) method() string {
 }
 
 func (gul getUserLayout) path() string {
-	return "/layout/:userID"
+	return "/user/:userID"
 }
 
 // layoutByUserID обрабатывает запрос на получение макета пользователя

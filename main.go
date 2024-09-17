@@ -13,7 +13,6 @@ import (
 	"arimadj-helper/internal/controller/http/group/layout_methods"
 	"arimadj-helper/internal/controller/http/group/song_methods"
 	"arimadj-helper/internal/controller/http/group/tampermonkey_methods"
-	"arimadj-helper/internal/controller/http/group/user_method"
 	web_app_methods "arimadj-helper/internal/controller/http/group/web-app_methods"
 	"arimadj-helper/internal/controller/scheduler"
 	"arimadj-helper/internal/controller/scheduler/scheduler_job"
@@ -80,9 +79,6 @@ func main() {
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
-		api.NewUserGroup(authUC,
-			user_method.NewGetUserLayout(layoutUC), // /api/user/:userID/layout
-		),
 		api.NewSongGroup(authUC,
 			song_methods.NewSongByURL(demethraUC), // /api/song/url/:url
 		),
@@ -92,6 +88,7 @@ func main() {
 			layout_methods.NewUpdateLayout(layoutUC),       // /api/layout/:id
 			layout_methods.NewAddLayoutEditor(layoutUC),    // /api/layout/:id/editor
 			layout_methods.NewRemoveLayoutEditor(layoutUC), // /api/layout/:id/editor/:editorId
+			layout_methods.NewGetUserLayout(layoutUC),      // /api/layout/user/:userID
 		),
 		api.NewAuthGroup(authUC,
 			auth_methods.NewGenerateMethod(authUC),
