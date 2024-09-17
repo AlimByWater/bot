@@ -16,7 +16,7 @@ func (gul getUserLayout) method() string {
 }
 
 func (gul getUserLayout) path() string {
-	return "/:userID/layout"
+	return "/:id/layout"
 }
 
 // layoutByUserID обрабатывает запрос на получение макета пользователя
@@ -27,7 +27,7 @@ func (gul getUserLayout) layoutByUserID(c *gin.Context) {
 		return
 	}
 
-	paramUserID, err := strconv.Atoi(c.Param("userID"))
+	paramUserID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
