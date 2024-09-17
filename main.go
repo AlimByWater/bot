@@ -13,6 +13,7 @@ import (
 	"arimadj-helper/internal/controller/http/group/layout_methods"
 	"arimadj-helper/internal/controller/http/group/song_methods"
 	"arimadj-helper/internal/controller/http/group/tampermonkey_methods"
+	"arimadj-helper/internal/controller/http/group/user_method"
 	web_app_methods "arimadj-helper/internal/controller/http/group/web-app_methods"
 	"arimadj-helper/internal/controller/scheduler"
 	"arimadj-helper/internal/controller/scheduler/scheduler_job"
@@ -100,6 +101,9 @@ func main() {
 		),
 		api.NewGroup(authCfg,
 			tampermonkey_methods.NewSubmitMethod(demethraUC),
+		),
+		api.NewUserGroup(authUC,
+			user_method.NewGetUserLayout(layoutUC),
 		),
 	)
 
