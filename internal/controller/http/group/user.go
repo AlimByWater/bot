@@ -18,7 +18,7 @@ type User struct {
 }
 
 func (User) Path() string {
-	return "/user"
+	return "/users"
 }
 
 // Handlers ...
