@@ -80,6 +80,9 @@ func main() {
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
+		api.NewUserGroup(authUC,
+			user_method.NewGetUserLayout(layoutUC),
+		),
 		api.NewSongGroup(authUC,
 			song_methods.NewSongByURL(demethraUC), // /api/song/url/:url
 		),
@@ -101,9 +104,6 @@ func main() {
 		),
 		api.NewGroup(authCfg,
 			tampermonkey_methods.NewSubmitMethod(demethraUC),
-		),
-		api.NewUserGroup(authUC,
-			user_method.NewGetUserLayout(layoutUC),
 		),
 	)
 
