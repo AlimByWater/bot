@@ -189,17 +189,8 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		// отвечаем на сообщения присланные боту
 		if !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
-			sent, err := b.checkDownloadUrlAndSend(ctx, update, attributes)
-			if err != nil {
-				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
-			}
-
-			if sent {
-				return
-			}
-
 			// отправляем сообщение в чат
-			err = b.logToChat(update)
+			err := b.logToChat(update)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "send to chat", logger.AppendErrorToLogs(attributes, err)...)
 				return
@@ -292,8 +283,9 @@ var allowedDomains = map[string]bool{
 	"open.spotify.com": true,
 	"spotify.com":      true,
 	"deezer.com":       true,
+	"deezer.page.link": true,
 	"music.yandex.ru":  true,
-	"vk.com":           true,
+	"yandex.ru":        true,
 }
 
 func validateLink(link string) error {
