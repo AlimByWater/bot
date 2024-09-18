@@ -150,7 +150,7 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 
 	//удаляем mp3 с диска
 	defer func(fileName string) {
-		err := os.Remove(fileName)
+		err := m.downloader.RemoveFile(ctx, fileName)
 		if err != nil {
 			m.logger.LogAttrs(ctx, slog.LevelError, "remove song", logger.AppendErrorToLogs(attributes, err)...)
 		}
