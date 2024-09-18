@@ -1,14 +1,14 @@
 package elysium_test
 
 import (
-	"arimadj-helper/internal/application/config"
-	"arimadj-helper/internal/application/config/config_module"
-	"arimadj-helper/internal/application/env"
-	"arimadj-helper/internal/application/env/test"
-	"arimadj-helper/internal/entity"
-	"arimadj-helper/internal/repository/postgres"
-	"arimadj-helper/internal/repository/postgres/elysium"
 	"context"
+	"elysium/internal/application/config"
+	"elysium/internal/application/config/config_module"
+	"elysium/internal/application/env"
+	"elysium/internal/application/env/test"
+	"elysium/internal/entity"
+	"elysium/internal/repository/postgres"
+	"elysium/internal/repository/postgres/elysium"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

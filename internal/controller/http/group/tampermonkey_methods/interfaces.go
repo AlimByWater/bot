@@ -1,8 +1,8 @@
 package tampermonkey_methods
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 )
 
 type botUC interface {

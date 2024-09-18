@@ -1,30 +1,30 @@
 package main
 
 import (
-	"arimadj-helper/internal/application"
-	"arimadj-helper/internal/application/config"
-	"arimadj-helper/internal/application/config/config_module"
-	"arimadj-helper/internal/application/env"
-	"arimadj-helper/internal/application/env/local"
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/controller/http"
-	api "arimadj-helper/internal/controller/http/group"
-	"arimadj-helper/internal/controller/http/group/auth_methods"
-	"arimadj-helper/internal/controller/http/group/layout_methods"
-	"arimadj-helper/internal/controller/http/group/song_methods"
-	"arimadj-helper/internal/controller/http/group/tampermonkey_methods"
-	web_app_methods "arimadj-helper/internal/controller/http/group/web-app_methods"
-	"arimadj-helper/internal/controller/scheduler"
-	"arimadj-helper/internal/controller/scheduler/scheduler_job"
-	"arimadj-helper/internal/repository/postgres"
-	"arimadj-helper/internal/repository/postgres/elysium"
-	"arimadj-helper/internal/repository/redis"
-	"arimadj-helper/internal/repository/soundcloud"
-	"arimadj-helper/internal/usecase/arimadj"
-	"arimadj-helper/internal/usecase/auth"
-	"arimadj-helper/internal/usecase/demethra"
-	"arimadj-helper/internal/usecase/layout"
-	"arimadj-helper/internal/usecase/users"
+	"elysium/internal/application"
+	"elysium/internal/application/config"
+	"elysium/internal/application/config/config_module"
+	"elysium/internal/application/env"
+	"elysium/internal/application/env/local"
+	"elysium/internal/application/logger"
+	"elysium/internal/controller/http"
+	api "elysium/internal/controller/http/group"
+	"elysium/internal/controller/http/group/auth_methods"
+	"elysium/internal/controller/http/group/layout_methods"
+	"elysium/internal/controller/http/group/song_methods"
+	"elysium/internal/controller/http/group/tampermonkey_methods"
+	web_app_methods "elysium/internal/controller/http/group/web-app_methods"
+	"elysium/internal/controller/scheduler"
+	"elysium/internal/controller/scheduler/scheduler_job"
+	"elysium/internal/repository/downloader"
+	"elysium/internal/repository/postgres"
+	"elysium/internal/repository/postgres/elysium"
+	"elysium/internal/repository/redis"
+	"elysium/internal/usecase/arimadj"
+	"elysium/internal/usecase/auth"
+	"elysium/internal/usecase/demethra"
+	"elysium/internal/usecase/layout"
+	"elysium/internal/usecase/users"
 	"log/slog"
 	"os"
 )
@@ -53,6 +53,7 @@ func main() {
 	soundcloudCfg := config_module.NewSoundcloudConfig()
 	redisCfg := config_module.NewRedisConfig()
 	authCfg := config_module.NewAuthConfig()
+	downloaderCfg := config_module.NewDownloaderConfig()
 	configModule := config.New(
 		arimaDJCfg,
 		httpCfg,
@@ -65,14 +66,15 @@ func main() {
 
 	/************ REPOSITORY *************/
 	elysiumRepo := elysium.NewRepository()
-	sc := soundcloud.New(soundcloudCfg)
+	//sc := soundcloud.New(soundcloudCfg)
+	downloaderGrpc := downloader.New(downloaderCfg)
 
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
 	redisCache := redis.New(redisCfg)
 
 	/************ USECASE *************/
 	arimaDJUC := arimadj.New(arimaDJCfg)
-	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, sc)
+	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, downloaderGrpc)
 	layoutUC := layout.New(redisCache, elysiumRepo)
 	usersUC := users.New(redisCache, elysiumRepo, layoutUC)
 	authUC := auth.NewModule(authCfg, redisCache, elysiumRepo, usersUC)
@@ -114,7 +116,7 @@ func main() {
 
 	app := application.New(loggerModule, configModule, envModule)
 
-	app.AddRepositories(postgresql, redisCache, sc)
+	app.AddRepositories(postgresql, redisCache, downloaderGrpc)
 
 	app.AddUsecases(
 		layoutUC,

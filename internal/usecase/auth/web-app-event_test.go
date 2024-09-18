@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"arimadj-helper/internal/entity"
+	"elysium/internal/entity"
 	"encoding/json"
 	"github.com/stretchr/testify/require"
 	"testing"

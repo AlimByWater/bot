@@ -1,8 +1,8 @@
 package demethra
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"encoding/json"
 	"fmt"
 	"log/slog"

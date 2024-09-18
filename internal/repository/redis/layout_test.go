@@ -1,8 +1,8 @@
 package redis_test
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

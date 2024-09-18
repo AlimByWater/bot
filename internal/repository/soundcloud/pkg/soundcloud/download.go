@@ -1,10 +1,10 @@
 package soundcloud
 
 import (
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/entity"
-	"arimadj-helper/internal/repository/soundcloud/pkg/mp3"
 	"context"
+	"elysium/internal/application/logger"
+	"elysium/internal/entity"
+	"elysium/internal/repository/soundcloud/pkg/mp3"
 	"encoding/json"
 	"fmt"
 	"github.com/antchfx/htmlquery"

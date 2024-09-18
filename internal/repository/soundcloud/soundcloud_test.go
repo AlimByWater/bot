@@ -1,13 +1,13 @@
 package soundcloud
 
 import (
-	"arimadj-helper/internal/application/config"
-	"arimadj-helper/internal/application/config/config_module"
-	"arimadj-helper/internal/application/env"
-	"arimadj-helper/internal/application/env/test"
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/application/config"
+	"elysium/internal/application/config/config_module"
+	"elysium/internal/application/env"
+	"elysium/internal/application/env/test"
+	"elysium/internal/application/logger"
+	"elysium/internal/entity"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"os"

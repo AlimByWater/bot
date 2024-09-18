@@ -1,8 +1,8 @@
 package soundcloudV2
 
 import (
-	"arimadj-helper/internal/entity"
 	"bytes"
+	"elysium/internal/entity"
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"

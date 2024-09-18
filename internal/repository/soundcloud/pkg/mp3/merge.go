@@ -1,11 +1,11 @@
 package mp3
 
 import (
-	"arimadj-helper/internal/repository/soundcloud/pkg/decrypt"
-	"arimadj-helper/internal/repository/soundcloud/pkg/joiner"
-	"arimadj-helper/internal/repository/soundcloud/pkg/pool"
-	"arimadj-helper/internal/repository/soundcloud/pkg/zhttp"
 	"bytes"
+	"elysium/internal/repository/soundcloud/pkg/decrypt"
+	"elysium/internal/repository/soundcloud/pkg/joiner"
+	"elysium/internal/repository/soundcloud/pkg/pool"
+	"elysium/internal/repository/soundcloud/pkg/zhttp"
 	"encoding/hex"
 	"errors"
 	"fmt"

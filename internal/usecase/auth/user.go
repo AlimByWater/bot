@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"fmt"
 )
 

@@ -1,8 +1,8 @@
 package demethra
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -65,12 +65,18 @@ type soundcloudDownloader interface {
 	DownloadTrackByURL(ctx context.Context, trackUrl string, info entity.TrackInfo) (string, error)
 }
 
+type downloader interface {
+	DownloadByLink(ctx context.Context, url string, format string) (string, []byte, error)
+	RemoveFile(ctx context.Context, fileName string) error
+}
+
 type Module struct {
-	ctx        context.Context
-	bot        *Bot
-	cfg        config
-	repo       repository
-	soundcloud soundcloudDownloader
+	ctx  context.Context
+	bot  *Bot
+	cfg  config
+	repo repository
+	//soundcloud soundcloudDownloader
+	downloader downloader
 	cache      cache
 	logger     *slog.Logger
 
@@ -84,13 +90,13 @@ type Module struct {
 }
 
 // New конструктор ...
-func New(cfg config, repo repository, cache cache, sc soundcloudDownloader) *Module {
+func New(cfg config, repo repository, cache cache, downloader downloader) *Module {
 	return &Module{
-		cfg:        cfg,
-		repo:       repo,
-		cache:      cache,
-		soundcloud: sc,
-
+		cfg:   cfg,
+		repo:  repo,
+		cache: cache,
+		//soundcloud: sc,
+		downloader:       downloader,
 		mu:               sync.RWMutex{},
 		batchEventUpdate: make(chan entity.WebAppEvent, batchItemsCount),
 	}
@@ -119,7 +125,7 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 		}
 	}
 
-	m.bot = newBot(ctx, m.repo, m.soundcloud, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
+	m.bot = newBot(ctx, m.repo, m.downloader, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
 	go func() {
 		m.bot.Run(ctx)
 	}()

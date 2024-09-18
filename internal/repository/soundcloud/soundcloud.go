@@ -1,9 +1,9 @@
 package soundcloud
 
 import (
-	"arimadj-helper/internal/entity"
-	"arimadj-helper/internal/repository/soundcloud/soundcloudV2"
 	"context"
+	"elysium/internal/entity"
+	"elysium/internal/repository/soundcloud/soundcloudV2"
 	"fmt"
 	"log/slog"
 	"net/http"

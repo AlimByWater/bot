@@ -1,14 +1,14 @@
 package redis_test
 
 import (
-	"arimadj-helper/internal/application/config"
-	"arimadj-helper/internal/application/config/config_module"
-	"arimadj-helper/internal/application/env"
-	"arimadj-helper/internal/application/env/test"
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/entity"
-	redisRepo "arimadj-helper/internal/repository/redis"
 	"context"
+	"elysium/internal/application/config"
+	"elysium/internal/application/config/config_module"
+	"elysium/internal/application/env"
+	"elysium/internal/application/env/test"
+	"elysium/internal/application/logger"
+	"elysium/internal/entity"
+	redisRepo "elysium/internal/repository/redis"
 	"errors"
 	"github.com/stretchr/testify/require"
 	"log/slog"

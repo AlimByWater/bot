@@ -1,7 +1,7 @@
 package web_app_methods
 
 import (
-	"arimadj-helper/internal/entity"
+	"elysium/internal/entity"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"

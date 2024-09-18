@@ -1,8 +1,8 @@
 package auth_methods
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 )
 
 type authUC interface {

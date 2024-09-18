@@ -23,3 +23,7 @@ update:
 	$(RM)
 	$(RUN)
 	$(PRUNE)
+
+generate:
+	protoc --go_out=. --go-grpc_out=. pkg/proto/*.proto
+	easyjson internal/entity/*.go

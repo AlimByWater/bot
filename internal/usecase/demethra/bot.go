@@ -1,16 +1,16 @@
 package demethra
 
 import (
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/entity"
+	"bytes"
 	"context"
 	"database/sql"
+	"elysium/internal/application/logger"
+	"elysium/internal/entity"
 	"errors"
 	"fmt"
 	"github.com/bogem/id3v2"
 	"log/slog"
 	"math/rand"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -31,11 +31,12 @@ var (
 )
 
 type Bot struct {
-	Api      *tgbotapi.BotAPI
-	sc       soundcloudDownloader
-	logger   *slog.Logger
-	cmdViews map[string]CommandFunc
-	name     string
+	Api *tgbotapi.BotAPI
+	//sc       soundcloudDownloader
+	downloader downloader
+	logger     *slog.Logger
+	cmdViews   map[string]CommandFunc
+	name       string
 
 	chatIDForLogs         int64
 	mainChannelID         int64
@@ -51,11 +52,12 @@ type Bot struct {
 	DisableCommentSectionDelete bool
 }
 
-func newBot(ctx context.Context, repo repository, sc soundcloudDownloader, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
+func newBot(ctx context.Context, repo repository, downloader downloader, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
 	b := &Bot{
-		name:                  name,
-		repo:                  repo,
-		sc:                    sc,
+		name: name,
+		repo: repo,
+		//sc:                    sc,
+		downloader:            downloader,
 		Api:                   api,
 		chatIDForLogs:         chatIDForLogs,
 		mainChannelID:         mainChannelID,
@@ -313,7 +315,8 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 						}
 					}
 
-					songPath, err := b.sc.DownloadTrackByURL(ctx, v, entity.TrackInfo{})
+					//songPath, err := b.sc.DownloadTrackByURL(ctx, v, entity.TrackInfo{})
+					fileName, songData, err := b.downloader.DownloadByLink(ctx, v, "mp3")
 					if err != nil {
 						msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось скачать(")
 						msg.ReplyParameters.MessageID = update.Message.MessageID
@@ -326,13 +329,13 @@ func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Upd
 						return false, fmt.Errorf("download track by url: %w", err)
 					}
 					defer func(songPath string) {
-						err := os.Remove(songPath)
+						err := b.downloader.RemoveFile(ctx, fileName)
 						if err != nil {
 							b.logger.LogAttrs(ctx, slog.LevelError, "remove song", logger.AppendErrorToLogs(attrs, err)...)
 						}
-					}(songPath)
+					}(fileName)
 
-					err = b.sengSongToChat(update, songPath)
+					err = b.sengSongToChat(update, songData)
 					if err != nil {
 						msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось отправить(")
 						msg.ReplyParameters.MessageID = update.Message.MessageID
@@ -383,13 +386,10 @@ func (b *Bot) forwardSongToChat(chatID int64, song entity.Song) error {
 	return nil
 }
 
-func (b *Bot) sengSongToChat(u tgbotapi.Update, songPath string) error {
-	file, err := os.Open(songPath)
-	if err != nil {
-		return fmt.Errorf("open song: %w", err)
-	}
+func (b *Bot) sengSongToChat(u tgbotapi.Update, song []byte) error {
+	songReader := bytes.NewReader(song)
 
-	tag, err := id3v2.Open(songPath, id3v2.Options{Parse: true})
+	tag, err := id3v2.ParseReader(songReader, id3v2.Options{Parse: true})
 	if err != nil {
 		return err
 	}
@@ -410,7 +410,7 @@ func (b *Bot) sengSongToChat(u tgbotapi.Update, songPath string) error {
 				},
 			},
 			File: tgbotapi.FileReader{
-				Reader: file,
+				Reader: songReader,
 			},
 		},
 		Caption:   `[элизиум \[ラジオ\]](t.me/elysium_fm)`,

@@ -1,9 +1,9 @@
 package elysium
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
 	"database/sql"
+	"elysium/internal/entity"
 	"errors"
 	"fmt"
 )

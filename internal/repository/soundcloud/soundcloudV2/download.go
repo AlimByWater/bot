@@ -1,7 +1,7 @@
 package soundcloudV2
 
 import (
-	"arimadj-helper/internal/entity"
+	"elysium/internal/entity"
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"

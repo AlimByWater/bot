@@ -1,7 +1,7 @@
 package soundcloud_dl
 
 import (
-	"arimadj-helper/internal/repository/soundcloud/soundcloud-dl/theme"
+	"elysium/internal/repository/soundcloud/soundcloud-dl/theme"
 	"fmt"
 	"sync"
 )

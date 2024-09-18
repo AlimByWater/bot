@@ -1,8 +1,8 @@
 package redis
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"log/slog"

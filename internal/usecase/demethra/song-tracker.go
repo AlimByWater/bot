@@ -1,9 +1,10 @@
 package demethra
 
 import (
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/entity"
+	"bytes"
 	"context"
+	"elysium/internal/application/logger"
+	"elysium/internal/entity"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
@@ -141,24 +142,21 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 		slog.String("METHOD", "download and create new song"),
 	}
 
-	songPath, err := m.soundcloud.DownloadTrackByURL(ctx, info.TrackLink, info)
+	fileName, songData, err := m.downloader.DownloadByLink(ctx, info.TrackLink, "mp3")
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "download track by url", logger.AppendErrorToLogs(attributes, err)...)
 		return entity.Song{}, fmt.Errorf("download track by url: %w", err)
 	}
 
 	//удаляем mp3 с диска
-	defer func() {
-		err := os.Remove(songPath)
+	defer func(fileName string) {
+		err := os.Remove(fileName)
 		if err != nil {
 			m.logger.LogAttrs(ctx, slog.LevelError, "remove song", logger.AppendErrorToLogs(attributes, err)...)
 		}
-	}()
+	}(fileName)
 
-	file, err := os.Open(songPath)
-	if err != nil {
-		m.logger.LogAttrs(ctx, slog.LevelError, "open song", logger.AppendErrorToLogs(attributes, err)...)
-	}
+	songReader := bytes.NewReader(songData)
 
 	// ************* ОТПРАВИТЬ ТРЕК В ГРУППУ *************** //
 	audio := tgbotapi.AudioConfig{
@@ -169,7 +167,7 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 				},
 			},
 			File: tgbotapi.FileReader{
-				Reader: file,
+				Reader: songReader,
 			},
 		},
 		Caption:   `[элизиум \[ラジオ\]](t.me/elysium_fm)`,

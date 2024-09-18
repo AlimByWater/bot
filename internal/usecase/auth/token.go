@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"arimadj-helper/internal/application/logger"
-	"arimadj-helper/internal/entity"
 	"context"
 	"database/sql"
+	"elysium/internal/application/logger"
+	"elysium/internal/entity"
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"

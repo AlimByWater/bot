@@ -43,5 +43,9 @@
     "Secret": "test-secret",
     "TelegramBotToken": "7486051673:AAEg2bzMqec1NkFK8tHycLn8gvGxK6xQ6ww",
     "ApiKey": "1234515151"
+  },
+  "Downloader": {
+    "GrpcHost": "localhost",
+    "GrpcPort": 8051
   }
 }

@@ -1,8 +1,8 @@
 package elysium_test
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

@@ -1,8 +1,8 @@
 package users
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 	"log/slog"
 	"sync"
 	"sync/atomic"

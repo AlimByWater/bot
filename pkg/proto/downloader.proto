@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package elysium_downloader;
+option go_package = "./pkg/proto";
+
+// Описание сервиса для скачивания файла
+service FileDownloadService {
+  // Метод для скачивания файла
+  rpc DownloadByLink(DownloadRequest) returns (DownloadResponse);
+  // Метод для удаления файла по имени
+  rpc DeleteFile(DeleteRequest) returns (DeleteResponse);
+}
+
+// Входящий запрос: ссылка на трек и желаемый формат
+message DownloadRequest {
+  string url = 1;         // Ссылка для скачивания
+  string format = 2;      // Желаемый формат (например, "mp3", "ogg")
+}
+
+// Ответ: имя файла и контент в бинарном виде
+message DownloadResponse {
+  string file_name = 1;   // Имя файла
+  bytes file_data = 2;    // Бинарное содержимое файла
+}
+
+// Входящий запрос: имя файла и формат
+message DeleteRequest {
+  string file_name = 1;   // Имя файла
+}
+
+// Ответ: сообщение об успешном удалении
+message DeleteResponse {
+  bool success = 1;       // Удаление успешно
+}

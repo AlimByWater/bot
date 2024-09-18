@@ -1,8 +1,8 @@
 package layout_methods
 
 import (
-	"arimadj-helper/internal/entity"
 	"context"
+	"elysium/internal/entity"
 )
 
 type layoutUC interface {

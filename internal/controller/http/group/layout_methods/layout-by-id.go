@@ -1,7 +1,7 @@
 package layout_methods
 
 import (
-	http2 "arimadj-helper/internal/controller/http"
+	http2 "elysium/internal/controller/http"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"

@@ -1,7 +1,7 @@
 package auth_methods
 
 import (
-	"arimadj-helper/internal/entity"
+	"elysium/internal/entity"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
