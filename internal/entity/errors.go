@@ -11,3 +11,7 @@ var (
 	ErrCacheTokenNotFound   = fmt.Errorf("token not found")
 	ErrCacheTokenIDRequired = fmt.Errorf("token id is required")
 )
+
+var (
+	ErrInvalidDownloadLink = fmt.Errorf("invalid download link")
+)

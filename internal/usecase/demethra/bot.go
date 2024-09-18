@@ -11,6 +11,7 @@ import (
 	"github.com/bogem/id3v2"
 	"log/slog"
 	"math/rand"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -151,7 +152,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		// если сообщение пришло с форума, то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
 		if !update.Message.IsCommand() {
-			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
+			sent, err := b.checkDownloadUrlAndSend(ctx, update, attributes)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
 			}
@@ -188,7 +189,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 		// отвечаем на сообщения присланные боту
 		if !update.Message.IsCommand() && update.CallbackQuery == nil && update.Message.Chat.Type != entity.ChatTypeSuperGroup {
-			sent, err := b.checkSoundCloudUrlAndSend(ctx, update, attributes)
+			sent, err := b.checkDownloadUrlAndSend(ctx, update, attributes)
 			if err != nil {
 				b.logger.LogAttrs(ctx, slog.LevelError, "check soundcloud url and send", logger.AppendErrorToLogs(attributes, err)...)
 			}
@@ -283,93 +284,123 @@ id: %d
 	return nil
 }
 
-func (b *Bot) checkSoundCloudUrlAndSend(ctx context.Context, update tgbotapi.Update, attrs []slog.Attr) (bool, error) {
-	if update.Message.Text != "" {
-		if strings.Contains(update.Message.Text, "soundcloud.com") {
-			text := strings.Split(update.Message.Text, " ")
-			for _, v := range text {
-				if strings.Contains(v, "soundcloud.com") {
-					song, err := b.repo.SongByUrl(ctx, v)
-					if err != nil && !errors.Is(err, sql.ErrNoRows) {
-						b.logger.LogAttrs(ctx, slog.LevelWarn, "get song by URL from chat", logger.AppendErrorToLogs(attrs, err)...)
-					}
+var allowedDomains = map[string]bool{
+	"youtube.com":      true,
+	"youtu.be":         true,
+	"bandcamp.com":     true,
+	"soundcloud.com":   true,
+	"open.spotify.com": true,
+	"spotify.com":      true,
+	"deezer.com":       true,
+	"music.yandex.ru":  true,
+	"vk.com":           true,
+}
 
-					if song.ID != 0 {
-						err = b.forwardSongToChat(update.Message.Chat.ID, song)
-						if err != nil {
-							b.logger.LogAttrs(ctx, slog.LevelWarn, "forward track to chat from chat", logger.AppendErrorToLogs(attrs, err)...)
-						}
-					}
+func validateLink(link string) error {
+	for domain := range allowedDomains {
+		if strings.Contains(link, domain) {
+			return nil
+		}
+	}
+	return entity.ErrInvalidDownloadLink
+}
 
-					var replyMessage tgbotapi.Message
-					if update.Message.Chat.Type == entity.ChatTypePrivate {
-						chatId := update.FromChat().ChatConfig().ChatID
-						//rand.Seed(time.Now().Unix())
-						msg := tgbotapi.NewMessage(chatId, `Скачиваю\. ||Надеюсь у меня получится\.||`)
-						msg.ReplyParameters.MessageID = update.Message.MessageID
-						msg.ParseMode = "MarkdownV2"
+func (b *Bot) checkDownloadUrlAndSend(ctx context.Context, update tgbotapi.Update, attrs []slog.Attr) (bool, error) {
+	if update.Message.Text == "" {
+		return false, nil
+	}
 
-						//msg.ReplyMarkup = inlineKeyboard
-						if replyMessage, err = b.Api.Send(msg); err != nil {
-							b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
-						}
-					}
+	for domain, _ := range allowedDomains {
+		if !strings.Contains(update.Message.Text, domain) {
+			continue
+		}
+		tokens := strings.Split(update.Message.Text, " ")
+		for _, token := range tokens {
+			if !strings.Contains(token, domain) {
+				continue
+			}
 
-					//songPath, err := b.sc.DownloadTrackByURL(ctx, v, entity.TrackInfo{})
-					fileName, songData, err := b.downloader.DownloadByLink(ctx, v, "mp3")
-					if err != nil {
-						msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось скачать(")
-						msg.ReplyParameters.MessageID = update.Message.MessageID
+			url, err := url.Parse(token)
+			if err != nil {
+				continue
+			}
 
-						//msg.ReplyMarkup = inlineKeyboard
-						if _, err2 := b.Api.Send(msg); err2 != nil {
-							b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
-						}
+			if url.RequestURI() == "" {
+				continue
+			}
 
-						return false, fmt.Errorf("download track by url: %w", err)
-					}
-					defer func(songPath string) {
-						err := b.downloader.RemoveFile(ctx, fileName)
-						if err != nil {
-							b.logger.LogAttrs(ctx, slog.LevelError, "remove song", logger.AppendErrorToLogs(attrs, err)...)
-						}
-					}(fileName)
+			song, err := b.repo.SongByUrl(ctx, url.String())
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				b.logger.LogAttrs(ctx, slog.LevelWarn, "get song by URL from chat", logger.AppendErrorToLogs(attrs, err)...)
+			}
 
-					err = b.sengSongToChat(update, songData)
-					if err != nil {
-						msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось отправить(")
-						msg.ReplyParameters.MessageID = update.Message.MessageID
+			if song.ID != 0 {
+				err = b.forwardSongToChat(update.Message.Chat.ID, song)
+				if err != nil {
+					b.logger.LogAttrs(ctx, slog.LevelWarn, "forward track to chat from chat", logger.AppendErrorToLogs(attrs, err)...)
+				}
 
-						//msg.ReplyMarkup = inlineKeyboard
-						if _, err2 := b.Api.Send(msg); err2 != nil {
-							b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
-						}
-						return false, fmt.Errorf("send track to chat: %w", err)
-					}
+				return true, nil
+			}
 
-					if replyMessage.MessageID != 0 {
-						delMessageReq := tgbotapi.NewDeleteMessage(replyMessage.Chat.ID, replyMessage.MessageID)
-						_, err = b.Api.Send(delMessageReq)
-						if err != nil {
-							b.logger.LogAttrs(ctx, slog.LevelError, "delete reply message for audio request", logger.AppendErrorToLogs(attrs, err)...)
-						}
-					}
+			// TODO логировать в базу факт скачивания трека
 
-					return true, nil
+			var replyMessage tgbotapi.Message
+			if update.Message.Chat.Type == entity.ChatTypePrivate {
+				chatId := update.FromChat().ChatConfig().ChatID
+				//rand.Seed(time.Now().Unix())
+				msg := tgbotapi.NewMessage(chatId, `Скачиваю\. ||Надеюсь у меня получится\.||`)
+				msg.ReplyParameters.MessageID = update.Message.MessageID
+				msg.ParseMode = "MarkdownV2"
+
+				//msg.ReplyMarkup = inlineKeyboard
+				if replyMessage, err = b.Api.Send(msg); err != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
 				}
 			}
-			// отправить в чат
-			// удалить сообщение
-			// отправить сообщение об успешной загрузке
-			// если трек не удалось скачать - отправить сообщение об ошибке
-			// если трек не удалось отправить - отправить сообщение об ошибке
-			// если сообщение не удалось удалить - отправить сообщение об ошибке
-			// если сообщение об успешной загрузке не удалось отправить - отправить сообщение об ошибке
-		} else {
-			return false, nil
+
+			fileName, songData, err := b.downloader.DownloadByLink(ctx, url.String(), "mp3")
+			if err != nil {
+				msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось скачать(")
+				msg.ReplyParameters.MessageID = update.Message.MessageID
+
+				//msg.ReplyMarkup = inlineKeyboard
+				if _, err2 := b.Api.Send(msg); err2 != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
+				}
+
+				return false, fmt.Errorf("download track by url: %w", err)
+			}
+			defer func(songPath string) {
+				err := b.downloader.RemoveFile(ctx, fileName)
+				if err != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "remove song", logger.AppendErrorToLogs(attrs, err)...)
+				}
+			}(fileName)
+
+			err = b.sengSongToChat(update, songData)
+			if err != nil {
+				msg := tgbotapi.NewMessage(update.FromChat().ChatConfig().ChatID, "Не получилось отправить(")
+				msg.ReplyParameters.MessageID = update.Message.MessageID
+
+				//msg.ReplyMarkup = inlineKeyboard
+				if _, err2 := b.Api.Send(msg); err2 != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "send reply to user to audio request", logger.AppendErrorToLogs(attrs, err)...)
+				}
+				return false, fmt.Errorf("send track to chat: %w", err)
+			}
+
+			if replyMessage.MessageID != 0 {
+				delMessageReq := tgbotapi.NewDeleteMessage(replyMessage.Chat.ID, replyMessage.MessageID)
+				_, err = b.Api.Send(delMessageReq)
+				if err != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "delete reply message for audio request", logger.AppendErrorToLogs(attrs, err)...)
+				}
+			}
+
+			return true, nil
+
 		}
-	} else {
-		return false, nil
 	}
 
 	return true, nil
