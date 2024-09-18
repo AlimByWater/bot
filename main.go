@@ -62,6 +62,7 @@ func main() {
 		soundcloudCfg,
 		redisCfg,
 		authCfg,
+		downloaderCfg,
 	)
 
 	/************ REPOSITORY *************/
