@@ -24,7 +24,7 @@ import (
 // ElysiumFM -1002129034021
 // ElysiumChat -1002124956071
 // ElysiumFmComment  -1002164548613
-// bot bot bot forum -1002224939217
+// Bot Bot Bot forum -1002224939217
 
 var (
 	BotRepliesVariants = []string{"я им передам.", "ты был услышан.", "хорошо, я им передам", "это все что ты хотел сказать?"}
@@ -100,7 +100,7 @@ func (b *Bot) Run(ctx context.Context) {
 
 	updates := b.Api.GetUpdatesChan(u)
 
-	b.logger.Info("bot started")
+	b.logger.Info("Bot started")
 
 	for {
 		select {
@@ -386,7 +386,7 @@ func (b *Bot) checkDownloadUrlAndSend(ctx context.Context, update tgbotapi.Updat
 				delMessageReq := tgbotapi.NewDeleteMessage(replyMessage.Chat.ID, replyMessage.MessageID)
 				_, err = b.Api.Send(delMessageReq)
 				if err != nil {
-					b.logger.LogAttrs(ctx, slog.LevelError, "delete reply message for audio request", logger.AppendErrorToLogs(attrs, err)...)
+					b.logger.LogAttrs(ctx, slog.LevelWarn, "delete reply message for audio request", logger.AppendErrorToLogs(attrs, err)...)
 				}
 			}
 
@@ -432,8 +432,8 @@ func (b *Bot) sengSongToChat(u tgbotapi.Update, song []byte) error {
 					MessageID: u.Message.MessageID,
 				},
 			},
-			File: tgbotapi.FileReader{
-				Reader: songReader,
+			File: tgbotapi.FileBytes{
+				Bytes: song,
 			},
 		},
 		Caption:   `[элизиум \[ラジオ\]](t.me/elysium_fm)`,

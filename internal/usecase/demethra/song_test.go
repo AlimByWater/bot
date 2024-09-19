@@ -9,6 +9,7 @@ import (
 	"elysium/internal/application/env/test"
 	"elysium/internal/application/logger"
 	"elysium/internal/entity"
+	"elysium/internal/repository/downloader"
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
@@ -25,7 +26,7 @@ import (
 
 var module *demethra.Module
 
-func testDemethraConfig(t *testing.T) (*config_module.Demethra, *config_module.Postgres, *config_module.Redis) {
+func testDemethraConfig(t *testing.T) (*config_module.Demethra, *config_module.Postgres, *config_module.Redis, *config_module.Downloader) {
 	t.Helper()
 
 	t.Setenv("ENV", "test")
@@ -39,13 +40,14 @@ func testDemethraConfig(t *testing.T) (*config_module.Demethra, *config_module.P
 	demethraCfg := config_module.NewDemethraConfig()
 	postgresCfg := config_module.NewPostgresConfig()
 	redisCfg := config_module.NewRedisConfig()
-	cfg := config.New(demethraCfg, postgresCfg, redisCfg)
+	downloaderCfg := config_module.NewDownloaderConfig()
+	cfg := config.New(demethraCfg, postgresCfg, redisCfg, downloaderCfg)
 	err = cfg.Init(storage)
 	if err != nil {
 		t.Fatalf("Failed to initialize config: %v", err)
 	}
 
-	return demethraCfg, postgresCfg, redisCfg
+	return demethraCfg, postgresCfg, redisCfg, downloaderCfg
 }
 
 func setupTest(t *testing.T) func(t *testing.T) {
@@ -53,7 +55,7 @@ func setupTest(t *testing.T) func(t *testing.T) {
 
 	loggerModule := logger.New(
 		logger.Options{
-			AppName: "test-bot-manager",
+			AppName: "test-Bot-manager",
 			Writer:  os.Stdout,
 			HandlerOptions: &slog.HandlerOptions{
 				Level: slog.LevelDebug,
@@ -63,18 +65,21 @@ func setupTest(t *testing.T) func(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	demethraCfg, postgresCfg, redisCfg := testDemethraConfig(t)
+	demethraCfg, postgresCfg, redisCfg, downloaderCfg := testDemethraConfig(t)
 
 	elysiumRepo := elysium.NewRepository()
 	redisRepo := redis.New(redisCfg)
-	err := redisRepo.Init(ctx, loggerModule)
+	downloaderGrpc := downloader.New(downloaderCfg)
+	err := downloaderGrpc.Init(ctx, loggerModule)
+	require.NoError(t, err)
+	err = redisRepo.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
 	err = postgresql.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
-	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisRepo, nil)
+	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisRepo, downloaderGrpc)
 	err = demethraUC.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
@@ -84,6 +89,7 @@ func setupTest(t *testing.T) func(t *testing.T) {
 		elysiumRepo.Close()
 		postgresql.Close()
 		redisRepo.Close()
+		downloaderGrpc.Close()
 	}
 }
 
@@ -189,4 +195,75 @@ func TestIcecastMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log(string(m))
+}
+
+func TestGrpcDownload(t *testing.T) {
+	//teardown := setupTest(t)
+	//defer teardown(t)
+	//
+	//filaName, songData, err := module.Bot.Downloader.DownloadByLink(context.Background(), "https://soundcloud.com/floatingpoints/vocoder", "mp3")
+	//require.NoError(t, err)
+	//require.NotEmpty(t, filaName)
+	//defer func(songPath string) {
+	//	err := module.Bot.Downloader.RemoveFile(context.Background(), songPath)
+	//	require.NoError(t, err)
+	//}(filaName)
+	//
+	//f, err := os.OpenFile(filaName, os.O_CREATE|os.O_WRONLY, 0644)
+	//require.NoError(t, err)
+	//defer f.Close()
+	//
+	//songReader := bytes.NewReader(songData)
+	//_, err = io.Copy(io.MultiWriter(f), songReader)
+	//require.NoError(t, err)
+	//f.Close()
+	//
+	//u := tgbotapi.Update{
+	//	Message: &tgbotapi.Message{
+	//		Chat: tgbotapi.Chat{
+	//			ID: 251636949,
+	//		},
+	//		MessageID: 1,
+	//	},
+	//}
+	//
+	//file, err := os.Open(filaName)
+	//require.NoError(t, err)
+	//
+	//tag, err := id3v2.Open(filaName, id3v2.Options{Parse: true})
+	//require.NoError(t, err)
+	//defer tag.Close()
+	//
+	//artist := tag.Artist()
+	//title := tag.Title()
+	//
+	//// ************* ОТПРАВИТЬ ТРЕК В ГРУППУ *************** //
+	//audio := tgbotapi.AudioConfig{
+	//	BaseFile: tgbotapi.BaseFile{
+	//		BaseChat: tgbotapi.BaseChat{
+	//			ChatConfig: tgbotapi.ChatConfig{
+	//				ChatID: u.Message.Chat.ID,
+	//			},
+	//			//ReplyParameters: tgbotapi.ReplyParameters{
+	//			//	MessageID: u.Message.MessageID,
+	//			//},
+	//		},
+	//		File: tgbotapi.FileReader{
+	//			Reader: file,
+	//		},
+	//	},
+	//	Caption:   `[элизиум \[ラジオ\]](t.me/elysium_fm)`,
+	//	ParseMode: "MarkdownV2",
+	//	Title:     title,
+	//	Performer: artist,
+	//}
+	//
+	//_, err = module.Bot.Api.Send(audio)
+	//require.NoError(t, err)
+	//require.NoError(t, err)
+	//
+	//audio.BaseFile.File = tgbotapi.FileBytes{Bytes: songData}
+	//_, err = module.Bot.Api.Send(audio)
+	//require.NoError(t, err)
+	//require.NoError(t, err)
 }

@@ -72,7 +72,7 @@ type downloader interface {
 
 type Module struct {
 	ctx  context.Context
-	bot  *Bot
+	Bot  *Bot
 	cfg  config
 	repo repository
 	//soundcloud soundcloudDownloader
@@ -115,19 +115,19 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	if m.cfg.GetTelegramBotApiServer() != "" {
 		tgapi, err = tgbotapi.NewBotAPIWithAPIEndpoint(m.cfg.GetBotToken(), m.cfg.GetTelegramBotApiServer())
 		if err != nil {
-			return fmt.Errorf("new bot api with custom server: %w", err)
+			return fmt.Errorf("new Bot api with custom server: %w", err)
 		}
 
 	} else {
 		tgapi, err = tgbotapi.NewBotAPI(m.cfg.GetBotToken())
 		if err != nil {
-			return fmt.Errorf("new bot api: %w", err)
+			return fmt.Errorf("new Bot api: %w", err)
 		}
 	}
 
-	m.bot = newBot(ctx, m.repo, m.downloader, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
+	m.Bot = newBot(ctx, m.repo, m.downloader, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
 	go func() {
-		m.bot.Run(ctx)
+		m.Bot.Run(ctx)
 	}()
 
 	return nil

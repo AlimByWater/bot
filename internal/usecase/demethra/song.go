@@ -28,7 +28,7 @@ func (m *Module) SendSongByTrackLink(ctx context.Context, userID int, trackLink 
 		return fmt.Errorf("song not found")
 	}
 
-	err = m.bot.sendSongToTelegramUser(ctx, user.TelegramID, song)
+	err = m.Bot.sendSongToTelegramUser(ctx, user.TelegramID, song)
 	if err != nil {
 		return fmt.Errorf("send song to chat: %w", err)
 	}

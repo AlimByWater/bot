@@ -1,7 +1,6 @@
 package demethra
 
 import (
-	"bytes"
 	"context"
 	"elysium/internal/application/logger"
 	"elysium/internal/entity"
@@ -48,7 +47,7 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 		}
 	}
 
-	msg, err := m.bot.updateCurrentTrackMessage(ctx, song.ID, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
+	msg, err := m.Bot.updateCurrentTrackMessage(ctx, song.ID, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "update current track", logger.AppendErrorToLogs(attributes, err)...)
 	}
@@ -156,8 +155,6 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 		}
 	}(fileName)
 
-	songReader := bytes.NewReader(songData)
-
 	// ************* ОТПРАВИТЬ ТРЕК В ГРУППУ *************** //
 	audio := tgbotapi.AudioConfig{
 		BaseFile: tgbotapi.BaseFile{
@@ -166,8 +163,8 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 					ChatID: m.cfg.GetTracksDbChannel(),
 				},
 			},
-			File: tgbotapi.FileReader{
-				Reader: songReader,
+			File: tgbotapi.FileBytes{
+				Bytes: songData,
 			},
 		},
 		Caption:   `[элизиум \[ラジオ\]](t.me/elysium_fm)`,
@@ -175,7 +172,7 @@ func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, e
 		Title:     info.TrackTitle,
 		Performer: info.ArtistName,
 	}
-	respMsg, err := m.bot.Api.Send(audio)
+	respMsg, err := m.Bot.Api.Send(audio)
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "send audio", logger.AppendErrorToLogs(attributes, err)...)
 		return entity.Song{}, fmt.Errorf("send audio: %w", err)
