@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS elysium.layout_elements (
     id BIGSERIAL PRIMARY KEY,
     layout_id INTEGER NOT NULL REFERENCES elysium.user_layouts(id) ON DELETE CASCADE,
     root_element_id INTEGER NOT NULL REFERENCES elysium.root_elements(id),
+    on_grid_id INTEGER NOT NULL DEFAULT 0,
     properties JSONB NOT NULL,
     position_x INTEGER NOT NULL,
     position_y INTEGER NOT NULL,

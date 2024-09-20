@@ -16,7 +16,7 @@ func TestCreateLayout(t *testing.T) {
 	t.Run("CreateLayout with valid data", func(t *testing.T) {
 		layout := entity.UserLayout{
 			Name:    "Test Layout",
-			Creator: 1, // Предполагаемый ID пользователя
+			Creator: 2, // Предполагаемый ID пользователя
 			Background: map[string]interface{}{
 				"color": "#FFFFFF",
 			},

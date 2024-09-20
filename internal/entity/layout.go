@@ -75,6 +75,7 @@ type Position struct {
 type LayoutElement struct {
 	ID          int64       `json:"id" redis:"id"`
 	RootElement RootElement `json:"root_element" redis:"root_element"`
+	OnGridID    int64       `json:"on_grid_id" redis:"on_grid_id"`
 	Position    Position    `json:"position" redis:"position"`
 	Properties  Properites  `json:"properties" redis:"properties"`
 	IsPublic    bool        `json:"is_public" redis:"is_public"`
