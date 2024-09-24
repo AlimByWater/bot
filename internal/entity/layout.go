@@ -19,6 +19,7 @@ type RootElement struct {
 	ID                int        `json:"id" redis:"id"`
 	Type              string     `json:"type" redis:"type"`
 	Name              string     `json:"name" redis:"name"`
+	DefaultIcon       string     `json:"default_icon" redis:"default_icon"`
 	URL               string     `json:"url" redis:"url"`
 	External          bool       `json:"external" redis:"external"`
 	AppType           string     `json:"app_type" redis:"app_type"`

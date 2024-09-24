@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS elysium.root_elements (
     name TEXT NOT NULL UNIQUE CHECK (name <> ''),
     external BOOLEAN DEFAULT FALSE,
     url TEXT DEFAULT '',
+    default_icon VARCHAR(255) DEFAULT '',
     type TEXT NOT NULL CHECK (name <> ''), -- type - это тип поведения элемента clickable_navigable, clickable_non_navigable, non_clickable_non_navigable
     app_type VARCHAR(255) NOT NULL DEFAULT '',
     default_properties JSONB NOT NULL,
