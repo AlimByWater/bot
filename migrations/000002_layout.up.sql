@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS elysium.layout_elements (
     layout_id INTEGER NOT NULL REFERENCES elysium.user_layouts(id) ON DELETE CASCADE,
     root_element_id INTEGER NOT NULL REFERENCES elysium.root_elements(id),
     on_grid_id INTEGER NOT NULL DEFAULT 0,
+    icon_url VARCHAR(255) NOT NULL DEFAULT '',
     properties JSONB NOT NULL,
     position_x INTEGER NOT NULL,
     position_y INTEGER NOT NULL,

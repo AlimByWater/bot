@@ -169,7 +169,7 @@ func (r *Repository) ElementsByLayoutID(ctx context.Context, layoutID int) ([]en
 	var elements []entity.LayoutElement
 	// Получаем элементы макета
 	elementsQuery := `
-				SELECT el.id, el.on_grid_id, el.properties, el.position_x, el.position_y, el.position_z, el.width, el.height, el.is_public, el.is_removable,
+				SELECT el.id, el.on_grid_id, el.properties, el.icon_url, el.position_x, el.position_y, el.position_z, el.width, el.height, el.is_public, el.is_removable,
 				       re.id, re.name, re.external, re.url, re.app_type, re.type, re.default_properties, re.description, re.is_public, re.is_paid
 				FROM elysium.layout_elements el
 				JOIN elysium.root_elements re ON re.id = root_element_id
@@ -187,6 +187,7 @@ func (r *Repository) ElementsByLayoutID(ctx context.Context, layoutID int) ([]en
 			&elem.ID,
 			&elem.OnGridID,
 			&elem.Properties,
+			&elem.IconURL,
 			&elem.Position.X,
 			&elem.Position.Y,
 			&elem.Position.Z,
@@ -265,8 +266,8 @@ func (r *Repository) UpdateLayoutFull(ctx context.Context, layout entity.UserLay
 
 		// Добавляем новые элементы макета
 		insertElementQuery := `
-			INSERT INTO elysium.layout_elements (layout_id, root_element_id, on_grid_id, properties, position_x, position_y, position_z, width, height, is_public, is_removable)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			INSERT INTO elysium.layout_elements (layout_id, root_element_id, on_grid_id, icon_url, properties, position_x, position_y, position_z, width, height, is_public, is_removable)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			RETURNING id
 			`
 		for _, elem := range layout.Elements {
@@ -369,9 +370,8 @@ func (r *Repository) CreateLayout(ctx context.Context, layout entity.UserLayout)
 
 		// Добавляем новые элементы макета
 		insertElementQuery := `
-			INSERT INTO elysium.layout_elements (layout_id, root_element_id, on_grid_id, properties, position_x, position_y, position_z, width, height, is_public, is_removable)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-
+			INSERT INTO elysium.layout_elements (layout_id, root_element_id, on_grid_id, icon_url, properties, position_x, position_y, position_z, width, height, is_public, is_removable)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			RETURNING id
 			`
 		for _, elem := range layout.Elements {
