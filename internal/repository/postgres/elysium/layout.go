@@ -170,7 +170,7 @@ func (r *Repository) ElementsByLayoutID(ctx context.Context, layoutID int) ([]en
 	// Получаем элементы макета
 	elementsQuery := `
 				SELECT el.id, el.on_grid_id, el.properties, el.position_x, el.position_y, el.position_z, el.width, el.height, el.is_public, el.is_removable,
-				       re.id, re.name, re.external, re.url, re.app_type re.type, re.default_properties, re.description, re.is_public, re.is_paid
+				       re.id, re.name, re.external, re.url, re.app_type, re.type, re.default_properties, re.description, re.is_public, re.is_paid
 				FROM elysium.layout_elements el
 				JOIN elysium.root_elements re ON re.id = root_element_id
 				WHERE layout_id = $1
