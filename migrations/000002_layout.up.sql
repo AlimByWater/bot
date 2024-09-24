@@ -2,7 +2,10 @@
 CREATE TABLE IF NOT EXISTS elysium.root_elements (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE CHECK (name <> ''),
-    type TEXT NOT NULL CHECK (name <> ''),
+    external BOOLEAN DEFAULT FALSE,
+    url TEXT DEFAULT '',
+    type TEXT NOT NULL CHECK (name <> ''), -- type - это тип поведения элемента clickable_navigable, clickable_non_navigable, non_clickable_non_navigable
+    app_type VARCHAR(255) NOT NULL DEFAULT '',
     default_properties JSONB NOT NULL,
     description TEXT DEFAULT '',
     is_public BOOLEAN DEFAULT TRUE,
