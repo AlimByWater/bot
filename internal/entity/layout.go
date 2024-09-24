@@ -37,6 +37,7 @@ type RootElement struct {
 type UserLayout struct {
 	ID         int             `json:"id" redis:"id"`
 	Name       string          `json:"name" redis:"name"`
+	Version    int             `json:"version" redis:"version"`
 	Background Background      `json:"background" redis:"background"`
 	StreamURL  string          `json:"stream_url" redis:"stream_url"`
 	Elements   []LayoutElement `json:"elements" redis:"elements"`

@@ -92,6 +92,7 @@ func (m *Module) UpdateLayoutFull(ctx context.Context, layoutID int, initiatorUs
 	updatedLayout.Creator = currentLayout.Creator
 	updatedLayout.Editors = currentLayout.Editors
 	updatedLayout.ID = layoutID
+	updatedLayout.Version = currentLayout.Version + 1
 
 	err = m.repo.UpdateLayoutFull(ctx, updatedLayout)
 	if err != nil {

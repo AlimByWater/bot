@@ -10,7 +10,7 @@ import (
 
 func (r *Repository) GetDefaultLayout(ctx context.Context) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
+    SELECT id, name, version, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE name = 'default_layout_1'
     LIMIT 1
@@ -19,6 +19,7 @@ func (r *Repository) GetDefaultLayout(ctx context.Context) (entity.UserLayout, e
 	err := r.db.QueryRowContext(ctx, query).Scan(
 		&layout.ID,
 		&layout.Name,
+		&layout.Version,
 		&layout.Creator,
 		&layout.StreamURL,
 		&layout.Background,
@@ -44,7 +45,7 @@ func (r *Repository) GetDefaultLayout(ctx context.Context) (entity.UserLayout, e
 
 func (r *Repository) LayoutByName(ctx context.Context, layoutName string) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
+    SELECT id, name, version, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE name = $1
     `
@@ -52,6 +53,7 @@ func (r *Repository) LayoutByName(ctx context.Context, layoutName string) (entit
 	err := r.db.QueryRowContext(ctx, query, layoutName).Scan(
 		&layout.ID,
 		&layout.Name,
+		&layout.Version,
 		&layout.Creator,
 		&layout.StreamURL,
 		&layout.Background,
@@ -85,7 +87,7 @@ func (r *Repository) LayoutByName(ctx context.Context, layoutName string) (entit
 // LayoutByUserID получает макет пользователя по его ID
 func (r *Repository) LayoutByUserID(ctx context.Context, userID int) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
+    SELECT id, name, version, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE creator_id = $1
     LIMIT 1
@@ -94,6 +96,7 @@ func (r *Repository) LayoutByUserID(ctx context.Context, userID int) (entity.Use
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
 		&layout.ID,
 		&layout.Name,
+		&layout.Version,
 		&layout.Creator,
 		&layout.StreamURL,
 		&layout.Background,
@@ -127,7 +130,7 @@ func (r *Repository) LayoutByUserID(ctx context.Context, userID int) (entity.Use
 // LayoutByID получает макет по его ID
 func (r *Repository) LayoutByID(ctx context.Context, layoutID int) (entity.UserLayout, error) {
 	query := `
-    SELECT id, name, creator_id, stream_url, background, created_at, updated_at
+    SELECT id, name, version, creator_id, stream_url, background, created_at, updated_at
     FROM elysium.user_layouts
     WHERE id = $1
     `
@@ -135,6 +138,7 @@ func (r *Repository) LayoutByID(ctx context.Context, layoutID int) (entity.UserL
 	err := r.db.QueryRowContext(ctx, query, layoutID).Scan(
 		&layout.ID,
 		&layout.Name,
+		&layout.Version,
 		&layout.Creator,
 		&layout.StreamURL,
 		&layout.Background,
@@ -250,10 +254,10 @@ func (r *Repository) UpdateLayoutFull(ctx context.Context, layout entity.UserLay
 	err := r.execTX(ctx, func(q *queries) error {
 		updateQuery := `
 			UPDATE elysium.user_layouts
-			SET name = $1, background = $2, stream_url = $3, updated_at = CURRENT_TIMESTAMP
-			WHERE id = $4
+			SET name = $1, background = $2, stream_url = $3, updated_at = CURRENT_TIMESTAMP, version = $4
+			WHERE id = $5
 			`
-		_, err := q.db.ExecContext(ctx, updateQuery, layout.Name, layout.Background, layout.StreamURL, layout.ID)
+		_, err := q.db.ExecContext(ctx, updateQuery, layout.Name, layout.Background, layout.StreamURL, layout.Version, layout.ID)
 		if err != nil {
 			return fmt.Errorf("update layout: %w", err)
 		}

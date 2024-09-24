@@ -116,3 +116,33 @@ func TestLayoutByUserID(t *testing.T) {
 		assert.Equal(t, entity.ErrLayoutNotFound, err)
 	})
 }
+
+func TestLayoutByID(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	t.Run("Layout elements equal", func(t *testing.T) {
+		layoutID := 1
+		foundLayout, err := elysiumRepo.LayoutByID(context.Background(), layoutID)
+		assert.NoError(t, err)
+		assert.Equal(t, layoutID, foundLayout.ID)
+
+		elements, err := elysiumRepo.ElementsByLayoutID(context.Background(), layoutID)
+		assert.NoError(t, err)
+		assert.Equal(t, len(foundLayout.Elements), len(elements))
+		for i := range foundLayout.Elements {
+			assert.Equal(t, foundLayout.Elements[i].ID, elements[i].ID)
+			assert.Equal(t, foundLayout.Elements[i].RootElement.ID, elements[i].RootElement.ID)
+			assert.Equal(t, foundLayout.Elements[i].Position.X, elements[i].Position.X)
+			assert.Equal(t, foundLayout.Elements[i].Position.Y, elements[i].Position.Y)
+			assert.Equal(t, foundLayout.Elements[i].Position.Z, elements[i].Position.Z)
+			assert.Equal(t, foundLayout.Elements[i].Position.Width, elements[i].Position.Width)
+			assert.Equal(t, foundLayout.Elements[i].Position.Height, elements[i].Position.Height)
+			assert.Equal(t, foundLayout.Elements[i].Properties, elements[i].Properties)
+			assert.Equal(t, foundLayout.Elements[i].IsPublic, elements[i].IsPublic)
+			assert.Equal(t, foundLayout.Elements[i].IsRemovable, elements[i].IsRemovable)
+		}
+
+		t.Log(len(elements))
+	})
+}
