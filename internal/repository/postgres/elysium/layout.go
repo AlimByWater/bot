@@ -178,6 +178,7 @@ func (r *Repository) ElementsByLayoutID(ctx context.Context, layoutID int) ([]en
 				FROM elysium.layout_elements el
 				JOIN elysium.root_elements re ON re.id = root_element_id
 				WHERE layout_id = $1
+				ORDER BY el.on_grid_id
 				`
 	elemRows, err := r.db.QueryContext(ctx, elementsQuery, layoutID)
 	if err != nil {
