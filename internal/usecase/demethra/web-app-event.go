@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent) {
-	m.logger.Debug(fmt.Sprintf("Received WebAppEvent: Type=%s, TelegramUserID=%d, SessionID=%s", event.EventType, event.TelegramID, event.SessionID))
+	//m.logger.Debug(fmt.Sprintf("Received WebAppEvent: Type=%s, TelegramUserID=%d, SessionID=%s", event.EventType, event.TelegramID, event.SessionID))
 	var err error
 	switch event.EventType {
 	case entity.EventTypeInitApp:
