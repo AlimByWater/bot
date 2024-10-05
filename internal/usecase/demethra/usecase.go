@@ -58,7 +58,7 @@ type repository interface {
 	GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error)
 
 	GetUserByID(ctx context.Context, userID int) (entity.User, error)
-
+	SaveUserSessionDuration(ctx context.Context, sessionDuration entity.UserSessionDuration) error
 	BatchAddSongToUserSongHistory(ctx context.Context, histories []entity.UserToSongHistory) error
 }
 type soundcloudDownloader interface {
