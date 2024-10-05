@@ -18,7 +18,7 @@ const ACCESS_TOKEN_TTL = 2 * 60 * time.Minute
 const REFRESH_TOKEN_TTL = 90 * 24 * time.Hour
 
 func (m *Module) CheckAccessTokenByUserID(ctx context.Context, token string, userID int) (bool, error) {
-	if token == "test-token" && userID == 5 {
+	if token == "test-token" && userID == 3 {
 		return true, nil
 	}
 	attributes := []slog.Attr{
