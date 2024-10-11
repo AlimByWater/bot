@@ -9,12 +9,19 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
 
 func (m *Module) NextSong(track entity.TrackInfo) {
 	track.SanitizeInfo()
+
+	_, err := url.Parse(track.TrackLink)
+	if err != nil {
+		m.logger.LogAttrs(context.TODO(), slog.LevelError, "parse track link", logger.AppendErrorToLogs(nil, err)...)
+		return
+	}
 
 	if track.TrackLink == m.currentTrack.TrackLink {
 		return
