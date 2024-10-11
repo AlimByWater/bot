@@ -17,7 +17,7 @@ import (
 func (m *Module) NextSong(track entity.TrackInfo) {
 	track.SanitizeInfo()
 
-	_, err := url.Parse(track.TrackLink)
+	_, err := url.ParseRequestURI(track.TrackLink)
 	if err != nil {
 		m.logger.LogAttrs(context.TODO(), slog.LevelError, "parse track link", logger.AppendErrorToLogs(nil, err)...)
 		return
@@ -55,6 +55,7 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 		m.logger.LogAttrs(ctx, slog.LevelError, "update current track", logger.AppendErrorToLogs(attributes, err)...)
 	}
 
+	// для icecast + butt
 	go m.UpdateSongMetadataFile(track)
 
 	// все еще может сложиться такая ситуация, что song не создался в базе
