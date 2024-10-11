@@ -14,14 +14,11 @@ import (
 )
 
 func (m *Module) NextSong(track entity.TrackInfo) {
-	track.TrackLink = strings.Split(track.TrackLink, "?")[0]
+	track.SanitizeInfo()
+
 	if track.TrackLink == m.currentTrack.TrackLink {
 		return
 	}
-
-	track.TrackTitle = strings.Replace(track.TrackTitle, "Current track: ", "", 1)
-	track.CoverLink = strings.Replace(track.CoverLink, "t50x50", "t500x500", 1)
-	track.CoverLink = strings.Replace(track.CoverLink, "t120x120", "t500x500", 1)
 
 	m.mu.Lock()
 	m.prevTrack = m.currentTrack
@@ -29,7 +26,6 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 	m.mu.Unlock()
 
 	ctx := context.TODO()
-
 	// если текущий трек не пустой, то добавляем его в историю прослушивания всем текущим слушателям
 	go m.addPrevSongToCurrentListenersHistory(ctx)
 

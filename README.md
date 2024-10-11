@@ -104,6 +104,203 @@ Demethra Test 7486051673:AAGXMsNZ3ia99ljU48IErrA5PH4ZV-VncFo
 })();
 ```
 
+Version 2
+
+```javascript
+// ==UserScript==
+// @name         Get Music Track Info 2
+// @namespace    http://tampermonkey.net/
+// @version      0.8
+// @description  Extracts track title and artist name from SoundCloud, Spotify, and YouTube Music every 10 seconds
+// @author       You
+// @match        *://soundcloud.com/*
+// @match        *://open.spotify.com/*
+// @match        *://music.youtube.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+   'use strict';
+
+   let spotifyAccessToken = '';
+   let spotifyTokenExpiration = 0;
+   const apiKey = '1234515151';
+
+   // Функция для извлечения информации о треке в зависимости от сайта
+   async function getTrackInfo() {
+      const url = window.location.href;
+      return await extractTrackInfo(url);
+   }
+
+   async function extractTrackInfo(url) {
+      if (url.includes('soundcloud.com')) {
+         const trackTitleElement = document.querySelector('.playbackSoundBadge__titleLink span');
+         const artistNameElement = document.querySelector('.playbackSoundBadge__lightLink');
+         const trackLinkElement = document.querySelector('.playbackSoundBadge__titleLink');
+         const durationElement = document.querySelector('.playbackTimeline__duration span[aria-hidden="true"]');
+         const artworkSpanElement = document.querySelector('.playbackSoundBadge__avatar span');
+
+         const trackTitle = trackTitleElement ? trackTitleElement.textContent : 'Unknown';
+         const artistName = artistNameElement ? artistNameElement.textContent : 'Unknown';
+         const trackLink = trackLinkElement ? trackLinkElement.href : 'Unknown';
+         const duration = durationElement ? durationElement.textContent.trim() : 'Unknown';
+
+         let artworkUrl = '';
+         if (artworkSpanElement) {
+            const backgroundImage = artworkSpanElement.style.backgroundImage;
+            artworkUrl = backgroundImage.slice(5, -2); // Убираем 'url(' и ')'
+         }
+
+         return { trackTitle, artistName, trackLink, duration, artworkUrl };
+      } else if (url.includes('open.spotify.com')) {
+         const trackTitleElement = document.querySelector('[data-testid="context-item-link"]');
+         const artistNameElement = document.querySelector('[data-testid="context-item-info-artist"]');
+         const durationElement = document.querySelector('[data-testid="playback-duration"]');
+
+         const trackTitle = trackTitleElement ? trackTitleElement.textContent : 'Unknown';
+         const artistName = artistNameElement ? artistNameElement.textContent : 'Unknown';
+         const duration = durationElement ? durationElement.textContent.trim() : 'Unknown';
+
+         const spotifyInfo = await searchSpotifyTrack(artistName, trackTitle);
+
+         return {
+            trackTitle,
+            artistName,
+            trackLink: spotifyInfo.trackLink,
+            duration,
+            artworkUrl: spotifyInfo.artworkUrl
+         };
+      } else if (url.includes('music.youtube.com')) {
+         const playerBar = document.querySelector('ytmusic-player-bar');
+
+         if (playerBar) {
+            const trackTitleElement = playerBar.querySelector('.title');
+            const artistNameElement = playerBar.querySelector('.byline > a');
+            const artworkElement = playerBar.querySelector('.image');
+            const durationElement = playerBar.querySelector('.time-info');
+            const trackLinkElement = document.querySelector('.ytp-title-link');
+
+            const trackTitle = trackTitleElement ? trackTitleElement.textContent.trim() : 'Unknown';
+            const artistName = artistNameElement ? artistNameElement.textContent.trim() : 'Unknown';
+            const artworkUrl = artworkElement ? artworkElement.src : '';
+            const duration = durationElement ? durationElement.textContent.trim().split(' / ').at(-1) : 'Unknown';
+
+            let trackLink = '';
+            if (trackLinkElement) {
+               const urlObj = new URL(trackLinkElement.href);
+               const vParam = urlObj.searchParams.get('v');
+               urlObj.search = '';
+               if (vParam) {
+                  urlObj.searchParams.set('v', vParam);
+               }
+               trackLink = urlObj.toString();
+            }
+
+            return { trackTitle, artistName, trackLink, duration, artworkUrl };
+         }
+      }
+
+      return null;
+   }
+
+   // Отправка данных на сервер
+   function sendTrackInfoToServer(trackInfo) {
+      fetch('https://elysiumfm.ru/api/tampermonkey/submit', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+         },
+         body: JSON.stringify(trackInfo),
+      });
+      
+       console.log(
+              trackInfo.trackTitle,
+              trackInfo.artistName,
+              trackInfo.trackLink,
+              trackInfo.duration,
+              trackInfo.artworkUrl
+      );
+      // Здесь вы можете добавить код для отправки данных на ваш сервер
+   }
+
+   const searchSpotifyTrack = async (artistName, trackName) => {
+      if (!spotifyAccessToken || Date.now() >= spotifyTokenExpiration) {
+         if (!extractSpotifyAccessToken()) {
+            console.error('Spotify access token not available');
+            return { trackLink: 'Spotify access token not available', artworkUrl: '' };
+         }
+      }
+
+      const query = encodeURIComponent(`artist:${artistName} track:${trackName}`);
+
+      try {
+         const response = await fetch(
+                 `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`,
+                 {
+                    headers: {
+                       Authorization: `Bearer ${spotifyAccessToken}`
+                    }
+                 }
+         );
+
+         if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+         }
+
+         const data = await response.json();
+
+         if (data.tracks.items.length > 0) {
+            const track = data.tracks.items[0];
+            return {
+               trackLink: track.external_urls.spotify,
+               artworkUrl: track.album.images[0]?.url || ''
+            };
+         } else {
+            return { trackLink: 'Трек не найден', artworkUrl: '' };
+         }
+      } catch (error) {
+         console.error('Ошибка при поиске трека:', error);
+         return { trackLink: 'Произошла ошибка при поиске трека', artworkUrl: '' };
+      }
+   };
+
+   // Функция для извлечения access token из Spotify
+   function extractSpotifyAccessToken() {
+      const sessionScript = document.getElementById('session');
+      if (sessionScript) {
+         try {
+            const sessionData = JSON.parse(sessionScript.textContent);
+            spotifyAccessToken = sessionData.accessToken;
+            spotifyTokenExpiration = sessionData.accessTokenExpirationTimestampMs;
+            return true;
+         } catch (error) {
+            console.error('Error parsing Spotify session data:', error);
+         }
+      }
+      console.error('Failed to extract Spotify access token');
+      return false;
+   }
+
+   // Извлечение данных и отправка на сервер каждые 10 секунд
+   setInterval(async function() {
+      if (window.location.href.includes('open.spotify.com')) {
+         extractSpotifyAccessToken();
+      }
+      const trackInfo = await getTrackInfo();
+      if (trackInfo) {
+         sendTrackInfoToServer(trackInfo);
+      }
+   }, 15000);
+
+   // Инициализация: попытка извлечь токен при загрузке скрипта на Spotify
+   if (window.location.href.includes('open.spotify.com')) {
+      extractSpotifyAccessToken();
+   }
+})();
+
+```
+
 ## Макет (Layout)
 
 Функциональность макета в этом проекте позволяет пользователям создавать и управлять настраиваемыми макетами. Вот обзор того, как это работает:
