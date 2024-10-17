@@ -75,9 +75,9 @@ func main() {
 
 	/************ USECASE *************/
 	arimaDJUC := arimadj.New(arimaDJCfg)
-	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, downloaderGrpc)
 	layoutUC := layout.New(redisCache, elysiumRepo)
 	usersUC := users.New(redisCache, elysiumRepo, layoutUC)
+	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, downloaderGrpc, usersUC)
 	authUC := auth.NewModule(authCfg, redisCache, elysiumRepo, usersUC)
 
 	/************ CONTROLLER *************/

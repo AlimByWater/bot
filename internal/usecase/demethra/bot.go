@@ -38,6 +38,7 @@ type Bot struct {
 	logger     *slog.Logger
 	cmdViews   map[string]CommandFunc
 	name       string
+	users      usersUseCase
 
 	chatIDForLogs         int64
 	mainChannelID         int64
@@ -53,12 +54,13 @@ type Bot struct {
 	DisableCommentSectionDelete bool
 }
 
-func newBot(ctx context.Context, repo repository, downloader downloader, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
+func newBot(ctx context.Context, repo repository, downloader downloader, users usersUseCase, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
 	b := &Bot{
 		name: name,
 		repo: repo,
 		//sc:                    sc,
 		downloader:            downloader,
+		users:                 users,
 		Api:                   api,
 		chatIDForLogs:         chatIDForLogs,
 		mainChannelID:         mainChannelID,
@@ -81,6 +83,7 @@ func (b *Bot) registerCommands() {
 	b.registerCommand("start", b.cmdStart())
 	b.registerCommand("download", b.cmdDownloadInline())
 	b.registerCommand("autodelete", b.cmdSwitchToggleForPostAutoDelete())
+	b.registerCommand("online", b.cmdCheckCurrentOnline())
 	//b.registerCommand("/download", b.cmdDownload())
 	//b.registerCommand("⁉️Инфа", b.cmdInfo())
 	//b.registerCommand("/calendar", b.cmdCalendar())

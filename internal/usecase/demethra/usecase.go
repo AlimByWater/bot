@@ -52,6 +52,7 @@ type repository interface {
 
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
+	GetUsersByTelegramID(ctx context.Context, telegramIDs []int64) ([]entity.User, error)
 
 	SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error
 	SaveWebAppEvents(ctx context.Context, events []entity.WebAppEvent) error
@@ -70,6 +71,11 @@ type downloader interface {
 	RemoveFile(ctx context.Context, fileName string) error
 }
 
+type usersUseCase interface {
+	GetOnlineUsersCount() int64
+	GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error)
+}
+
 type Module struct {
 	ctx  context.Context
 	Bot  *Bot
@@ -77,6 +83,7 @@ type Module struct {
 	repo repository
 	//soundcloud soundcloudDownloader
 	downloader downloader
+	users      usersUseCase
 	cache      cache
 	logger     *slog.Logger
 
@@ -90,13 +97,14 @@ type Module struct {
 }
 
 // New конструктор ...
-func New(cfg config, repo repository, cache cache, downloader downloader) *Module {
+func New(cfg config, repo repository, cache cache, downloader downloader, users usersUseCase) *Module {
 	return &Module{
 		cfg:   cfg,
 		repo:  repo,
 		cache: cache,
 		//soundcloud: sc,
 		downloader:       downloader,
+		users:            users,
 		mu:               sync.RWMutex{},
 		batchEventUpdate: make(chan entity.WebAppEvent, batchItemsCount),
 	}
@@ -125,7 +133,7 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 		}
 	}
 
-	m.Bot = newBot(ctx, m.repo, m.downloader, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
+	m.Bot = newBot(ctx, m.repo, m.downloader, m.users, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
 	go func() {
 		m.Bot.Run(ctx)
 	}()

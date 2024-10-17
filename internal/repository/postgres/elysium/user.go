@@ -6,6 +6,7 @@ import (
 	"elysium/internal/entity"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -189,4 +190,48 @@ func (r *Repository) DeleteUser(ctx context.Context, userID int) error {
 	}
 
 	return nil
+}
+
+func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int64) ([]entity.User, error) {
+	query := `
+		SELECT id, telegram_id, telegram_username, firstname, date_create
+		FROM elysium.users
+		WHERE telegram_id IN (%s)
+	`
+
+	ids := ""
+	args := make([]interface{}, len(telegramIDs))
+	placeholders := make([]string, len(telegramIDs))
+	for i, id := range telegramIDs {
+		args[i] = id
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		ids += placeholders[i] + ", "
+	}
+	ids = strings.TrimSuffix(ids, ", ")
+
+	query = fmt.Sprintf(query, ids)
+
+	//sql: converting argument $1 type: unsupported type []int64, a slice of int66
+	var users []entity.User
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users: %w", err)
+	}
+
+	for rows.Next() {
+		var user entity.User
+		err := rows.Scan(
+			&user.ID,
+			&user.TelegramID,
+			&user.TelegramUsername,
+			&user.Firstname,
+			&user.DateCreate,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }

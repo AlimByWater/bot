@@ -64,3 +64,15 @@ func TestCreateUserFailsOnMissingRequiredFields(t *testing.T) {
 	_, err := elysiumRepo.CreateOrUpdateUser(context.Background(), user)
 	require.Error(t, err)
 }
+
+func TestGetUserByTelegramID(t *testing.T) {
+	teardown := setupTest(t)
+	defer teardown(t)
+
+	ids := []int64{86700706, 251636949}
+	users, err := elysiumRepo.GetUsersByTelegramID(context.Background(), ids)
+	require.NoError(t, err)
+	require.Len(t, users, 2)
+	t.Log(users)
+
+}

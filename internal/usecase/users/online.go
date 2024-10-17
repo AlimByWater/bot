@@ -1,12 +1,18 @@
 package users
 
 import (
+	"context"
+	"elysium/internal/entity"
 	"log/slog"
 	"time"
 )
 
 func (m *Module) GetOnlineUsersCount() int64 {
 	return m.onlineUsersCount.Load()
+}
+
+func (m *Module) GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error) {
+	return m.cache.GetAllCurrentListeners(ctx)
 }
 
 func (m *Module) updateOnlineUsersCountLoop() {
