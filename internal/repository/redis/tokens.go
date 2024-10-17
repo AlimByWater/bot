@@ -76,7 +76,7 @@ func (m *Module) AllTokens(ctx context.Context) ([]entity.Token, error) {
 	for {
 		var keys []string
 		var err error
-		keys, cursor, err = m.client.Scan(ctx, cursor, tokenKeyPrefix+"*", 0).Result()
+		keys, cursor, err = m.client.Scan(ctx, cursor, tokenKeyPrefix+":*", 0).Result()
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan keys: %w", err)
 		}

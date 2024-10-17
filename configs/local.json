@@ -42,7 +42,7 @@
   },
   "Auth": {
     "Secret": "test-secret-elysium",
-    "TelegramBotToken": "7486051673:AAEg2bzMqec1NkFK8tHycLn8gvGxK6xQ6ww",
+    "TelegramBotToken": "7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8",
     "ApiKey": "1234515151"
   },
   "Downloader": {
