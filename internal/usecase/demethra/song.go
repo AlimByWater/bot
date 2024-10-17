@@ -33,7 +33,7 @@ func (m *Module) SendSongByTrackLink(ctx context.Context, userID int, trackLink 
 		return fmt.Errorf("send song to chat: %w", err)
 	}
 
-	err = m.repo.LogSongDownload(ctx, user.ID, song.ID, entity.SongDownloadSourceWebApp)
+	err = m.repo.LogSongDownload(ctx, song.ID, user.ID, entity.SongDownloadSourceWebApp)
 	if err != nil {
 		m.logger.Error("Failed to log song download", slog.String("error", err.Error()), slog.Int("user_id", user.ID), slog.Int("song_id", song.ID), slog.String("method", "SendSongByTrackLink"))
 	}
