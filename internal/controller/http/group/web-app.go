@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strings"
 )
 
 type tokenChecker interface {
@@ -36,6 +37,11 @@ func (g WebApp) Handlers() []func() (method string, path string, handlerFunc gin
 // Auth миддлвейр авторизаций
 func (g WebApp) Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// if endpoint is /ws - skip auth
+		if strings.Contains(c.Request.URL.Path, "/ws") {
+			c.Next()
+			return
+		}
 		token, userID, err := getTokenAndUserID(c)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})

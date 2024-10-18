@@ -163,25 +163,29 @@ func (b *Bot) cmdSwitchToggleForPostAutoDelete() CommandFunc {
 func (b *Bot) cmdCheckCurrentOnline() CommandFunc {
 	return func(ctx context.Context, update tgbotapi.Update) error {
 		chatId := update.FromChat().ChatConfig().ChatID
+		text := "Текущий онлайн пользователей: 0\n"
 
 		listeners, err := b.users.GetAllCurrentListeners(ctx)
 		if err != nil {
 			return fmt.Errorf("get all current listeners: %w", err)
 		}
 
-		ids := make([]int64, len(listeners))
-		for _, listener := range listeners {
-			ids = append(ids, listener.TelegramID)
-		}
+		if len(listeners) != 0 {
 
-		users, err := b.repo.GetUsersByTelegramID(ctx, ids)
-		if err != nil {
-			return fmt.Errorf("get users by telegram ids: %w", err)
-		}
+			ids := make([]int64, len(listeners))
+			for _, listener := range listeners {
+				ids = append(ids, listener.TelegramID)
+			}
 
-		text := fmt.Sprintf("Текущий онлайн пользователей: %d\n", b.users.GetOnlineUsersCount())
-		for i, user := range users {
-			text += fmt.Sprintf("%d %d @%s\n", i+1, user.TelegramID, user.TelegramUsername)
+			users, err := b.repo.GetUsersByTelegramID(ctx, ids)
+			if err != nil {
+				return fmt.Errorf("get users by telegram ids: %w", err)
+			}
+
+			text = fmt.Sprintf("Текущий онлайн пользователей: %d\n", b.users.GetOnlineUsersCount())
+			for i, user := range users {
+				text += fmt.Sprintf("%d %d @%s\n", i+1, user.TelegramID, user.TelegramUsername)
+			}
 		}
 
 		msg := tgbotapi.NewMessage(chatId, text)
