@@ -24,7 +24,7 @@
     "User": "elysium",
     "Password": "OJocasd923sa0d3",
     "Name": "elysium",
-    "Host": "91.206.15.29",
+    "Host": "80.93.187.209",
     "Port": 4568,
     "Driver": "postgres",
     "SSLMode": "disable",
@@ -35,7 +35,7 @@
     "DownloadPath": "/Users/admin/go/src/arimadj-helper/"
   },
   "Redis": {
-    "Host": "91.206.15.29",
+    "Host": "80.93.187.209",
     "Port": 6379,
     "Password": "OJocasd923sa0d4"
   },

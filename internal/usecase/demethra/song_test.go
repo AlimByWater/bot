@@ -14,8 +14,6 @@ import (
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
 	"elysium/internal/usecase/demethra"
-	"fmt"
-	"github.com/essentialkaos/go-icecast"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"net/http"
@@ -112,27 +110,6 @@ func TestSendSongByTrackLink(t *testing.T) {
 		err := module.SendSongByTrackLink(context.Background(), userID, link)
 		require.Error(t, err)
 	})
-}
-
-func TestIceacst(t *testing.T) {
-	api, err := icecast.NewAPI("http://91.206.15.29:8000", "alim", "hackme8")
-	require.NoError(t, err)
-
-	stats, err := api.GetStats()
-	require.NoError(t, err)
-	fmt.Println(stats)
-	//ticke := time.NewTicker(time.Second * 1)
-	//for range ticke.C {
-	//	err = api.UpdateMeta("/stream", icecast.TrackMeta{
-	//		Title:   "test",
-	//		Artist:  "Arima DJ",
-	//		URL:     "https://soundcloud.com/uiceheidd/tell-me-you-love-me",
-	//		Artwork: "https://i1.sndcdn.com/artworks-oQRvHcKyeO921Eve-FeUQMA-t50x50.jpg",
-	//	})
-	//
-	//	require.NoError(t, err)
-	//}
-
 }
 
 func TestUpdateSongMetadataFile(t *testing.T) {
