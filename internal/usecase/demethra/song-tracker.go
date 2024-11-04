@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -54,9 +53,6 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "update current track", logger.AppendErrorToLogs(attributes, err)...)
 	}
-
-	// для icecast + butt
-	go m.UpdateSongMetadataFile(track)
 
 	// все еще может сложиться такая ситуация, что song не создался в базе
 	// тогда не имеет смысла создавать запись о проигранном треке в базе данных
@@ -118,23 +114,6 @@ func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context) {
 		m.logger.LogAttrs(ctx, slog.LevelError, "add song to listener history", logger.AppendErrorToLogs(attributes, err)...)
 	}
 
-}
-
-func (m *Module) UpdateSongMetadataFile(track entity.TrackInfo) {
-	//open file and create it if it doesn't exist
-	file, err := os.OpenFile(m.cfg.GetSongMetadataFilePath(), os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		m.logger.LogAttrs(context.TODO(), slog.LevelError, "open song metadata file", logger.AppendErrorToLogs(nil, err)...)
-		return
-	}
-
-	// write or rewrite first line
-
-	_, err = file.WriteAt([]byte(fmt.Sprintf("TrackTitle1::%s ArtistName2::%s TrackLink3::%s CoverLink4::%s", track.TrackTitle, track.ArtistName, track.TrackLink, track.CoverLink)), 0)
-	if err != nil {
-		m.logger.LogAttrs(context.TODO(), slog.LevelError, "write to song metadata file", logger.AppendErrorToLogs(nil, err)...)
-		return
-	}
 }
 
 func (m *Module) downloadAndCreateNewSong(info entity.TrackInfo) (entity.Song, error) {

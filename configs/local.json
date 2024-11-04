@@ -13,7 +13,6 @@
     "TracksDbChannel": -1002243776940,
     "CurrentTrackMessageID": 18245,
     "ListenerIdleTimeoutInMinutes": 3,
-    "SongMetadataFilePath": "/app/song-metadata.txt",
     "TelegramBotApiServer": "http://telegram-bot-api:8081/bot%s/%s"
   },
   "ArimaDJ": {
