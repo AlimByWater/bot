@@ -105,6 +105,9 @@ func main() {
 		api.NewGroup(authCfg,
 			tampermonkey_methods.NewSubmitMethod(demethraUC),
 		),
+		//api.NewUserGroup(authUC,
+		//	user_method.NewGetUser(usersUC),
+		//),
 	)
 
 	activeListenerCheckJob := scheduler_job.NewListenerCheckJob(demethraUC)

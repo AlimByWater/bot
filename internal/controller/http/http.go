@@ -64,8 +64,8 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 		m.certFilePath = `C:\ssl\cert.pem`
 		m.keyFilePath = `C:\ssl\key.pem`
 	case "linux":
-		m.certFilePath = "/app/ssl/cert.pem"
-		m.keyFilePath = "/app/ssl/key.pem"
+		m.certFilePath = "/app/ssl/elysium.pem"
+		m.keyFilePath = "/app/ssl/elysium_key.pem"
 	case "darwin":
 		m.certFilePath = "/Users/admin/ssl/cert.pem"
 		m.keyFilePath = "/Users/admin/ssl/key.pem"

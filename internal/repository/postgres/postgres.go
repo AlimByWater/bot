@@ -25,7 +25,6 @@ type config interface {
 // table - интерфейс таблицы БД для добавления в репозиторий
 type table interface {
 	AddDb(db *sqlx.DB) // AddDb - добавляет к таблице подключение к БД
-	//QueryInit() (bool, string) // QueryInit - возвращает строку для создания таблицы в БД
 }
 
 // Module - структура модуля репозитория
@@ -69,12 +68,7 @@ func (m *Module) Init(ctx context.Context, _ *slog.Logger) (err error) {
 
 	for i := range m.tables {
 		m.tables[i].AddDb(m.db)
-		//if query := m.tables[i].QueryInit(); query != "" {
-		//	_, err = m.db.Exec(ctx, query)
-		//	if err != nil {
-		//		return
-		//	}
-		//}
+
 	}
 	return
 }
@@ -85,8 +79,4 @@ func (m *Module) Close() (err error) {
 		m.db.Close()
 	}
 	return
-}
-
-func (m *Module) GetTrack(ctx context.Context) {
-
 }

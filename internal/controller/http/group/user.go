@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-func NewUserGroup(tc tokenChecker, h ...func() (method string, path string, handlerFunc gin.HandlerFunc)) Layout {
-	return Layout{
+func NewUserGroup(tc tokenChecker, h ...func() (method string, path string, handlerFunc gin.HandlerFunc)) User {
+	return User{
 		tokenChecker: tc,
 		handlers:     h,
 	}
