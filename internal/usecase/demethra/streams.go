@@ -13,9 +13,9 @@ func (m *Module) StreamOnlineUpdater() {
 	for {
 		onlineUsersCount := m.users.GetOnlineUsersCount()
 		for streamSlug, stream := range m.streams {
-			stream.Mu.RLock()
+			stream.Lock()
 			stream.OnlineUsersCount = onlineUsersCount[streamSlug]
-			stream.Mu.RUnlock()
+			stream.Unlock()
 		}
 
 		time.Sleep(time.Second * 10)
@@ -29,17 +29,17 @@ func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 		return
 	}
 
-	stream.Mu.Lock()
-	defer stream.Mu.Unlock()
+	stream.Lock()
+	defer stream.Unlock()
 	defer func() {
-		stream.LastUpdated = time.Now()
+		stream.SetLastUpdated(time.Now())
 	}()
 
 	if track.TrackLink == stream.CurrentTrack.TrackLink {
 		return
 	}
 
-	stream.PrevTrack = stream.CurrentTrack
+	stream.SetPrevTrack(stream.CurrentTrack)
 	stream.CurrentTrack = track
 
 	ctx := context.Background()
@@ -77,7 +77,7 @@ func (m *Module) updateCurrentTrackMessageForMainStream(ctx context.Context, str
 	if stream.Slug != "main" {
 		return
 	}
-	msg, err := m.Bot.updateCurrentTrackMessage(ctx, song.ID, stream.CurrentTrack, stream.PrevTrack, song.CoverTelegramFileID, attributes)
+	msg, err := m.Bot.updateCurrentTrackMessage(ctx, song.ID, stream.CurrentTrack, stream.GetPrevTrack(), song.CoverTelegramFileID, attributes)
 	if err != nil {
 		m.logger.LogAttrs(ctx, slog.LevelError, "update current track", logger.AppendErrorToLogs(attributes, err)...)
 	}

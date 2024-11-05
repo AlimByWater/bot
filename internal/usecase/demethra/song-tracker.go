@@ -30,17 +30,17 @@ func (m *Module) songPlayed(ctx context.Context, stream *entity.Stream, attribut
 		return fmt.Errorf("song played: %w", err)
 	}
 
-	stream.LastPlayed = songPlayed
+	stream.SetLastPlayed(songPlayed)
 	return nil
 }
 
 func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context, stream *entity.Stream) {
-	if stream.LastPlayed.ID == 0 {
+	if stream.GetLastPlayed().ID == 0 {
 		return
 	}
 
 	attributes := []slog.Attr{
-		slog.Int("song_id", stream.LastPlayed.SongID),
+		slog.Int("song_id", stream.GetLastPlayed().SongID),
 		slog.String("METHOD", "add prev song to current listeners history"),
 		slog.String("stream", stream.Slug),
 	}
@@ -58,9 +58,9 @@ func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context, strea
 		}
 		history := entity.UserToSongHistory{
 			TelegramID: listener.TelegramID,
-			SongID:     stream.LastPlayed.SongID,
-			SongPlayID: stream.LastPlayed.ID,
-			Timestamp:  stream.LastPlayed.PlayTime,
+			SongID:     stream.GetLastPlayed().SongID,
+			SongPlayID: stream.GetLastPlayed().ID,
+			Timestamp:  stream.GetLastPlayed().PlayTime,
 			StreamSlug: stream.Slug,
 		}
 
