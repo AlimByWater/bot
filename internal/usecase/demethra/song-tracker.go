@@ -24,7 +24,7 @@ func (m *Module) NextSong(stream string, track entity.TrackInfo) {
 	m.UpdateStreamTrack(stream, track)
 }
 
-func (m *Module) songPlayed(ctx context.Context, stream *Stream, attributes []slog.Attr, songID int) error {
+func (m *Module) songPlayed(ctx context.Context, stream *entity.Stream, attributes []slog.Attr, songID int) error {
 	songPlayed, err := m.repo.SongPlayed(ctx, stream.Slug, songID)
 	if err != nil {
 		return fmt.Errorf("song played: %w", err)
@@ -34,7 +34,7 @@ func (m *Module) songPlayed(ctx context.Context, stream *Stream, attributes []sl
 	return nil
 }
 
-func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context, stream *Stream) {
+func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context, stream *entity.Stream) {
 	if stream.LastPlayed.ID == 0 {
 		return
 	}
