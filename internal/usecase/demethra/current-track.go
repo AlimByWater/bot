@@ -8,8 +8,8 @@ func (m *Module) CurrentTrackForStream(slug string) entity.TrackInfo {
 		return entity.TrackInfo{}
 	}
 
-	stream.Mu.RLock()
-	defer stream.Mu.RUnlock()
+	stream.RLock()
+	defer stream.RUnlock()
 
 	return stream.CurrentTrack
 }
