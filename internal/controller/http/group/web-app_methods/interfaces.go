@@ -16,5 +16,5 @@ type usersUC interface {
 }
 
 type songTrackerUC interface {
-	CurrentTrackForStream(slug string) entity.TrackInfo
+	GetStreamsMetaInfo() entity.StreamsMetaInfo
 }

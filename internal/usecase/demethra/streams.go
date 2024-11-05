@@ -9,6 +9,19 @@ import (
 	"time"
 )
 
+func (m *Module) StreamOnlineUpdater() {
+	for {
+		onlineUsersCount := m.users.GetOnlineUsersCount()
+		for streamSlug, stream := range m.streams {
+			stream.Mu.RLock()
+			stream.OnlineUsersCount = onlineUsersCount[streamSlug]
+			stream.Mu.RUnlock()
+		}
+
+		time.Sleep(time.Second * 10)
+	}
+}
+
 func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 	stream, ok := m.streams[slug]
 	if !ok {
@@ -16,8 +29,8 @@ func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 		return
 	}
 
-	stream.mu.Lock()
-	defer stream.mu.Unlock()
+	stream.Mu.Lock()
+	defer stream.Mu.Unlock()
 	defer func() {
 		stream.LastUpdated = time.Now()
 	}()
@@ -60,7 +73,7 @@ func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 
 }
 
-func (m *Module) updateCurrentTrackMessageForMainStream(ctx context.Context, stream *Stream, song entity.Song, attributes []slog.Attr) {
+func (m *Module) updateCurrentTrackMessageForMainStream(ctx context.Context, stream *entity.Stream, song entity.Song, attributes []slog.Attr) {
 	if stream.Slug != "main" {
 		return
 	}
@@ -78,5 +91,13 @@ func (m *Module) updateCurrentTrackMessageForMainStream(ctx context.Context, str
 				m.logger.LogAttrs(ctx, slog.LevelError, "set cover telegram file id", logger.AppendErrorToLogs(attributes, err)...)
 			}
 		}
+	}
+}
+
+func (m *Module) GetStreamsMetaInfo() entity.StreamsMetaInfo {
+	return entity.StreamsMetaInfo{
+		OnlineUsersCount: m.streams["main"].OnlineUsersCount,
+		CurrentTrack:     m.streams["main"].CurrentTrack,
+		Streams:          m.streams,
 	}
 }

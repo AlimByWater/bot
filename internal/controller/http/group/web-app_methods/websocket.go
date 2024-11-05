@@ -1,7 +1,6 @@
 package web_app_methods
 
 import (
-	"elysium/internal/entity"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -37,25 +36,9 @@ func (ws webSocket) ws(c *gin.Context) {
 	}
 
 	for {
-		streams := make(map[string]entity.Stream)
+		streamsMetaInfo := ws.songs.GetStreamsMetaInfo()
 
-		onlineUsersCount := ws.users.GetOnlineUsersCount()
-		for streamSlug, count := range onlineUsersCount {
-			streamTracks := ws.songs.CurrentTrackForStream(streamSlug)
-			streams[streamSlug] = entity.Stream{
-				Slug:             streamSlug,
-				CurrentTrack:     streamTracks,
-				OnlineUsersCount: count,
-			}
-		}
-
-		info := entity.WebsocketInfo{
-			OnlineUsersCount: onlineUsersCount["main"],
-			CurrentTrack:     ws.songs.CurrentTrackForStream("main"),
-			Streams:          streams,
-		}
-
-		err = conn.WriteJSON(info)
+		err = conn.WriteJSON(streamsMetaInfo)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			break

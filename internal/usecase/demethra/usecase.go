@@ -74,17 +74,6 @@ type usersUseCase interface {
 	GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error)
 }
 
-type Stream struct {
-	Slug         string
-	PrevTrack    entity.TrackInfo
-	CurrentTrack entity.TrackInfo
-
-	LastPlayed  entity.SongPlay
-	LastUpdated time.Time
-
-	mu sync.RWMutex
-}
-
 type Module struct {
 	ctx  context.Context
 	Bot  *Bot
@@ -104,7 +93,8 @@ type Module struct {
 
 	batchEventUpdate chan entity.WebAppEvent
 
-	streams map[string]*Stream
+	streams     map[string]*entity.Stream
+	streamsList []string
 }
 
 // New конструктор ...
@@ -117,17 +107,18 @@ func New(cfg config, repo repository, cache cache, downloader downloader, users 
 		downloader:       downloader,
 		users:            users,
 		mu:               sync.RWMutex{},
-		streams:          make(map[string]*Stream),
+		streams:          make(map[string]*entity.Stream),
 		batchEventUpdate: make(chan entity.WebAppEvent, batchItemsCount),
 	}
 }
 
 func (m *Module) AddStream(slug string) {
-	s := &Stream{
+	s := &entity.Stream{
 		Slug: slug,
 	}
 
 	m.streams[slug] = s
+	m.streamsList = append(m.streamsList, slug)
 }
 
 // Init инициализатор ...
@@ -154,15 +145,17 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	m.Bot = newBot(ctx, m.repo, m.downloader, m.users, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
-	go func() {
-		m.Bot.Run(ctx)
-	}()
+	go m.Bot.Run(ctx)
 
 	if len(m.streams) == 0 {
-		m.streams["main"] = &Stream{
+		m.streams["main"] = &entity.Stream{
 			Slug: "main",
 		}
+
+		m.streamsList = append(m.streamsList, "main")
 	}
+
+	go m.StreamOnlineUpdater()
 
 	return nil
 }
