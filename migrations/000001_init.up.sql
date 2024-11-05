@@ -74,6 +74,17 @@ CREATE TABLE IF NOT EXISTS elysium.songs_downloads (
                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS elysium.streams (
+                       slug VARCHAR(255) NOT NULL,
+                       link VARCHAR(255) NOT NULL,
+                       logo_link VARCHAR(255) NOT NULL,
+                       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                       enabled BOOLEAN DEFAULT TRUE,
+                       PRIMARY KEY (slug)
+);
+
+
 -- Создание индексов для быстрого поиска и уникальности
 CREATE INDEX IF NOT EXISTS idx_users_username ON elysium.users(telegram_username);
 CREATE INDEX IF NOT EXISTS idx_users_username ON elysium.users(telegram_id);

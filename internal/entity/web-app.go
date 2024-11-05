@@ -18,6 +18,8 @@ type Stream struct {
 	Slug             string    `json:"slug"`
 	CurrentTrack     TrackInfo `json:"current_track"`
 	OnlineUsersCount int64     `json:"online_users_count"`
+	Link             string    `json:"link"`
+	LogoLink         string    `json:"logo_link"`
 	prevTrack        TrackInfo
 
 	lastPlayed  SongPlay

@@ -9,6 +9,20 @@ import (
 	"time"
 )
 
+func (m *Module) initStreams() error {
+	streams, err := m.repo.AvailableStreams(m.ctx)
+	if err != nil {
+		return fmt.Errorf("get available streams: %w", err)
+	}
+	for _, stream := range streams {
+		m.streams[stream.Slug] = stream
+		m.streamsList = append(m.streamsList, stream.Slug)
+	}
+
+	go m.StreamOnlineUpdater()
+	return nil
+}
+
 func (m *Module) StreamOnlineUpdater() {
 	for {
 		onlineUsersCount := m.users.GetOnlineUsersCount()

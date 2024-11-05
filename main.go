@@ -79,8 +79,6 @@ func main() {
 	usersUC := users.New(redisCache, elysiumRepo, layoutUC)
 	authUC := auth.NewModule(authCfg, redisCache, elysiumRepo, usersUC)
 	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, downloaderGrpc, usersUC)
-	demethraUC.AddStream("main")
-	demethraUC.AddStream("fakeboys")
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,

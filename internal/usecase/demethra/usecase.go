@@ -5,7 +5,6 @@ import (
 	"elysium/internal/entity"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -59,6 +58,8 @@ type repository interface {
 	GetUserByID(ctx context.Context, userID int) (entity.User, error)
 	SaveUserSessionDuration(ctx context.Context, sessionDuration entity.UserSessionDuration) error
 	BatchAddSongToUserSongHistory(ctx context.Context, histories []entity.UserToSongHistory) error
+
+	AvailableStreams(ctx context.Context) ([]*entity.Stream, error)
 }
 type soundcloudDownloader interface {
 	DownloadTrackByURL(ctx context.Context, trackUrl string, info entity.TrackInfo) (string, error)
@@ -75,22 +76,14 @@ type usersUseCase interface {
 }
 
 type Module struct {
-	ctx  context.Context
-	Bot  *Bot
-	cfg  config
-	repo repository
-	//soundcloud soundcloudDownloader
-	downloader downloader
-	users      usersUseCase
-	cache      cache
-	logger     *slog.Logger
-
-	//prevTrack    entity.TrackInfo // Предыдущий трек
-	//currentTrack entity.TrackInfo // Текущий трек
-
-	mu sync.RWMutex
-	//lastPlayed entity.SongPlay // Последний проигранный трек
-
+	ctx              context.Context
+	Bot              *Bot
+	cfg              config
+	repo             repository
+	downloader       downloader
+	users            usersUseCase
+	cache            cache
+	logger           *slog.Logger
 	batchEventUpdate chan entity.WebAppEvent
 
 	streams     map[string]*entity.Stream
@@ -106,19 +99,9 @@ func New(cfg config, repo repository, cache cache, downloader downloader, users 
 		//soundcloud: sc,
 		downloader:       downloader,
 		users:            users,
-		mu:               sync.RWMutex{},
 		streams:          make(map[string]*entity.Stream),
 		batchEventUpdate: make(chan entity.WebAppEvent, batchItemsCount),
 	}
-}
-
-func (m *Module) AddStream(slug string) {
-	s := &entity.Stream{
-		Slug: slug,
-	}
-
-	m.streams[slug] = s
-	m.streamsList = append(m.streamsList, slug)
 }
 
 // Init инициализатор ...
@@ -147,15 +130,10 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	m.Bot = newBot(ctx, m.repo, m.downloader, m.users, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
 	go m.Bot.Run(ctx)
 
-	if len(m.streams) == 0 {
-		m.streams["main"] = &entity.Stream{
-			Slug: "main",
-		}
-
-		m.streamsList = append(m.streamsList, "main")
+	err = m.initStreams()
+	if err != nil {
+		return fmt.Errorf("init streams: %w", err)
 	}
-
-	go m.StreamOnlineUpdater()
 
 	return nil
 }
