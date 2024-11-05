@@ -25,7 +25,6 @@ type config interface {
 	GetElysiumFmCommentID() int64
 	GetTracksDbChannel() int64
 	GetCurrentTrackMessageID() int
-	GetSongMetadataFilePath() string
 	GetTelegramBotApiServer() string
 	Validate() error
 }
@@ -41,8 +40,7 @@ type repository interface {
 	SongByUrl(ctx context.Context, url string) (entity.Song, error)
 	SongByID(ctx context.Context, id int) (entity.Song, error)
 	CreateSong(ctx context.Context, song entity.Song) (entity.Song, error)
-	CreateSongAndAddToPlayed(ctx context.Context, song entity.Song) (entity.Song, error)
-	SongPlayed(ctx context.Context, songID int) (entity.SongPlay, error)
+	SongPlayed(ctx context.Context, streamSlug string, songID int) (entity.SongPlay, error)
 	RemoveSong(ctx context.Context, songID int) error
 	SetCoverTelegramFileIDForSong(ctx context.Context, songID int, fileID string) error
 	GetPlayedCountByID(ctx context.Context, songID int) (int, error)
@@ -72,8 +70,19 @@ type downloader interface {
 }
 
 type usersUseCase interface {
-	GetOnlineUsersCount() int64
+	GetOnlineUsersCount() map[string]int64
 	GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error)
+}
+
+type Stream struct {
+	Slug         string
+	PrevTrack    entity.TrackInfo
+	CurrentTrack entity.TrackInfo
+
+	LastPlayed  entity.SongPlay
+	LastUpdated time.Time
+
+	mu sync.RWMutex
 }
 
 type Module struct {
@@ -87,13 +96,15 @@ type Module struct {
 	cache      cache
 	logger     *slog.Logger
 
-	prevTrack    entity.TrackInfo // Предыдущий трек
-	currentTrack entity.TrackInfo // Текущий трек
+	//prevTrack    entity.TrackInfo // Предыдущий трек
+	//currentTrack entity.TrackInfo // Текущий трек
 
-	mu         sync.RWMutex
-	lastPlayed entity.SongPlay // Последний проигранный трек
+	mu sync.RWMutex
+	//lastPlayed entity.SongPlay // Последний проигранный трек
 
 	batchEventUpdate chan entity.WebAppEvent
+
+	streams map[string]*Stream
 }
 
 // New конструктор ...
@@ -106,8 +117,17 @@ func New(cfg config, repo repository, cache cache, downloader downloader, users 
 		downloader:       downloader,
 		users:            users,
 		mu:               sync.RWMutex{},
+		streams:          make(map[string]*Stream),
 		batchEventUpdate: make(chan entity.WebAppEvent, batchItemsCount),
 	}
+}
+
+func (m *Module) AddStream(slug string) {
+	s := &Stream{
+		Slug: slug,
+	}
+
+	m.streams[slug] = s
 }
 
 // Init инициализатор ...
@@ -137,6 +157,12 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	go func() {
 		m.Bot.Run(ctx)
 	}()
+
+	if len(m.streams) == 0 {
+		m.streams["main"] = &Stream{
+			Slug: "main",
+		}
+	}
 
 	return nil
 }

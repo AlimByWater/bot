@@ -20,7 +20,7 @@ const (
 // SaveOrUpdateListener сохраняет или обновляет listener
 // если telegramID не указан, возвращает ErrTelegramIDRequired
 // если initTimestamp не указан, устанавливает текущее время, если lastActivity не указан, устанавливает текущее время
-// таким образом можно использовать эту функцию для обновления времени последней активности
+// таким образом можно использовать эту функцию для обновления времени последней активности и стрима
 func (m *Module) SaveOrUpdateListener(ctx context.Context, c entity.ListenerCache) error {
 	if c.TelegramID == 0 {
 		return ErrTelegramIDRequired
@@ -30,7 +30,7 @@ func (m *Module) SaveOrUpdateListener(ctx context.Context, c entity.ListenerCach
 	// если нет, то создаем новый
 	// если есть, то обновляем last_activity
 	txf := func(tx *redis.Tx) error {
-		_, err := tx.HGet(ctx, fmt.Sprintf("listener:%d", c.TelegramID), "last_activity").Result()
+		streamSlug, err := tx.HGet(ctx, fmt.Sprintf("listener:%d", c.TelegramID), "stream_slug").Result()
 		if err != nil && err != redis.Nil {
 			return fmt.Errorf("failed to get listener: %w", err)
 		}
@@ -44,6 +44,10 @@ func (m *Module) SaveOrUpdateListener(ctx context.Context, c entity.ListenerCach
 
 				if c.Payload.LastActivity == 0 {
 					c.Payload.LastActivity = time.Now().Unix()
+				}
+
+				if c.Payload.StreamSlug == "" {
+					c.Payload.StreamSlug = "main"
 				}
 
 				_, err := pipe.HSet(ctx, fmt.Sprintf("listener:%d", c.TelegramID), c.Payload).Result()
@@ -61,7 +65,11 @@ func (m *Module) SaveOrUpdateListener(ctx context.Context, c entity.ListenerCach
 				c.Payload.LastActivity = time.Now().Unix()
 			}
 
-			pipe.HSet(ctx, fmt.Sprintf("listener:%d", c.TelegramID), "last_activity", c.Payload.LastActivity)
+			if c.Payload.StreamSlug == "" {
+				c.Payload.StreamSlug = streamSlug
+			}
+
+			pipe.HSet(ctx, fmt.Sprintf("listener:%d", c.TelegramID), "last_activity", c.Payload.LastActivity, "stream_slug", c.Payload.StreamSlug)
 			return nil
 		})
 		return err
@@ -117,25 +125,34 @@ func (m *Module) GetListenerLastActivityByTelegramID(ctx context.Context, telegr
 	return lastActivity, nil
 }
 
-func (m *Module) GetListenersCount(ctx context.Context) (int64, error) {
-	count := 0
+func (m *Module) GetListenersCount(ctx context.Context) (map[string]int64, error) {
+	//count := 0
+	streamToCount := make(map[string]int64)
 	var cursor uint64
 	for {
 		var keys []string
 		var err error
 		keys, cursor, err = m.client.Scan(ctx, cursor, "listener:*", 0).Result()
 		if err != nil {
-			return 0, fmt.Errorf("failed to scan keys: %w", err)
+			return nil, fmt.Errorf("failed to scan keys: %w", err)
 		}
 
-		count += len(keys)
+		//count += len(keys)
+		for _, key := range keys {
+			streamSlug, err := m.client.HGet(ctx, key, "stream_slug").Result()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get stream slug: %w", err)
+			}
+
+			streamToCount[streamSlug] += 1
+		}
 
 		if cursor == 0 { // no more keys
 			break
 		}
 	}
 
-	return int64(count), nil
+	return streamToCount, nil
 }
 
 func (m *Module) RemoveListenerTelegramID(ctx context.Context, telegramID int64) error {

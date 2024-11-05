@@ -19,8 +19,9 @@ type ListenerCache struct {
 
 // easyjson:json
 type ListenerCachePayload struct {
-	InitTimestamp int64 `redis:"init_timestamp"`
-	LastActivity  int64 `redis:"last_activity"`
+	InitTimestamp int64  `redis:"init_timestamp"`
+	LastActivity  int64  `redis:"last_activity"`
+	StreamSlug    string `redis:"stream_slug"`
 }
 
 // easyjson:json
@@ -29,4 +30,5 @@ type UserToSongHistory struct {
 	SongID     int       `json:"song_id"`
 	SongPlayID int       `json:"song_play_id"`
 	Timestamp  time.Time `json:"timestamp"`
+	StreamSlug string    `json:"stream_slug"`
 }

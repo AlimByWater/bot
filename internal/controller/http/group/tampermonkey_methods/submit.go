@@ -25,6 +25,12 @@ func (s statistic) submit(c *gin.Context) {
 		return
 	}
 
+	stream := c.Query("stream")
+	if stream == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
 	if info.ArtistName == "Unknown" && info.TrackTitle == "Unknown" && info.TrackLink == "Unknown" {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
@@ -33,7 +39,7 @@ func (s statistic) submit(c *gin.Context) {
 	//j, _ := json.MarshalIndent(info, "", "  ")
 	//fmt.Println(string(j))
 
-	s.usecase.NextSong(info)
+	s.usecase.NextSong(stream, info)
 	c.Status(http.StatusOK)
 }
 

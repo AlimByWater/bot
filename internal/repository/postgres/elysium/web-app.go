@@ -13,8 +13,8 @@ func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEve
 	err := r.execTX(ctx, func(q *queries) error {
 		query := `
 INSERT INTO elysium.web_app_events
-(event_type, telegram_id, payload, session_id, timestamp)
-VALUES ($1, $2, $3, $4, $5)
+(event_type, telegram_id, payload, session_id, stream, timestamp)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 		_, err := r.db.ExecContext(ctx, query,
@@ -22,6 +22,7 @@ VALUES ($1, $2, $3, $4, $5)
 			event.TelegramID,
 			event.Payload,
 			event.SessionID,
+			event.StreamSlug,
 			event.Timestamp,
 		)
 
@@ -47,13 +48,13 @@ func (r *Repository) SaveWebAppEvents(ctx context.Context, events []entity.WebAp
 		valueStrings := make([]string, 0, len(events))
 		valueArgs := make([]interface{}, 0, len(events)*5)
 		for _, e := range events {
-			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", pC+1, pC+2, pC+3, pC+4, pC+5))
-			valueArgs = append(valueArgs, e.EventType, e.TelegramID, e.Payload, e.SessionID, e.Timestamp)
-			pC += 5
+			valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)", pC+1, pC+2, pC+3, pC+4, pC+5, pC+6))
+			valueArgs = append(valueArgs, e.EventType, e.TelegramID, e.Payload, e.SessionID, e.StreamSlug, e.Timestamp)
+			pC += 6
 		}
 
 		query := fmt.Sprintf(`
-INSERT INTO elysium.web_app_events (event_type, telegram_id, payload, session_id, timestamp)
+INSERT INTO elysium.web_app_events (event_type, telegram_id, payload, session_id, stream, timestamp)
 VALUES %s`, strings.Join(valueStrings, ","))
 
 		_, err := r.db.ExecContext(ctx, query, valueArgs...)

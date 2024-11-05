@@ -9,7 +9,7 @@ import (
 )
 
 type cacheUC interface {
-	GetListenersCount(ctx context.Context) (int64, error)
+	GetListenersCount(ctx context.Context) (map[string]int64, error)
 	GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error)
 }
 
@@ -29,8 +29,9 @@ type Module struct {
 	repo   repository
 	layout layoutCreator
 
-	onlineUsersCount atomic.Int64
-	mu               sync.Mutex
+	onlineUsersCount   atomic.Int64
+	mu                 sync.RWMutex
+	streamsOnlineCount map[string]int64
 }
 
 func New(cache cacheUC, repo repository, layout layoutCreator) *Module {

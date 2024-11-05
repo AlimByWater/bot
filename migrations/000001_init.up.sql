@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS elysium.user_song_downloads (
 CREATE TABLE IF NOT EXISTS elysium.song_plays (
                             id SERIAL PRIMARY KEY,
                             song_id INT NOT NULL REFERENCES elysium.songs(id) ON DELETE CASCADE,
+                            stream VARCHAR(255) NOT NULL DEFAULT 'main',
                             play_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS elysium.web_app_events (
                           telegram_id BIGINT NOT NULL REFERENCES elysium.users(telegram_id),
                           payload JSONB,
                           session_id VARCHAR(255) NOT NULL,
+                          stream VARCHAR(255) NOT NULL DEFAULT 'main',
                           timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -61,6 +63,7 @@ CREATE TABLE IF NOT EXISTS elysium.user_to_song_history (
                         telegram_id BIGINT NOT NULL REFERENCES elysium.users(telegram_id),
                         song_id int NOT NULL REFERENCES elysium.songs(id),
                         song_plays_id int NOT NULL REFERENCES elysium.song_plays(id),
+                        stream VARCHAR(255) NOT NULL DEFAULT 'main',
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

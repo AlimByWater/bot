@@ -6,7 +6,7 @@ import (
 )
 
 type botUC interface {
-	NextSong(track entity.TrackInfo)
+	NextSong(streamSlug string, track entity.TrackInfo)
 	ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent)
 	ProcessWebAppState(ctx context.Context, event entity.WebAppState)
 }

@@ -8,12 +8,13 @@ import (
 	"elysium/internal/application/env"
 	"elysium/internal/application/env/test"
 	"elysium/internal/application/logger"
-	"elysium/internal/entity"
 	"elysium/internal/repository/downloader"
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
 	"elysium/internal/usecase/demethra"
+	"elysium/internal/usecase/layout"
+	"elysium/internal/usecase/users"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"net/http"
@@ -77,7 +78,15 @@ func setupTest(t *testing.T) func(t *testing.T) {
 	err = postgresql.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
-	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisRepo, downloaderGrpc)
+	layoutUC := layout.New(redisRepo, elysiumRepo)
+	err = layoutUC.Init(ctx, loggerModule)
+	require.NoError(t, err)
+
+	userUC := users.New(redisRepo, elysiumRepo, layoutUC)
+	err = userUC.Init(ctx, loggerModule)
+	require.NoError(t, err)
+
+	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisRepo, downloaderGrpc, userUC)
 	err = demethraUC.Init(ctx, loggerModule)
 	require.NoError(t, err)
 
@@ -109,30 +118,6 @@ func TestSendSongByTrackLink(t *testing.T) {
 
 		err := module.SendSongByTrackLink(context.Background(), userID, link)
 		require.Error(t, err)
-	})
-}
-
-func TestUpdateSongMetadataFile(t *testing.T) {
-	teardown := setupTest(t)
-	defer teardown(t)
-
-	t.Run("Success", func(t *testing.T) {
-		track := entity.TrackInfo{
-			TrackTitle: "test-title",
-			ArtistName: "test-artist",
-			TrackLink:  "test-link",
-			CoverLink:  "test-cover-link",
-		}
-		module.UpdateSongMetadataFile(track)
-
-		track = entity.TrackInfo{
-			TrackTitle: "test-title23",
-			ArtistName: "test-artist23",
-			TrackLink:  "test-link3",
-			CoverLink:  "test-cover-link",
-		}
-		module.UpdateSongMetadataFile(track)
-
 	})
 }
 

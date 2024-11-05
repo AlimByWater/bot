@@ -169,6 +169,10 @@ func (b *Bot) cmdCheckCurrentOnline() CommandFunc {
 		if err != nil {
 			return fmt.Errorf("get all current listeners: %w", err)
 		}
+		listenerToStream := make(map[int64]string)
+		for _, listener := range listeners {
+			listenerToStream[listener.TelegramID] = listener.Payload.StreamSlug
+		}
 
 		if len(listeners) != 0 {
 
@@ -182,9 +186,26 @@ func (b *Bot) cmdCheckCurrentOnline() CommandFunc {
 				return fmt.Errorf("get users by telegram ids: %w", err)
 			}
 
-			text = fmt.Sprintf("Текущий онлайн пользователей: %d\n", b.users.GetOnlineUsersCount())
-			for i, user := range users {
-				text += fmt.Sprintf("%d %d @%s\n", i+1, user.TelegramID, user.TelegramUsername)
+			streamToUsers := make(map[string][]entity.User)
+			streams := make([]string, 0, len(listeners))
+			for _, user := range users {
+				streamToUsers[listenerToStream[user.TelegramID]] = append(streamToUsers[listenerToStream[user.TelegramID]], user)
+				streams = append(streams, listenerToStream[user.TelegramID])
+			}
+
+			onlineUsersCount := b.users.GetOnlineUsersCount()
+			var overAllOnlineUsersCount int64
+			for _, count := range onlineUsersCount {
+				overAllOnlineUsersCount += count
+			}
+			text = fmt.Sprintf("Текущий онлайн пользователей: %d\n\n", overAllOnlineUsersCount)
+
+			for _, stream := range streams {
+				text += fmt.Sprintf("%s: %d\n", stream, onlineUsersCount[stream])
+
+				for i, user := range streamToUsers[stream] {
+					text += fmt.Sprintf("\t%d %d @%s\n", i+1, user.TelegramID, user.TelegramUsername)
+				}
 			}
 		}
 

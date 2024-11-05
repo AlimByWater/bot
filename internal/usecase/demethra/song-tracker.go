@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func (m *Module) NextSong(track entity.TrackInfo) {
+func (m *Module) NextSong(stream string, track entity.TrackInfo) {
 	track.SanitizeInfo()
 
 	_, err := url.ParseRequestURI(track.TrackLink)
@@ -21,74 +21,28 @@ func (m *Module) NextSong(track entity.TrackInfo) {
 		m.logger.LogAttrs(context.TODO(), slog.LevelError, "parse track link", logger.AppendErrorToLogs(nil, err)...)
 		return
 	}
-
-	if track.TrackLink == m.currentTrack.TrackLink {
-		return
-	}
-
-	m.mu.Lock()
-	m.prevTrack = m.currentTrack
-	m.currentTrack = track
-	m.mu.Unlock()
-
-	ctx := context.TODO()
-	// если текущий трек не пустой, то добавляем его в историю прослушивания всем текущим слушателям
-	go m.addPrevSongToCurrentListenersHistory(ctx)
-
-	attributes := []slog.Attr{
-		slog.String("track_link", track.TrackLink),
-		slog.String("METHOD", "next song"),
-	}
-
-	song, err := m.repo.SongByUrl(ctx, track.TrackLink)
-	if err != nil { // при любой ошибки и если трек не найден
-		song, err = m.downloadAndCreateNewSong(track)
-		if err != nil {
-			fmt.Println(track.TrackLink)
-			m.logger.LogAttrs(ctx, slog.LevelWarn, "download and create new song", logger.AppendErrorToLogs(attributes, err)...)
-		}
-	}
-
-	msg, err := m.Bot.updateCurrentTrackMessage(ctx, song.ID, m.currentTrack, m.prevTrack, song.CoverTelegramFileID, attributes)
-	if err != nil {
-		m.logger.LogAttrs(ctx, slog.LevelError, "update current track", logger.AppendErrorToLogs(attributes, err)...)
-	}
-
-	// все еще может сложиться такая ситуация, что song не создался в базе
-	// тогда не имеет смысла создавать запись о проигранном треке в базе данных
-	if song.ID != 0 {
-		if song.ID != 0 && msg.MessageID != 0 { // Если трек создан
-			err = m.repo.SetCoverTelegramFileIDForSong(ctx, song.ID, msg.Photo[0].FileID)
-			if err != nil {
-				m.logger.LogAttrs(ctx, slog.LevelError, "set cover telegram file id", logger.AppendErrorToLogs(attributes, err)...)
-			}
-		}
-		m.songPlayed(ctx, attributes, song.ID)
-	}
+	m.UpdateStreamTrack(stream, track)
 }
 
-func (m *Module) songPlayed(ctx context.Context, attributes []slog.Attr, songID int) {
-	songPlayed, err := m.repo.SongPlayed(ctx, songID)
+func (m *Module) songPlayed(ctx context.Context, stream *Stream, attributes []slog.Attr, songID int) error {
+	songPlayed, err := m.repo.SongPlayed(ctx, stream.Slug, songID)
 	if err != nil {
-		m.logger.LogAttrs(ctx, slog.LevelError, "song played", logger.AppendErrorToLogs(attributes, err)...)
-		return
+		return fmt.Errorf("song played: %w", err)
 	}
 
-	m.mu.Lock()
-	m.lastPlayed = songPlayed
-	m.mu.Unlock()
+	stream.LastPlayed = songPlayed
+	return nil
 }
 
-func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if m.lastPlayed.ID == 0 {
+func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context, stream *Stream) {
+	if stream.LastPlayed.ID == 0 {
 		return
 	}
 
 	attributes := []slog.Attr{
-		slog.Int("song_id", m.lastPlayed.SongID),
+		slog.Int("song_id", stream.LastPlayed.SongID),
 		slog.String("METHOD", "add prev song to current listeners history"),
+		slog.String("stream", stream.Slug),
 	}
 
 	currentlyOnStream, err := m.cache.GetAllCurrentListeners(m.ctx)
@@ -99,11 +53,15 @@ func (m *Module) addPrevSongToCurrentListenersHistory(ctx context.Context) {
 
 	histories := make([]entity.UserToSongHistory, 0, len(currentlyOnStream))
 	for _, listener := range currentlyOnStream {
+		if listener.Payload.StreamSlug != stream.Slug {
+			continue
+		}
 		history := entity.UserToSongHistory{
 			TelegramID: listener.TelegramID,
-			SongID:     m.lastPlayed.SongID,
-			SongPlayID: m.lastPlayed.ID,
-			Timestamp:  m.lastPlayed.PlayTime,
+			SongID:     stream.LastPlayed.SongID,
+			SongPlayID: stream.LastPlayed.ID,
+			Timestamp:  stream.LastPlayed.PlayTime,
+			StreamSlug: stream.Slug,
 		}
 
 		histories = append(histories, history)

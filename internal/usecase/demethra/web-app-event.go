@@ -27,6 +27,8 @@ func (m *Module) ProcessWebAppEvent(ctx context.Context, event entity.WebAppEven
 		err = m.handleMaximize(ctx, event)
 	case entity.EventTypeCloseAction:
 		err = m.handleCloseAction(ctx, event)
+	case entity.EventTypeChangedStream:
+		err = m.handleChangedStream(ctx, event)
 	default:
 		err = fmt.Errorf("unknown event type: %s", event.EventType)
 	}
@@ -128,6 +130,27 @@ func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEv
 		if err != nil {
 			m.logger.Error(fmt.Sprintf("failed to save listener: %v", err), slog.String("method", "handleInitialization"))
 		}
+	}
+
+	return m.saveWebAppEvent(ctx, event)
+}
+
+func (m *Module) handleChangedStream(ctx context.Context, event entity.WebAppEvent) error {
+	var payload entity.ChangedStreamPayload
+	if event.Payload != nil {
+		err := json.Unmarshal(event.Payload, &payload)
+		if err != nil {
+			return fmt.Errorf("invalid payload for changed stream event: %w", err)
+		}
+	}
+	err := m.cache.SaveOrUpdateListener(ctx, entity.ListenerCache{
+		TelegramID: event.TelegramID,
+		Payload: entity.ListenerCachePayload{
+			StreamSlug: payload.StreamSlug,
+		},
+	})
+	if err != nil {
+		m.logger.Error("Failed to save or update listener in cache", slog.String("error", err.Error()), slog.Int64("telegram_id", event.TelegramID), slog.String("method", "handleChangedStream"))
 	}
 
 	return m.saveWebAppEvent(ctx, event)

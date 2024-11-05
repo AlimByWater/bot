@@ -20,6 +20,7 @@ type WebAppState struct {
 	TelegramID int64           `json:"telegram_id"`
 	Payload    json.RawMessage `json:"payload"`
 	Timestamp  time.Time       `json:"timestamp"`
+	StreamSlug string          `json:"stream"`
 }
 
 // easyjson:json

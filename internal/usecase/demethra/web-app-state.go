@@ -9,7 +9,9 @@ import (
 func (m *Module) ProcessWebAppState(ctx context.Context, state entity.WebAppState) {
 	err := m.cache.SaveOrUpdateListener(ctx, entity.ListenerCache{
 		TelegramID: state.TelegramID,
-		Payload:    entity.ListenerCachePayload{}, // метод SaveOrUpdateListener при пустом payload обновит lastActivity
+		Payload: entity.ListenerCachePayload{
+			StreamSlug: state.StreamSlug,
+		}, // метод SaveOrUpdateListener при пустом payload обновит lastActivity и streamSlug
 	})
 
 	if err != nil {

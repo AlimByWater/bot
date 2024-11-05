@@ -6,15 +6,15 @@ import (
 )
 
 type botUC interface {
-	NextSong(track entity.TrackInfo)
+	NextSong(streamSlug string, track entity.TrackInfo)
 	ProcessWebAppEvent(ctx context.Context, event entity.WebAppEvent)
 	ProcessWebAppState(ctx context.Context, event entity.WebAppState)
 }
 
 type usersUC interface {
-	GetOnlineUsersCount() int64
+	GetOnlineUsersCount() map[string]int64
 }
 
 type songTrackerUC interface {
-	CurrentTrack() entity.TrackInfo
+	CurrentTrackForStream(slug string) entity.TrackInfo
 }

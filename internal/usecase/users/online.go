@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-func (m *Module) GetOnlineUsersCount() int64 {
-	return m.onlineUsersCount.Load()
+func (m *Module) GetOnlineUsersCount() map[string]int64 {
+	return m.streamsOnlineCount
 }
 
 func (m *Module) GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error) {
@@ -17,15 +17,20 @@ func (m *Module) GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerC
 
 func (m *Module) updateOnlineUsersCountLoop() {
 	for {
+		start := time.Now()
 		count, err := m.cache.GetListenersCount(m.ctx)
 		if err != nil {
 			m.logger.Error("Failed to get listeners count", slog.String("error", err.Error()), slog.String("method", "UpdateOnlineUsersCount"))
 			continue
 		}
 
+		m.logger.Info("Get listeners count PROFILING", slog.Duration("duration", time.Since(start)))
+
 		//count = m.alterCount(count)
 
-		m.onlineUsersCount.Store(count)
+		m.mu.Lock()
+		m.streamsOnlineCount = count
+		m.mu.Unlock()
 		time.Sleep(5 * time.Second)
 	}
 }

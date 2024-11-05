@@ -128,35 +128,11 @@ UPDATE songs SET cover_telegram_file_id = $1 WHERE id = $2
 	return nil
 }
 
-// CreateSongAndAddToPlayed создает новый трек и логирует его проигрывание
-func (r *Repository) CreateSongAndAddToPlayed(ctx context.Context, song entity.Song) (entity.Song, error) {
-	err := r.execTX(ctx, func(q *queries) error {
-		var err error
-		song, err = q.createSong(ctx, song)
-		if err != nil {
-			return fmt.Errorf("create song: %w", err)
-		}
-
-		_, err = q.createSongPlay(ctx, song.ID)
-		if err != nil {
-			return fmt.Errorf("create song play: %w", err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return entity.Song{}, fmt.Errorf("exec tx: %w", err)
-	}
-
-	return song, nil
-}
-
-func (r *Repository) SongPlayed(ctx context.Context, songID int) (entity.SongPlay, error) {
+func (r *Repository) SongPlayed(ctx context.Context, streamSlug string, songID int) (entity.SongPlay, error) {
 	var songPlay entity.SongPlay
 	err := r.execTX(ctx, func(q *queries) error {
 		var err error
-		songPlay, err = q.createSongPlay(ctx, songID)
+		songPlay, err = q.createSongPlay(ctx, streamSlug, songID)
 		if err != nil {
 			return fmt.Errorf("create song play: %w", err)
 		}
@@ -271,15 +247,15 @@ RETURNING id, date_create
 	return song, nil
 }
 
-func (q *queries) createSongPlay(ctx context.Context, songID int) (entity.SongPlay, error) {
+func (q *queries) createSongPlay(ctx context.Context, streamSlug string, songID int) (entity.SongPlay, error) {
 	query := fmt.Sprintf(`
-INSERT INTO song_plays(song_id)
-VALUES ($1)
+INSERT INTO song_plays(song_id, stream)
+VALUES ($1, $2)
 RETURNING id, play_time
 `)
 	var songPlay entity.SongPlay
 	songPlay.SongID = songID
-	err := q.db.QueryRowContext(ctx, query, songID).Scan(&songPlay.ID, &songPlay.PlayTime)
+	err := q.db.QueryRowContext(ctx, query, songID, streamSlug).Scan(&songPlay.ID, &songPlay.PlayTime)
 	if err != nil {
 		return entity.SongPlay{}, fmt.Errorf("query row context: %w", err)
 	}

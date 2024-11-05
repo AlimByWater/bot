@@ -37,10 +37,22 @@ func (ws webSocket) ws(c *gin.Context) {
 	}
 
 	for {
+		streams := make(map[string]entity.Stream)
+
+		onlineUsersCount := ws.users.GetOnlineUsersCount()
+		for streamSlug, count := range onlineUsersCount {
+			streamTracks := ws.songs.CurrentTrackForStream(streamSlug)
+			streams[streamSlug] = entity.Stream{
+				Slug:             streamSlug,
+				CurrentTrack:     streamTracks,
+				OnlineUsersCount: count,
+			}
+		}
 
 		info := entity.WebsocketInfo{
-			OnlineUsersCount: ws.users.GetOnlineUsersCount(),
-			CurrentTrack:     ws.songs.CurrentTrack(),
+			OnlineUsersCount: onlineUsersCount["main"],
+			CurrentTrack:     ws.songs.CurrentTrackForStream("main"),
+			Streams:          streams,
 		}
 
 		err = conn.WriteJSON(info)
