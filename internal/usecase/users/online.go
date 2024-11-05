@@ -12,27 +12,25 @@ func (m *Module) GetOnlineUsersCount() map[string]int64 {
 }
 
 func (m *Module) GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error) {
-	start := time.Now()
 	count, err := m.cache.GetAllCurrentListeners(m.ctx)
 	if err != nil {
 		m.logger.Error("Failed to get listeners count", slog.String("error", err.Error()), slog.String("method", "GetAllCurrentListeners"))
 		return nil, err
 	}
-	m.logger.Info("PROFILING get all current listeners", slog.Float64("seconds", time.Since(start).Seconds()))
 
 	return count, nil
 }
 
 func (m *Module) updateOnlineUsersCountLoop() {
 	for {
-		start := time.Now()
+		//start := time.Now()
 		count, err := m.cache.GetListenersCount(m.ctx)
 		if err != nil {
 			m.logger.Error("Failed to get listeners count", slog.String("error", err.Error()), slog.String("method", "UpdateOnlineUsersCount"))
 			continue
 		}
 
-		m.logger.Info("Get listeners count PROFILING", slog.Float64("seconds", time.Since(start).Seconds()))
+		//m.logger.Info("Get listeners count PROFILING", slog.Float64("seconds", time.Since(start).Seconds()))
 
 		//count = m.alterCount(count)
 

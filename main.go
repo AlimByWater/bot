@@ -20,6 +20,7 @@ import (
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
+	"elysium/internal/usecase/arimadj"
 	"elysium/internal/usecase/auth"
 	"elysium/internal/usecase/demethra"
 	"elysium/internal/usecase/layout"
@@ -73,13 +74,13 @@ func main() {
 	redisCache := redis.New(redisCfg)
 
 	/************ USECASE *************/
-	//arimaDJUC := arimadj.New(arimaDJCfg)
+	arimaDJUC := arimadj.New(arimaDJCfg)
 	layoutUC := layout.New(redisCache, elysiumRepo)
 	usersUC := users.New(redisCache, elysiumRepo, layoutUC)
 	authUC := auth.NewModule(authCfg, redisCache, elysiumRepo, usersUC)
 	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, downloaderGrpc, usersUC)
 	demethraUC.AddStream("main")
-	//demethraUC.AddStream("test2")
+	demethraUC.AddStream("fakeboys")
 
 	/************ CONTROLLER *************/
 	httpModule := http.New(httpCfg,
@@ -125,7 +126,7 @@ func main() {
 
 	app.AddUsecases(
 		layoutUC,
-		//arimaDJUC,
+		arimaDJUC,
 		demethraUC,
 		authUC,
 		usersUC,
