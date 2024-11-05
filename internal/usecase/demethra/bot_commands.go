@@ -169,52 +169,64 @@ func (b *Bot) cmdCheckCurrentOnline() CommandFunc {
 		if err != nil {
 			return fmt.Errorf("get all current listeners: %w", err)
 		}
+
+		if len(listeners) == 0 {
+			msg := tgbotapi.NewMessage(chatId, text)
+			_, err := b.Api.Send(msg)
+			return err
+		}
+
+		// Создаем мапу слушатель -> стрим
 		listenerToStream := make(map[int64]string)
 		for _, listener := range listeners {
 			listenerToStream[listener.TelegramID] = listener.Payload.StreamSlug
 		}
 
-		if len(listeners) != 0 {
+		// Создаем правильный слайс ID
+		ids := make([]int64, 0, len(listeners))
+		for _, listener := range listeners {
+			ids = append(ids, listener.TelegramID)
+		}
 
-			ids := make([]int64, len(listeners))
-			for _, listener := range listeners {
-				ids = append(ids, listener.TelegramID)
-			}
+		users, err := b.repo.GetUsersByTelegramID(ctx, ids)
+		if err != nil {
+			return fmt.Errorf("get users by telegram ids: %w", err)
+		}
 
-			users, err := b.repo.GetUsersByTelegramID(ctx, ids)
-			if err != nil {
-				return fmt.Errorf("get users by telegram ids: %w", err)
-			}
+		// Создаем мапу стрим -> пользователи
+		streamToUsers := make(map[string][]entity.User)
+		// Используем map для хранения уникальных стримов
+		uniqueStreams := make(map[string]struct{})
 
-			streamToUsers := make(map[string][]entity.User)
-			streams := make([]string, 0, len(listeners))
-			for _, user := range users {
-				streamToUsers[listenerToStream[user.TelegramID]] = append(streamToUsers[listenerToStream[user.TelegramID]], user)
-				streams = append(streams, listenerToStream[user.TelegramID])
-			}
+		for _, user := range users {
+			stream := listenerToStream[user.TelegramID]
+			streamToUsers[stream] = append(streamToUsers[stream], user)
+			uniqueStreams[stream] = struct{}{}
+		}
 
-			onlineUsersCount := b.users.GetOnlineUsersCount()
-			var overAllOnlineUsersCount int64
-			for _, count := range onlineUsersCount {
-				overAllOnlineUsersCount += count
-			}
-			text = fmt.Sprintf("Текущий онлайн пользователей: %d\n\n", overAllOnlineUsersCount)
+		// Конвертируем уникальные стримы в слайс
+		streams := make([]string, 0, len(uniqueStreams))
+		for stream := range uniqueStreams {
+			streams = append(streams, stream)
+		}
 
-			for _, stream := range streams {
-				text += fmt.Sprintf("%s: %d\n", stream, onlineUsersCount[stream])
+		onlineUsersCount := b.users.GetOnlineUsersCount()
+		var overAllOnlineUsersCount int64
+		for _, count := range onlineUsersCount {
+			overAllOnlineUsersCount += count
+		}
 
-				for i, user := range streamToUsers[stream] {
-					text += fmt.Sprintf("\t%d %d @%s\n", i+1, user.TelegramID, user.TelegramUsername)
-				}
+		text = fmt.Sprintf("Текущий онлайн пользователей: %d\n\n", overAllOnlineUsersCount)
+
+		for _, stream := range streams {
+			text += fmt.Sprintf("%s: %d\n", stream, onlineUsersCount[stream])
+			for i, user := range streamToUsers[stream] {
+				text += fmt.Sprintf("\t%d %d @%s\n", i+1, user.TelegramID, user.TelegramUsername)
 			}
 		}
 
 		msg := tgbotapi.NewMessage(chatId, text)
-
-		if _, err := b.Api.Send(msg); err != nil {
-			return err
-		}
-
-		return nil
+		_, err = b.Api.Send(msg)
+		return err
 	}
 }
