@@ -9,9 +9,9 @@ const SongDownloadSourceWebApp string = "web_app"
 const SongDownloadSourceBot string = "bot"
 
 type StreamsMetaInfo struct {
-	OnlineUsersCount int64              `json:"online_users_count"`
-	CurrentTrack     TrackInfo          `json:"current_track"`
-	Streams          map[string]*Stream `json:"streams"`
+	OnlineUsersCount int64     `json:"online_users_count"`
+	CurrentTrack     TrackInfo `json:"current_track"`
+	Streams          []*Stream `json:"streams"`
 }
 
 type Stream struct {

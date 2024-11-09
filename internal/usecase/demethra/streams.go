@@ -109,9 +109,14 @@ func (m *Module) updateCurrentTrackMessageForMainStream(ctx context.Context, str
 }
 
 func (m *Module) GetStreamsMetaInfo() entity.StreamsMetaInfo {
+	v := make([]*entity.Stream, 0, len(m.streams))
+	for _, stream := range m.streams {
+		v = append(v, stream)
+	}
+
 	return entity.StreamsMetaInfo{
 		OnlineUsersCount: m.streams["main"].OnlineUsersCount,
 		CurrentTrack:     m.streams["main"].CurrentTrack,
-		Streams:          m.streams,
+		Streams:          v,
 	}
 }
