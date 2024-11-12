@@ -47,6 +47,7 @@ type Bot struct {
 	tracksDbChannelID     int64
 	currentTrackMessageID int // TODO поменять на слайс который будет подтягиватьcя с базы данных
 
+	streams                     map[string]*entity.Stream
 	repo                        repository
 	ctx                         context.Context
 	mu                          sync.RWMutex
@@ -54,10 +55,11 @@ type Bot struct {
 	DisableCommentSectionDelete bool
 }
 
-func newBot(ctx context.Context, repo repository, downloader downloader, users usersUseCase, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
+func newBot(ctx context.Context, streams map[string]*entity.Stream, repo repository, downloader downloader, users usersUseCase, name string, api *tgbotapi.BotAPI, chatIDForLogs, mainChannelID, forumID, commentChatID, tracksDbChannelID int64, currentTrackMessageID int, logger *slog.Logger) *Bot {
 	b := &Bot{
-		name: name,
-		repo: repo,
+		name:    name,
+		repo:    repo,
+		streams: streams,
 		//sc:                    sc,
 		downloader:            downloader,
 		users:                 users,
@@ -84,6 +86,7 @@ func (b *Bot) registerCommands() {
 	b.registerCommand("download", b.cmdDownloadInline())
 	b.registerCommand("autodelete", b.cmdSwitchToggleForPostAutoDelete())
 	b.registerCommand("online", b.cmdCheckCurrentOnline())
+	b.registerCommand("now", b.cmdNow())
 	//b.registerCommand("/download", b.cmdDownload())
 	//b.registerCommand("⁉️Инфа", b.cmdInfo())
 	//b.registerCommand("/calendar", b.cmdCalendar())
@@ -162,6 +165,13 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 
 			if sent {
 				return
+			}
+
+			if update.Message.Text == "now" {
+				err := b.cmdNow()(ctx, update)
+				if err != nil {
+					b.logger.LogAttrs(ctx, slog.LevelError, "cmd now", logger.AppendErrorToLogs(attributes, err)...)
+				}
 			}
 		}
 

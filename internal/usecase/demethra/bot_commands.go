@@ -15,6 +15,28 @@ import (
 
 type CommandFunc func(ctx context.Context, update tgbotapi.Update) error
 
+func (b *Bot) cmdNow() CommandFunc {
+	return func(ctx context.Context, update tgbotapi.Update) error {
+		chatId := update.FromChat().ChatConfig().ChatID
+
+		stream := b.streams["main"]
+
+		stream.RLock()
+		currentTrack := b.streams["main"].CurrentTrack
+		prevTrack := b.streams["main"].GetPrevTrack()
+
+		song := b.streams["main"].GetSong()
+		stream.RUnlock()
+
+		_, err := b.sendCurrentTrackMessage(ctx, chatId, song.ID, currentTrack, prevTrack, song.CoverTelegramFileID, nil)
+		if err != nil {
+			return fmt.Errorf("send current track message: %w", err)
+		}
+
+		return nil
+	}
+}
+
 func (b *Bot) cmdStart() CommandFunc {
 	return func(ctx context.Context, update tgbotapi.Update) error {
 		//inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(

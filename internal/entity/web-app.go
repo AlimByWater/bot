@@ -22,6 +22,8 @@ type Stream struct {
 	LogoLink         string    `json:"logo_link"`
 	prevTrack        TrackInfo
 
+	song Song
+
 	lastPlayed  SongPlay
 	lastUpdated time.Time
 
@@ -34,6 +36,14 @@ func (s *Stream) GetPrevTrack() TrackInfo {
 
 func (s *Stream) SetPrevTrack(prevTrack TrackInfo) {
 	s.prevTrack = prevTrack
+}
+
+func (s *Stream) GetSong() Song {
+	return s.song
+}
+
+func (s *Stream) SetSong(song Song) {
+	s.song = song
 }
 
 func (s *Stream) GetLastPlayed() SongPlay {

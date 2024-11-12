@@ -127,7 +127,7 @@ func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 		}
 	}
 
-	m.Bot = newBot(ctx, m.repo, m.downloader, m.users, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
+	m.Bot = newBot(ctx, m.streams, m.repo, m.downloader, m.users, m.cfg.GetBotName(), tgapi, m.cfg.GetChatIDForLogs(), m.cfg.GetElysiumFmID(), m.cfg.GetElysiumForumID(), m.cfg.GetElysiumFmCommentID(), m.cfg.GetTracksDbChannel(), m.cfg.GetCurrentTrackMessageID(), m.logger)
 	go m.Bot.Run(ctx)
 
 	err = m.initStreams()

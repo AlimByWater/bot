@@ -223,6 +223,72 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 	return responseMsg, nil
 }
 
+func (b *Bot) sendCurrentTrackMessage(ctx context.Context, chatID int64, songID int, current, prev entity.TrackInfo, coverFileID string, attrs []slog.Attr) (tgbotapi.Message, error) {
+	coverURl := current.CoverLink
+	currentFmt := current.Format()
+	prevFmt := prev.Format()
+	visual := formatEscapeChars(fmt.Sprintf(`0:35 ━❍──────── %s
+             *↻     ⊲  Ⅱ  ⊳     ↺*
+VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
+
+	var cover tgbotapi.RequestFileData
+	if coverFileID != "" {
+		cover = tgbotapi.FileID(coverFileID)
+	} else {
+		img, err := b.downloadCover(coverURl)
+		if err != nil {
+			b.logger.LogAttrs(ctx, slog.LevelError, "download cover", logger.AppendErrorToLogs(attrs, err)...)
+		}
+		cover = tgbotapi.FileBytes{
+			Name:  "cover",
+			Bytes: img,
+		}
+	}
+
+	data := fmt.Sprintf("download?%d", songID)
+
+	btn := tgbotapi.NewInlineKeyboardButtonData("Добавить в плеер", data)
+	radioBtn := tgbotapi.NewInlineKeyboardButtonWebApp("Радио", tgbotapi.WebAppInfo{
+		URL: fmt.Sprintf("https://t.me/elysium_demethra_bot/radio"),
+	})
+	row := tgbotapi.NewInlineKeyboardRow(btn, radioBtn)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(row)
+
+	baseInputMedia := tgbotapi.BaseInputMedia{
+		Type:      "photo", // Set the desired media type
+		Media:     cover,
+		ParseMode: "MarkdownV2", // Set the desired parse mode
+		Caption: fmt.Sprintf(`
+*[%s \- %s](%s)*
+%s
+
+||Предыдущий: [%s \- %s](%s)||
+`,
+			currentFmt.ArtistName, currentFmt.TrackTitle, currentFmt.TrackLink,
+			visual,
+			prevFmt.ArtistName, prevFmt.TrackTitle, prevFmt.TrackLink),
+	}
+
+	msg := tgbotapi.MediaGroupConfig{
+		BaseChat: tgbotapi.BaseChat{
+			ChatConfig: tgbotapi.ChatConfig{
+				ChatID: chatID,
+			},
+			ReplyMarkup: &keyboard,
+		},
+		Media: []interface{}{
+			baseInputMedia,
+		},
+	}
+
+	responseMsg, err := b.Api.Send(msg)
+	if err != nil {
+		return tgbotapi.Message{}, fmt.Errorf("send: %w", err)
+	}
+
+	return responseMsg, nil
+}
+
 // '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'
 func formatEscapeChars(oldS string) string {
 	s := oldS

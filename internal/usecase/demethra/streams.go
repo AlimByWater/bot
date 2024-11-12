@@ -79,6 +79,7 @@ func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 	}
 
 	if song.ID != 0 {
+		stream.SetSong(song)
 		err = m.songPlayed(ctx, stream, attributes, song.ID)
 		if err != nil {
 			m.logger.LogAttrs(ctx, slog.LevelError, "song played", logger.AppendErrorToLogs(attributes, err)...)
