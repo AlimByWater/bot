@@ -52,9 +52,16 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 	row := tgbotapi.NewInlineKeyboardRow(btn, radioBtn)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(row)
 
-	baseInputMedia := tgbotapi.BaseInputMedia{
-		Type:      "photo", // Set the desired media type
-		Media:     cover,
+	msg := tgbotapi.PhotoConfig{
+		BaseFile: tgbotapi.BaseFile{
+			BaseChat: tgbotapi.BaseChat{
+				ChatConfig: tgbotapi.ChatConfig{
+					ChatID: chatID,
+				},
+				ReplyMarkup: keyboard,
+			},
+			File: cover,
+		},
 		ParseMode: "MarkdownV2", // Set the desired parse mode
 		Caption: fmt.Sprintf(`
 *[%s \- %s](%s)*
@@ -65,18 +72,6 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 			currentFmt.ArtistName, currentFmt.TrackTitle, currentFmt.TrackLink,
 			visual,
 			prevFmt.ArtistName, prevFmt.TrackTitle, prevFmt.TrackLink),
-	}
-
-	msg := tgbotapi.MediaGroupConfig{
-		BaseChat: tgbotapi.BaseChat{
-			ChatConfig: tgbotapi.ChatConfig{
-				ChatID: chatID,
-			},
-			ReplyMarkup: keyboard,
-		},
-		Media: []interface{}{
-			baseInputMedia,
-		},
 	}
 
 	responseMsg, err := b.Api.Send(msg)
