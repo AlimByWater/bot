@@ -156,7 +156,20 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			slog.Int64("chat_id", update.Message.Chat.ID),
 		}
 
-		b.logger.Info("Message", slog.String("message", update.Message.Text))
+		if update.Message.Text == "now" {
+			stream := b.streams["main"]
+			stream.RLock()
+			currentTrack := b.streams["main"].CurrentTrack
+			prevTrack := b.streams["main"].GetPrevTrack()
+			song := b.streams["main"].GetSong()
+			defer stream.RUnlock()
+
+			_, err := b.sendCurrentTrackMessage(ctx, update.Message.Chat.ID, song.ID, currentTrack, prevTrack, song.CoverTelegramFileID, nil)
+			if err != nil {
+				b.logger.LogAttrs(ctx, slog.LevelError, "cmd now", logger.AppendErrorToLogs(attributes, err)...)
+			}
+			return
+		}
 
 		// если сообщение пришло с форума, то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
 		if !update.Message.IsCommand() {
@@ -169,20 +182,6 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 				return
 			}
 
-			if update.Message.Text == "now" {
-				stream := b.streams["main"]
-				stream.RLock()
-				currentTrack := b.streams["main"].CurrentTrack
-				prevTrack := b.streams["main"].GetPrevTrack()
-				song := b.streams["main"].GetSong()
-				defer stream.RUnlock()
-
-				_, err = b.sendCurrentTrackMessage(ctx, update.Message.Chat.ID, song.ID, currentTrack, prevTrack, song.CoverTelegramFileID, nil)
-				if err != nil {
-					b.logger.LogAttrs(ctx, slog.LevelError, "cmd now", logger.AppendErrorToLogs(attributes, err)...)
-				}
-				return
-			}
 		}
 
 		// TODO update раскомментить
