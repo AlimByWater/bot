@@ -26,4 +26,5 @@ update:
 
 generate:
 	protoc --go_out=. --go-grpc_out=. pkg/proto/*.proto
+	rm -rf internal/entity/*_easyjson.go
 	easyjson internal/entity/*.go

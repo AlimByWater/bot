@@ -345,6 +345,17 @@ func (bot *BotAPI) Send(c Chattable) (Message, error) {
 
 	var message Message
 	err = json.Unmarshal(resp.Result, &message)
+	if err != nil {
+		if strings.Contains(err.Error(), "cannot unmarshal array into Go value of type tgbotapi.Message") {
+			var messages []Message
+			err = json.Unmarshal(resp.Result, &messages)
+			if err != nil {
+				return Message{}, err
+			}
+			return messages[0], nil
+		}
+		return Message{}, err
+	}
 
 	return message, err
 }
