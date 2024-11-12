@@ -156,6 +156,8 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			slog.Int64("chat_id", update.Message.Chat.ID),
 		}
 
+		b.logger.Info("Message", slog.String("message", update.Message.Text))
+
 		// если сообщение пришло с форума, то проверить не является ли сообщение ссылкой на саундклауд, если является - скачать трек и прислать его в чат
 		if !update.Message.IsCommand() {
 			sent, err := b.checkDownloadUrlAndSend(ctx, update, attributes)
