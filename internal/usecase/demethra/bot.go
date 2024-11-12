@@ -168,10 +168,18 @@ func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			}
 
 			if update.Message.Text == "now" {
-				err := b.cmdNow()(ctx, update)
+				stream := b.streams["main"]
+				stream.RLock()
+				currentTrack := b.streams["main"].CurrentTrack
+				prevTrack := b.streams["main"].GetPrevTrack()
+				song := b.streams["main"].GetSong()
+				defer stream.RUnlock()
+
+				_, err = b.sendCurrentTrackMessage(ctx, update.Message.Chat.ID, song.ID, currentTrack, prevTrack, song.CoverTelegramFileID, nil)
 				if err != nil {
 					b.logger.LogAttrs(ctx, slog.LevelError, "cmd now", logger.AppendErrorToLogs(attributes, err)...)
 				}
+				return
 			}
 		}
 
