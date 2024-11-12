@@ -47,7 +47,7 @@ VOLUME: ▁▂▃▄▅▆▇ 100%%`, current.Duration))
 
 	btn := tgbotapi.NewInlineKeyboardButtonData("Добавить в плеер", data)
 	radioBtn := tgbotapi.NewInlineKeyboardButtonWebApp("Радио", tgbotapi.WebAppInfo{
-		URL: fmt.Sprintf("https://t.me/elysium_demethra_bot/radio"),
+		URL: fmt.Sprintf("https://t.me/demethra_test_polygon_bot/radio"),
 	})
 	row := tgbotapi.NewInlineKeyboardRow(btn, radioBtn)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(row)
