@@ -71,8 +71,12 @@ func TestSaveListenerSucceeds(t *testing.T) {
 	defer teardown(t)
 
 	listenerCache := entity.ListenerCache{
-		TelegramID: 123456789,
-		Payload:    entity.ListenerCachePayload{InitTimestamp: time.Now().Add(-1 * time.Hour).Unix(), LastActivity: time.Now().Unix()},
+		TelegramID: 123456781,
+		Payload: entity.ListenerCachePayload{
+			InitTimestamp: time.Now().Add(-1 * time.Hour).Unix(),
+			LastActivity:  time.Now().Unix(),
+			StreamSlug:    "fakeboys",
+		},
 	}
 
 	err := redisModule.SaveOrUpdateListener(context.Background(), listenerCache)
@@ -170,6 +174,7 @@ func TestModule_GetAllListeners(t *testing.T) {
 	count, err := redisModule.GetListenersCount(context.Background())
 	require.NoError(t, err)
 	require.NotEmpty(t, count)
+	t.Log(count)
 }
 
 func TestGetListenerLastActivitySucceeds(t *testing.T) {

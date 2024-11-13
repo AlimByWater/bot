@@ -32,7 +32,7 @@ func (m *Module) StreamOnlineUpdater() {
 			stream.Unlock()
 		}
 
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 2)
 	}
 }
 

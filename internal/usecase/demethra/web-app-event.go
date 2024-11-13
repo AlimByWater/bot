@@ -46,7 +46,7 @@ func (m *Module) saveWebAppEvent(ctx context.Context, event entity.WebAppEvent) 
 }
 
 func (m *Module) batchUpdateLoop() {
-	t := time.NewTicker(10 * time.Second)
+	t := time.NewTicker(5 * time.Second)
 	for {
 		var events []entity.WebAppEvent
 		select {
@@ -116,20 +116,16 @@ func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEv
 		return fmt.Errorf("failed to parse init data: %w", err)
 	}
 
-	_, err = m.cache.GetListenerByTelegramID(ctx, parsedData.User.ID)
-	if err != nil {
-		listenerCache := entity.ListenerCache{
-			TelegramID: parsedData.User.ID,
-			Payload: entity.ListenerCachePayload{
-				InitTimestamp: time.Now().Unix(),
-				LastActivity:  time.Now().Unix(),
-			},
-		}
+	listenerCache := entity.ListenerCache{
+		TelegramID: parsedData.User.ID,
+		Payload: entity.ListenerCachePayload{
+			StreamSlug: payload.StreamSlug,
+		},
+	}
 
-		err = m.cache.SaveOrUpdateListener(ctx, listenerCache)
-		if err != nil {
-			m.logger.Error(fmt.Sprintf("failed to save listener: %v", err), slog.String("method", "handleInitialization"))
-		}
+	err = m.cache.SaveOrUpdateListener(ctx, listenerCache)
+	if err != nil {
+		m.logger.Error(fmt.Sprintf("failed to save listener: %v", err), slog.String("method", "handleInitialization"))
 	}
 
 	return m.saveWebAppEvent(ctx, event)

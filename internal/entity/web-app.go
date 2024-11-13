@@ -8,12 +8,14 @@ import (
 const SongDownloadSourceWebApp string = "web_app"
 const SongDownloadSourceBot string = "bot"
 
+// easyjson:json
 type StreamsMetaInfo struct {
 	OnlineUsersCount int64     `json:"online_users_count"`
 	CurrentTrack     TrackInfo `json:"current_track"`
 	Streams          []*Stream `json:"streams"`
 }
 
+// easyjson:json
 type Stream struct {
 	Slug             string    `json:"slug"`
 	CurrentTrack     TrackInfo `json:"current_track"`

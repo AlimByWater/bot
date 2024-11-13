@@ -37,7 +37,7 @@ func (m *Module) updateOnlineUsersCountLoop() {
 		m.mu.Lock()
 		m.streamsOnlineCount = count
 		m.mu.Unlock()
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }
 

@@ -44,7 +44,7 @@ func New(cache cacheUC, repo repository, layout layoutCreator) *Module {
 
 func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	m.ctx = ctx
-	m.logger = logger.With(slog.StringValue("🏓 USERS"))
+	m.logger = logger.With(slog.String("module", "🏓 USERS"))
 
 	go m.updateOnlineUsersCountLoop()
 	return nil
