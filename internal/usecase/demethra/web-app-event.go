@@ -133,6 +133,7 @@ func (m *Module) handleInitialization(ctx context.Context, event entity.WebAppEv
 
 func (m *Module) handleChangedStream(ctx context.Context, event entity.WebAppEvent) error {
 	var payload entity.ChangedStreamPayload
+
 	if event.Payload != nil {
 		err := json.Unmarshal(event.Payload, &payload)
 		if err != nil {

@@ -57,6 +57,7 @@ type CloseActionPayload struct {
 	ActionID string `json:"action_id"`
 }
 
+// easyjson:json
 type ChangedStreamPayload struct {
 	StreamSlug string `json:"stream"`
 }
