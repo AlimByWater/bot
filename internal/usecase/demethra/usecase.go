@@ -5,6 +5,7 @@ import (
 	"elysium/internal/entity"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -88,6 +89,8 @@ type Module struct {
 
 	streams     map[string]*entity.Stream
 	streamsList []string
+
+	mu sync.RWMutex
 }
 
 // New конструктор ...

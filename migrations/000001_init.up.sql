@@ -76,8 +76,11 @@ CREATE TABLE IF NOT EXISTS elysium.songs_downloads (
 
 CREATE TABLE IF NOT EXISTS elysium.streams (
                        slug VARCHAR(255) NOT NULL,
+                       name VARCHAR(255) NOT NULL,
                        link VARCHAR(255) NOT NULL,
                        logo_link VARCHAR(255) NOT NULL,
+                       icon_link VARCHAR(255) NOT NULL,
+                       on_click_link VARCHAR(255) NOT NULL,
                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                        enabled BOOLEAN DEFAULT TRUE,

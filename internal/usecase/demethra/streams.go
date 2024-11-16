@@ -19,11 +19,45 @@ func (m *Module) initStreams() error {
 		m.streamsList = append(m.streamsList, stream.Slug)
 	}
 
-	go m.StreamOnlineUpdater()
+	go m.availableStreamsWatcher()
+	go m.streamOnlineUpdater()
 	return nil
 }
 
-func (m *Module) StreamOnlineUpdater() {
+func (m *Module) availableStreamsWatcher() {
+	for {
+		streams, err := m.repo.AvailableStreams(m.ctx)
+		if err != nil {
+			m.logger.Error("Failed to get available streams", slog.String("error", err.Error()), slog.String("method", "availableStreamsWatcher"))
+			continue
+		}
+
+		m.mu.Lock()
+		for _, stream := range streams {
+			if _, ok := m.streams[stream.Slug]; !ok {
+				m.streams[stream.Slug] = stream
+				continue
+			}
+
+			m.streams[stream.Slug].Lock()
+
+			m.streams[stream.Slug].Name = stream.Name
+			m.streams[stream.Slug].LogoLink = stream.LogoLink
+			m.streams[stream.Slug].Link = stream.Link
+			m.streams[stream.Slug].IconLink = stream.IconLink
+			m.streams[stream.Slug].OnClickLink = stream.OnClickLink
+
+			m.streamsList = append(m.streamsList, stream.Slug)
+
+			m.streams[stream.Slug].Unlock()
+		}
+
+		m.mu.Unlock()
+		time.Sleep(time.Minute * 1)
+	}
+}
+
+func (m *Module) streamOnlineUpdater() {
 	for {
 		onlineUsersCount := m.users.GetOnlineUsersCount()
 		for streamSlug, stream := range m.streams {
@@ -74,7 +108,7 @@ func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 		}
 	}
 
-	if slug == "main" {
+	if slug == "elysium1" {
 		m.updateCurrentTrackMessageForMainStream(ctx, stream, song, attributes)
 	}
 
@@ -89,7 +123,7 @@ func (m *Module) UpdateStreamTrack(slug string, track entity.TrackInfo) {
 }
 
 func (m *Module) updateCurrentTrackMessageForMainStream(ctx context.Context, stream *entity.Stream, song entity.Song, attributes []slog.Attr) {
-	if stream.Slug != "main" {
+	if stream.Slug != "elysium1" {
 		return
 	}
 	msg, err := m.Bot.updateCurrentTrackMessage(ctx, song.ID, stream.CurrentTrack, stream.GetPrevTrack(), song.CoverTelegramFileID, attributes)
@@ -116,8 +150,8 @@ func (m *Module) GetStreamsMetaInfo() entity.StreamsMetaInfo {
 	}
 
 	return entity.StreamsMetaInfo{
-		OnlineUsersCount: m.streams["main"].OnlineUsersCount,
-		CurrentTrack:     m.streams["main"].CurrentTrack,
+		OnlineUsersCount: m.streams["elysium1"].OnlineUsersCount,
+		CurrentTrack:     m.streams["elysium1"].CurrentTrack,
 		Streams:          v,
 	}
 }

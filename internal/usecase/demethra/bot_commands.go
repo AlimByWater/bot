@@ -19,13 +19,13 @@ func (b *Bot) cmdNow() CommandFunc {
 	return func(ctx context.Context, update tgbotapi.Update) error {
 		chatId := update.FromChat().ChatConfig().ChatID
 
-		stream := b.streams["main"]
+		stream := b.streams["elysium1"]
 
 		stream.RLock()
-		currentTrack := b.streams["main"].CurrentTrack
-		prevTrack := b.streams["main"].GetPrevTrack()
+		currentTrack := b.streams["elysium1"].CurrentTrack
+		prevTrack := b.streams["elysium1"].GetPrevTrack()
 
-		song := b.streams["main"].GetSong()
+		song := b.streams["elysium1"].GetSong()
 		stream.RUnlock()
 
 		_, err := b.sendCurrentTrackMessage(ctx, chatId, song.ID, currentTrack, prevTrack, song.CoverTelegramFileID, nil)

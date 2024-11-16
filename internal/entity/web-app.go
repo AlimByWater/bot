@@ -18,10 +18,13 @@ type StreamsMetaInfo struct {
 // easyjson:json
 type Stream struct {
 	Slug             string    `json:"slug"`
+	Name             string    `json:"name"`
 	CurrentTrack     TrackInfo `json:"current_track"`
 	OnlineUsersCount int64     `json:"online_users_count"`
 	Link             string    `json:"link"`
 	LogoLink         string    `json:"logo_link"`
+	IconLink         string    `json:"icon_link"`
+	OnClickLink      string    `json:"on_click_link"`
 	prevTrack        TrackInfo
 
 	song Song
