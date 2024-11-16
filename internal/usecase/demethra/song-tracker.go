@@ -18,7 +18,7 @@ func (m *Module) NextSong(stream string, track entity.TrackInfo) {
 
 	_, err := url.ParseRequestURI(track.TrackLink)
 	if err != nil {
-		m.logger.LogAttrs(context.TODO(), slog.LevelError, "parse track link", logger.AppendErrorToLogs(nil, err)...)
+		m.logger.LogAttrs(context.TODO(), slog.LevelError, "parse track link", []slog.Attr{slog.String("err", err.Error()), slog.String("track_link", track.TrackLink), slog.String("stream", stream)}...)
 		return
 	}
 	m.UpdateStreamTrack(stream, track)
