@@ -151,14 +151,13 @@ func (m *Module) GetStreamsMetaInfo() entity.StreamsMetaInfo {
 		v = append(v, stream)
 	}
 
-	// Sort streams by priority, highest priority (0 first
 	sort.Slice(v, func(i, j int) bool {
-		return v[i].Priority > v[j].Priority
+		return v[i].Priority < v[j].Priority
 	})
 
 	return entity.StreamsMetaInfo{
-		OnlineUsersCount: m.streams["elysium1"].OnlineUsersCount,
-		CurrentTrack:     m.streams["elysium1"].CurrentTrack,
+		OnlineUsersCount: m.streams[v[0].Slug].OnlineUsersCount,
+		CurrentTrack:     m.streams[v[0].Slug].CurrentTrack,
 		Streams:          v,
 	}
 }
