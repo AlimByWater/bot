@@ -8,7 +8,7 @@ import (
 
 func (r *Repository) AvailableStreams(ctx context.Context) ([]*entity.Stream, error) {
 	query := `
-		SELECT slug, name, link, logo_link, icon_link, on_click_link FROM elysium.streams
+		SELECT slug, name, link, logo_link, icon_link, on_click_link, priority FROM elysium.streams
 WHERE enabled = true
 `
 	var streams []*entity.Stream
@@ -26,6 +26,7 @@ WHERE enabled = true
 			&stream.LogoLink,
 			&stream.IconLink,
 			&stream.OnClickLink,
+			&stream.Priority,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan stream: %w", err)

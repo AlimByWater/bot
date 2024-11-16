@@ -25,6 +25,7 @@ type Stream struct {
 	LogoLink         string    `json:"logo_link"`
 	IconLink         string    `json:"icon_link"`
 	OnClickLink      string    `json:"on_click_link"`
+	Priority         int       `json:"priority"`
 	prevTrack        TrackInfo
 
 	song Song

@@ -6,6 +6,7 @@ import (
 	"elysium/internal/entity"
 	"fmt"
 	"log/slog"
+	"sort"
 	"time"
 )
 
@@ -46,6 +47,7 @@ func (m *Module) availableStreamsWatcher() {
 			m.streams[stream.Slug].Link = stream.Link
 			m.streams[stream.Slug].IconLink = stream.IconLink
 			m.streams[stream.Slug].OnClickLink = stream.OnClickLink
+			m.streams[stream.Slug].Priority = stream.Priority
 
 			m.streamsList = append(m.streamsList, stream.Slug)
 
@@ -148,6 +150,11 @@ func (m *Module) GetStreamsMetaInfo() entity.StreamsMetaInfo {
 	for _, stream := range m.streams {
 		v = append(v, stream)
 	}
+
+	// Sort streams by priority, highest priority (0 first
+	sort.Slice(v, func(i, j int) bool {
+		return v[i].Priority > v[j].Priority
+	})
 
 	return entity.StreamsMetaInfo{
 		OnlineUsersCount: m.streams["elysium1"].OnlineUsersCount,
