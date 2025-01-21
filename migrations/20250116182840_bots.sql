@@ -13,10 +13,11 @@ CREATE TABLE IF NOT EXISTS bots
 -- Создание таблицы для хранения информации о пользователях ботов
 CREATE TABLE IF NOT EXISTS user_to_bots
 (
-    user_id INT NOT NULL REFERENCES users(id),
-    bot_id BIGINT NOT NULL REFERENCES bots(id),
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    bot_id BIGINT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
     active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, bot_id)
 );
 
 
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS user_transactions
 CREATE TABLE IF NOT EXISTS emoji_packs
 (
     id SERIAL PRIMARY KEY NOT NULL,
-    creator_id INT NOT NULL REFERENCES users(id),
+    creator_telegram_id BIGINT NOT NULL REFERENCES users(telegram_id),
     bot_id BIGINT NOT NULL REFERENCES bots(id),
     pack_title VARCHAR(255) NOT NULL,
     pack_link VARCHAR(255) NOT NULL UNIQUE,
@@ -58,11 +59,14 @@ VALUES
 ('-1002400904088', '@drip_tech', 4253614615109204755, 2400904088), -- main forum @drip_tech
 ('-1002491830452', '@fullytestingpolygon', 1750568581171467725, 2491830452)
 ON CONFLICT DO NOTHING;
+
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-
-DROP TABLE IF EXISTS user_bots;
+DROP TABLE IF EXISTS access_hashes;
+DROP TABLE IF EXISTS emoji_packs;
+DROP TABLE IF EXISTS user_to_bots;
+DROP TABLE IF EXISTS user_transactions;
 DROP TABLE IF EXISTS bots;
 -- +goose StatementEnd
