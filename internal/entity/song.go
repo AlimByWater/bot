@@ -2,15 +2,6 @@ package entity
 
 import "time"
 
-// easyjson:json
-type User struct {
-	ID               int       `db:"id" json:"id"`
-	TelegramID       int64     `db:"telegram_id" json:"telegram_id"`
-	TelegramUsername string    `db:"telegram_username" json:"username"`
-	Firstname        string    `db:"firstname" json:"firstname"`
-	DateCreate       time.Time `db:"date_create" json:"date_create"`
-}
-
 // Song represents a song in the database
 // easyjson:json
 type Song struct {
@@ -26,15 +17,6 @@ type Song struct {
 	PlaysCount                int       `json:"plays_count"`
 	Tags                      []string  `db:"tags" json:"tags"`
 	DateCreate                time.Time `db:"date_create" json:"date_create"`
-}
-
-// UserSongDownload represents a record of a user downloading a song
-// easyjson:json
-type UserSongDownload struct {
-	ID           int       `db:"id" json:"id"`
-	UserID       int       `db:"user_id" json:"user_id"`
-	SongID       int       `db:"song_id" json:"song_id"`
-	DownloadDate time.Time `db:"download_date" json:"download_date"`
 }
 
 // SongPlay represents a record of a song being played
