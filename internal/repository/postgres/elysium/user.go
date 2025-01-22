@@ -4,22 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"elysium/internal/entity"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
+	"github.com/jmoiron/sqlx"
 	"time"
 )
 
 func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error) {
 	err := r.execTX(ctx, func(q *queries) error {
 		currentUser, err := q.getUserByTelegramUserID(ctx, user.TelegramID)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("failed to get user: %w", err)
-			}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("failed to get user: %w", err)
 		}
 
 		if currentUser.ID != 0 {
+			user.ID = currentUser.ID
 			if currentUser.TelegramUsername != user.TelegramUsername || currentUser.Firstname != user.Firstname {
 				query := `
 				UPDATE elysium.users
@@ -32,29 +32,49 @@ func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (
 				}
 
 			}
-			return nil
-		}
-
-		query := `
+		} else {
+			query := `
 		INSERT INTO elysium.users 
-		(telegram_id, telegram_username, firstname, date_create)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id
+		(telegram_id, telegram_username, firstname, date_create, balance)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, balance
 	`
 
-		if user.DateCreate.IsZero() {
-			user.DateCreate = time.Now()
-		}
+			if user.DateCreate.IsZero() {
+				user.DateCreate = time.Now()
+			}
 
-		err = q.db.QueryRowContext(ctx, query,
-			user.TelegramID,
-			user.TelegramUsername,
-			user.Firstname,
-			user.DateCreate,
-		).Scan(&user.ID)
+			err = q.db.QueryRowContext(ctx, query,
+				user.TelegramID,
+				user.TelegramUsername,
+				user.Firstname,
+				user.DateCreate,
+				user.Balance,
+			).Scan(
+				&user.ID,
+				&user.Balance,
+			)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return fmt.Errorf("failed to create user: %w", err)
+			}
+
+			// Insert default permissions
+			permQuery := `
+				INSERT INTO permissions 
+					(user_id, private_generation, use_by_channel_name, vip)
+				VALUES ($1, $2, $3, $4)
+				ON CONFLICT (user_id) DO NOTHING
+			`
+			_, err = q.db.ExecContext(ctx, permQuery,
+				user.ID,
+				user.Permissions.PrivateGeneration,
+				user.Permissions.UseByChannelName,
+				user.Permissions.Vip,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to create permissions: %w", err)
+			}
 		}
 
 		return nil
@@ -76,6 +96,13 @@ func (r *Repository) GetUserByTelegramID(ctx context.Context, telegramID int64) 
 			return fmt.Errorf("failed to get user: %w", err)
 		}
 
+		bots, err := q.getUserActiveBots(ctx, user.ID)
+		if err != nil {
+			return fmt.Errorf("get user active bots: %w", err)
+		}
+
+		user.BotsActivated = bots
+
 		return nil
 
 	})
@@ -91,20 +118,35 @@ func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, 
 	var user entity.User
 	err := r.execTX(ctx, func(q *queries) error {
 		query := `
-		SELECT telegram_id, telegram_username, firstname, date_create
-		FROM elysium.users
-		WHERE id = $1
+		SELECT 
+			u.telegram_id, 
+			u.telegram_username, 
+			u.firstname, 
+			u.date_create,
+			u.balance,
+			p.private_generation,
+			p.use_by_channel_name,
+			p.vip
+		FROM elysium.users u
+		LEFT JOIN permissions p ON u.id = p.user_id
+		WHERE u.id = $1
 		`
-
 		var telegramID sql.NullInt64
 		var telegramUsername sql.NullString
 		var firstname sql.NullString
+		var privateGeneration sql.NullBool
+		var useByChannelName sql.NullBool
+		var vip sql.NullBool
 
 		err := q.db.QueryRowContext(ctx, query, userID).Scan(
 			&telegramID,
 			&telegramUsername,
 			&firstname,
 			&user.DateCreate,
+			&user.Balance,
+			&privateGeneration,
+			&useByChannelName,
+			&vip,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to get user: %w", err)
@@ -121,6 +163,18 @@ func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, 
 			user.Firstname = firstname.String
 		}
 
+		// Handle possible NULL permissions
+		user.Permissions.PrivateGeneration = privateGeneration.Valid && privateGeneration.Bool
+		user.Permissions.UseByChannelName = useByChannelName.Valid && useByChannelName.Bool
+		user.Permissions.Vip = vip.Valid && vip.Bool
+
+		bots, err := q.getUserActiveBots(ctx, user.ID)
+		if err != nil {
+			return fmt.Errorf("get user active bots: %w", err)
+		}
+
+		user.BotsActivated = bots
+
 		return nil
 	})
 	if err != nil {
@@ -135,21 +189,41 @@ func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, 
 // func get full user by telegram user_id in queries
 func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID int64) (entity.User, error) {
 	query := `
-		SELECT id, telegram_id, telegram_username, firstname, date_create
-		FROM elysium.users
-		WHERE telegram_id = $1
+		SELECT 
+			u.id, 
+			u.telegram_id, 
+			u.telegram_username, 
+			u.firstname, 
+			u.date_create,
+			u.balance,
+			p.private_generation,
+			p.use_by_channel_name,
+			p.vip
+		FROM elysium.users u
+		LEFT JOIN permissions p ON u.id = p.user_id
+		WHERE u.telegram_id = $1
 	`
 
 	var telegramUsername sql.NullString
 	var firstname sql.NullString
 
-	var user entity.User
+	var (
+		user              entity.User
+		privateGeneration sql.NullBool
+		useByChannelName  sql.NullBool
+		vip               sql.NullBool
+	)
+
 	err := q.db.QueryRowContext(ctx, query, telegramUserID).Scan(
 		&user.ID,
 		&user.TelegramID,
 		&telegramUsername,
 		&firstname,
 		&user.DateCreate,
+		&user.Balance,
+		&privateGeneration,
+		&useByChannelName,
+		&vip,
 	)
 	if err != nil {
 		return entity.User{}, fmt.Errorf("failed to query user: %w; telegram_id: %d", err, telegramUserID)
@@ -161,6 +235,11 @@ func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID in
 	if firstname.Valid {
 		user.Firstname = firstname.String
 	}
+
+	// Handle possible NULL permissions
+	user.Permissions.PrivateGeneration = privateGeneration.Valid && privateGeneration.Bool
+	user.Permissions.UseByChannelName = useByChannelName.Valid && useByChannelName.Bool
+	user.Permissions.Vip = vip.Valid && vip.Bool
 
 	return user, nil
 }
@@ -179,6 +258,25 @@ func (q *queries) getUserIDByTelegramUserID(ctx context.Context, telegramUserID 
 	return userID, nil
 }
 
+func (r *Repository) UpdatePermissions(ctx context.Context, userID int, perms entity.Permissions) error {
+	query := `
+        UPDATE permissions
+        SET 
+            private_generation = $1,
+            use_by_channel_name = $2,
+            vip = $3,
+            updated_at = NOW()
+        WHERE user_id = $4
+    `
+	_, err := r.db.ExecContext(ctx, query,
+		perms.PrivateGeneration,
+		perms.UseByChannelName,
+		perms.Vip,
+		userID,
+	)
+	return err
+}
+
 func (r *Repository) DeleteUser(ctx context.Context, userID int) error {
 	query := `
 		DELETE FROM elysium.users WHERE id = $1
@@ -193,44 +291,99 @@ func (r *Repository) DeleteUser(ctx context.Context, userID int) error {
 }
 
 func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int64) ([]entity.User, error) {
-	query := `
-		SELECT id, telegram_id, telegram_username, firstname, date_create
-		FROM elysium.users
-		WHERE telegram_id IN (%s)
-	`
-
-	ids := ""
-	args := make([]interface{}, len(telegramIDs))
-	placeholders := make([]string, len(telegramIDs))
-	for i, id := range telegramIDs {
-		args[i] = id
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		ids += placeholders[i] + ", "
+	query, args, err := sqlx.In(`                                                                                                                                                                                 
+         SELECT                                                                                                                                                                                                    
+             u.id,                                                                                                                                                                                                 
+             u.telegram_id,                                                                                                                                                                                        
+             u.telegram_username,                                                                                                                                                                                  
+             u.firstname,                                                                                                                                                                                          
+             u.date_create,                                                                                                                                                                                        
+             u.balance,                                                                                                                                                                                            
+             p.private_generation,                                                                                                                                                                                 
+             p.use_by_channel_name,                                                                                                                                                                                
+             p.vip,                                                                                                                                                                                                
+             COALESCE(json_agg(                                                                                                                                                                                    
+                 json_build_object(                                                                                                                                                                                
+                     'id', b.id,                                                                                                                                                                                   
+                     'name', b.name,                                                                                                                                                                               
+                     'token', b.token,                                                                                                                                                                             
+                     'purpose', b.purpose,                                                                                                                                                                         
+                     'test', b.test,                                                                                                                                                                               
+                     'enabled', b.enabled                                                                                                                                                                          
+                 )                                                                                                                                                                                                 
+             ) FILTER (WHERE b.id IS NOT NULL), '[]') AS bots_activated                                                                                                                                            
+         FROM elysium.users u                                                                                                                                                                                      
+         LEFT JOIN permissions p ON u.id = p.user_id                                                                                                                                                               
+         LEFT JOIN user_to_bots ub ON u.id = ub.user_id AND ub.active = true                                                                                                                                       
+         LEFT JOIN bots b ON ub.bot_id = b.id AND b.enabled = true                                                                                                                                                 
+         WHERE u.telegram_id IN (?)                                                                                                                                                                                
+         GROUP BY u.id, u.telegram_id, u.telegram_username, u.firstname, u.date_create, u.balance, p.private_generation, p.use_by_channel_name, p.vip                                                              
+     `, telegramIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
-	ids = strings.TrimSuffix(ids, ", ")
 
-	query = fmt.Sprintf(query, ids)
+	query = r.db.Rebind(query)
 
-	//sql: converting argument $1 type: unsupported type []int64, a slice of int66
-	var users []entity.User
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
+	defer rows.Close()
+
+	var users []entity.User
 
 	for rows.Next() {
 		var user entity.User
+		var telegramUsername sql.NullString
+		var firstname sql.NullString
+		var privateGeneration sql.NullBool
+		var useByChannelName sql.NullBool
+		var vip sql.NullBool
+		var botsJSON []byte
+
 		err := rows.Scan(
 			&user.ID,
 			&user.TelegramID,
-			&user.TelegramUsername,
-			&user.Firstname,
+			&telegramUsername,
+			&firstname,
 			&user.DateCreate,
+			&user.Balance,
+			&privateGeneration,
+			&useByChannelName,
+			&vip,
+			&botsJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
+
+		if telegramUsername.Valid {
+			user.TelegramUsername = telegramUsername.String
+		}
+		if firstname.Valid {
+			user.Firstname = firstname.String
+		}
+
+		user.Permissions = entity.Permissions{
+			PrivateGeneration: privateGeneration.Valid && privateGeneration.Bool,
+			UseByChannelName:  useByChannelName.Valid && useByChannelName.Bool,
+			Vip:               vip.Valid && vip.Bool,
+		}
+
+		// Парсим JSON с ботами
+		var bots []*entity.Bot
+		err = json.Unmarshal(botsJSON, &bots)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal bots: %w", err)
+		}
+		user.BotsActivated = bots
+
 		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
 	}
 
 	return users, nil

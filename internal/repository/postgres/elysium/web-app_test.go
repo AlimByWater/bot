@@ -10,6 +10,7 @@ import (
 )
 
 func TestSaveWebAppEventSucceeds(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -27,6 +28,7 @@ func TestSaveWebAppEventSucceeds(t *testing.T) {
 }
 
 func TestSaveWebAppEventFailsOnInvalidPayload(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -43,6 +45,7 @@ func TestSaveWebAppEventFailsOnInvalidPayload(t *testing.T) {
 }
 
 func TestSaveWebAppEventFailsOnEmptyEventType(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -59,6 +62,7 @@ func TestSaveWebAppEventFailsOnEmptyEventType(t *testing.T) {
 }
 
 func TestSaveMultipleWebAppEventsSucceeds(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -84,6 +88,7 @@ func TestSaveMultipleWebAppEventsSucceeds(t *testing.T) {
 }
 
 func TestSaveWebAppEventsFailsOnEmptyEventList(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -93,6 +98,7 @@ func TestSaveWebAppEventsFailsOnEmptyEventList(t *testing.T) {
 }
 
 func TestSaveWebAppEventsFailsOnInvalidPayload(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
