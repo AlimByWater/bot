@@ -22,9 +22,9 @@ SELECT
 	COALESCE(count(sp.id), 0) plays_count,
 	s.tags,
 	s.date_create
-FROM elysium.songs s
-	LEFT JOIN elysium.user_song_downloads usd ON s.id = usd.song_id
-	LEFT JOIN elysium.song_plays sp ON s.id = sp.song_id
+FROM songs s
+	LEFT JOIN user_song_downloads usd ON s.id = usd.song_id
+	LEFT JOIN song_plays sp ON s.id = sp.song_id
 WHERE s.url = $1 
 GROUP BY s.id
 `)
@@ -69,9 +69,9 @@ SELECT
 	COALESCE(count(sp.id), 0) plays_count,
 	s.tags,
 	s.date_create
-FROM elysium.songs s
-	LEFT JOIN elysium.user_song_downloads usd ON s.id = usd.song_id
-	LEFT JOIN elysium.song_plays sp ON s.id = sp.song_id
+FROM songs s
+	LEFT JOIN user_song_downloads usd ON s.id = usd.song_id
+	LEFT JOIN song_plays sp ON s.id = sp.song_id
 WHERE s.id = $1 
 GROUP BY s.id
 `)
@@ -265,7 +265,7 @@ RETURNING id, play_time
 
 func (r *Repository) LogSongDownload(ctx context.Context, songID int, userID int, source string) error {
 	query := `
-		INSERT INTO elysium.songs_downloads (song_id, user_id, source)
+		INSERT INTO songs_downloads (song_id, user_id, source)
 		VALUES ($1, $2, $3)
 	`
 	_, err := r.db.ExecContext(ctx, query, songID, userID, source)

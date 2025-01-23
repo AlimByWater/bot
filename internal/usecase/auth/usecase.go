@@ -29,7 +29,7 @@ type externalCache interface {
 }
 
 type userCreator interface {
-	CreateUser(ctx context.Context, user entity.User) (entity.User, error)
+	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
 }
 
 type Module struct {

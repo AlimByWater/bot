@@ -11,8 +11,8 @@ import (
 
 func TestSaveWebAppEventSucceeds(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	event := entity.WebAppEvent{
 		EventType: entity.EventTypeInitApp,
@@ -29,8 +29,8 @@ func TestSaveWebAppEventSucceeds(t *testing.T) {
 
 func TestSaveWebAppEventFailsOnInvalidPayload(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	event := entity.WebAppEvent{
 		EventType:  "test_event",
@@ -46,8 +46,8 @@ func TestSaveWebAppEventFailsOnInvalidPayload(t *testing.T) {
 
 func TestSaveWebAppEventFailsOnEmptyEventType(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	event := entity.WebAppEvent{
 		EventType:  "",
@@ -63,8 +63,8 @@ func TestSaveWebAppEventFailsOnEmptyEventType(t *testing.T) {
 
 func TestSaveMultipleWebAppEventsSucceeds(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	events := []entity.WebAppEvent{
 		{
@@ -89,8 +89,8 @@ func TestSaveMultipleWebAppEventsSucceeds(t *testing.T) {
 
 func TestSaveWebAppEventsFailsOnEmptyEventList(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	err := elysiumRepo.SaveWebAppEvents(context.Background(), []entity.WebAppEvent{})
 	require.Error(t, err)
@@ -99,8 +99,8 @@ func TestSaveWebAppEventsFailsOnEmptyEventList(t *testing.T) {
 
 func TestSaveWebAppEventsFailsOnInvalidPayload(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	events := []entity.WebAppEvent{
 		{

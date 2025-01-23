@@ -22,7 +22,7 @@ func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (
 			user.ID = currentUser.ID
 			if currentUser.TelegramUsername != user.TelegramUsername || currentUser.Firstname != user.Firstname {
 				query := `
-				UPDATE elysium.users
+				UPDATE users
 				SET firstname = $1, telegram_username = $2
 				WHERE id = $3
 				`
@@ -34,7 +34,7 @@ func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (
 			}
 		} else {
 			query := `
-		INSERT INTO elysium.users 
+		INSERT INTO users 
 		(telegram_id, telegram_username, firstname, date_create, balance)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, balance
@@ -127,7 +127,7 @@ func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, 
 			p.private_generation,
 			p.use_by_channel_name,
 			p.vip
-		FROM elysium.users u
+		FROM users u
 		LEFT JOIN permissions p ON u.id = p.user_id
 		WHERE u.id = $1
 		`
@@ -199,7 +199,7 @@ func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID in
 			p.private_generation,
 			p.use_by_channel_name,
 			p.vip
-		FROM elysium.users u
+		FROM users u
 		LEFT JOIN permissions p ON u.id = p.user_id
 		WHERE u.telegram_id = $1
 	`
@@ -246,7 +246,7 @@ func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID in
 
 func (q *queries) getUserIDByTelegramUserID(ctx context.Context, telegramUserID int64) (int, error) {
 	query := `
-		SELECT id FROM elysium.users WHERE telegram_user_id = $1
+		SELECT id FROM users WHERE telegram_user_id = $1
 	`
 
 	var userID int
@@ -279,7 +279,7 @@ func (r *Repository) UpdatePermissions(ctx context.Context, userID int, perms en
 
 func (r *Repository) DeleteUser(ctx context.Context, userID int) error {
 	query := `
-		DELETE FROM elysium.users WHERE id = $1
+		DELETE FROM users WHERE id = $1
 	`
 
 	_, err := r.db.ExecContext(ctx, query, userID)
@@ -312,7 +312,7 @@ func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int
                      'enabled', b.enabled                                                                                                                                                                          
                  )                                                                                                                                                                                                 
              ) FILTER (WHERE b.id IS NOT NULL), '[]') AS bots_activated                                                                                                                                            
-         FROM elysium.users u                                                                                                                                                                                      
+         FROM users u                                                                                                                                                                                      
          LEFT JOIN permissions p ON u.id = p.user_id                                                                                                                                                               
          LEFT JOIN user_to_bots ub ON u.id = ub.user_id AND ub.active = true                                                                                                                                       
          LEFT JOIN bots b ON ub.bot_id = b.id AND b.enabled = true                                                                                                                                                 

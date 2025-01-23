@@ -6,18 +6,20 @@ type Telegram struct {
 	UserBotAppID   int
 	UserBotAppHash string
 	UserBotTgPhone string
+	Local          bool
+	SessionDir     string
 }
 
 func NewTelegramConfig() *Telegram {
-	appID, _ := strconv.Atoi(os.Getenv("TELEGRAM_APP_ID"))
-	appHash := os.Getenv("TELEGRAM_APP_HASH")
-	phone := os.Getenv("TELEGRAM_PHONE_NUMBER")
+	return &Telegram{}
+}
 
-	return &Telegram{
-		UserBotAppID:   appID,
-		UserBotAppHash: appHash,
-		UserBotTgPhone: phone,
-	}
+func (c Telegram) IsLocal() bool {
+	return c.Local
+}
+
+func (c Telegram) GetSessionDir() string {
+	return c.SessionDir
 }
 
 func (c Telegram) GetUserBotAppID() int {
@@ -37,5 +39,6 @@ func (c Telegram) Validate() error {
 		validation.Field(&c.UserBotAppID, validation.Required),
 		validation.Field(&c.UserBotAppHash, validation.Required),
 		validation.Field(&c.UserBotTgPhone, validation.Required),
+		validation.Field(&c.SessionDir, validation.Required),
 	)
 }

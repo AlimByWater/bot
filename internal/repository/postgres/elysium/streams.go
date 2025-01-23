@@ -8,7 +8,7 @@ import (
 
 func (r *Repository) AvailableStreams(ctx context.Context) ([]*entity.Stream, error) {
 	query := `
-		SELECT slug, name, link, logo_link, icon_link, on_click_link, priority FROM elysium.streams
+		SELECT slug, name, link, logo_link, icon_link, on_click_link, priority FROM streams
 WHERE enabled = true
 `
 	var streams []*entity.Stream

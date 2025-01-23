@@ -81,7 +81,7 @@ func (m *Module) GenerateTokenForTelegram(ctx context.Context, telegramLogin ent
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
-		user, err = m.users.CreateUser(ctx, entity.User{
+		user, err = m.users.CreateOrUpdateUser(ctx, entity.User{
 			TelegramID:       telegramLogin.TelegramID,
 			TelegramUsername: data.User.Username,
 			Firstname:        data.User.FirstName,

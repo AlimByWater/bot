@@ -10,7 +10,7 @@ import (
 func (r *Repository) SaveUserSessionDuration(ctx context.Context, sessionDuration entity.UserSessionDuration) error {
 	err := r.execTX(ctx, func(q *queries) error {
 		query := `
-INSERT INTO elysium.user_session_durations
+INSERT INTO user_session_durations
 (telegram_id, start_time, end_time, duration_in_seconds)
 VALUES ($1, $2, $3, $4)
 `
@@ -46,7 +46,7 @@ func (r *Repository) BatchAddSongToUserSongHistory(ctx context.Context, historie
 		}
 
 		query := fmt.Sprintf(`
-INSERT INTO elysium.user_to_song_history
+INSERT INTO user_to_song_history
 (telegram_id, song_id, song_plays_id, stream, timestamp)
 VALUES %s`, strings.Join(valueStrings, ","))
 

@@ -9,8 +9,8 @@ import (
 
 func TestRepository_GetAllBots(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	ctx := context.Background()
 
@@ -56,8 +56,8 @@ func TestRepository_GetAllBots(t *testing.T) {
 
 func TestRepository_GetBotByID(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	ctx := context.Background()
 
@@ -111,8 +111,8 @@ func TestRepository_GetBotByID(t *testing.T) {
 
 func TestRepository_CreateBot(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	ctx := context.Background()
 
@@ -169,8 +169,8 @@ func TestRepository_CreateBot(t *testing.T) {
 
 func TestRepository_UpdateBot(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	ctx := context.Background()
 
@@ -210,8 +210,8 @@ func TestRepository_UpdateBot(t *testing.T) {
 
 func TestRepository_SetUserToBotActive(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	ctx := context.Background()
 
@@ -309,8 +309,8 @@ func TestRepository_SetUserToBotActive(t *testing.T) {
 
 func TestRepository_DeleteBot(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	ctx := context.Background()
 

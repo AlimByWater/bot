@@ -4,6 +4,7 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
+	"strings"
 )
 
 func (r *Repository) CreateOrUpdateAccessHash(ctx context.Context, accessHash entity.AccessHash) error {
@@ -12,6 +13,10 @@ func (r *Repository) CreateOrUpdateAccessHash(ctx context.Context, accessHash en
         VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (chat_id) DO UPDATE 
         SET username = $2, hash = $3, peer_id = $4`
+
+	if !strings.HasPrefix(accessHash.Username, "@") {
+		accessHash.Username = "@" + accessHash.Username
+	}
 
 	_, err := r.db.ExecContext(ctx, query,
 		accessHash.ChatID,

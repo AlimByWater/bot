@@ -1,6 +1,6 @@
 .idea
 /app
-/cmd
 .aider*
 *_easyjson.go
 *.pb.go
+/ai_specs

@@ -15,30 +15,25 @@ type cacheUC interface {
 
 type repository interface {
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
+	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
+	SetUserToBotActive(ctx context.Context, userID int, botID int64) error
 }
-
-type layoutCreator interface {
-	GenerateAndSaveDefaultLayout(ctx context.Context, userID int, username string) (entity.UserLayout, error)
-}
-
 type Module struct {
 	logger *slog.Logger
 	ctx    context.Context
 
-	cache  cacheUC
-	repo   repository
-	layout layoutCreator
+	cache cacheUC
+	repo  repository
 
 	onlineUsersCount   atomic.Int64
 	mu                 sync.RWMutex
 	streamsOnlineCount map[string]int64
 }
 
-func New(cache cacheUC, repo repository, layout layoutCreator) *Module {
+func New(cache cacheUC, repo repository) *Module {
 	return &Module{
-		cache:  cache,
-		repo:   repo,
-		layout: layout,
+		cache: cache,
+		repo:  repo,
 	}
 }
 

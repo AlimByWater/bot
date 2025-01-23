@@ -2,67 +2,17 @@ package elysium_test
 
 import (
 	"context"
-	"elysium/internal/application/config"
-	"elysium/internal/application/config/config_module"
-	"elysium/internal/application/env"
-	"elysium/internal/application/env/test"
 	"elysium/internal/entity"
-	"elysium/internal/repository/postgres"
-	"elysium/internal/repository/postgres/elysium"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var elysiumRepo *elysium.Repository
-var postgresql *postgres.Module
-
-func testConfig(t *testing.T) *config_module.Postgres {
-	t.Helper()
-
-	t.Setenv("ENV", "test")
-	testEnv := test.New()
-	envModule := env.New(testEnv)
-	storage, err := envModule.Init()
-	if err != nil {
-		t.Fatalf("Failed to initialize env module: %v", err)
-	}
-
-	pgConfig := config_module.NewPostgresConfig()
-	cfg := config.New(pgConfig)
-	err = cfg.Init(storage)
-	if err != nil {
-		t.Fatalf("Failed to initialize config: %v", err)
-	}
-
-	return pgConfig
-}
-
-func setupTest(t *testing.T) func(t *testing.T) {
-	t.Helper()
-
-	cfg := testConfig(t)
-	elysiumRepo = elysium.NewRepository()
-	postgresql = postgres.New(cfg, elysiumRepo)
-	err := postgresql.Init(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("Failed to initialize postgres repository: %v", err)
-
-	}
-
-	// Возвращаем функцию очистки
-	return func(t *testing.T) {
-		if err := postgresql.Close(); err != nil {
-			t.Errorf("Failed to close postgresql connection: %v", err)
-		}
-	}
-}
-
 func TestCreateSong(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	t.Run("CreateSong with valid data", func(t *testing.T) {
 		song := entity.Song{
@@ -117,8 +67,8 @@ func TestCreateSong(t *testing.T) {
 
 func TestSongByUrl(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	t.Run("SongByUrl with valid URL", func(t *testing.T) {
 		song := entity.Song{
@@ -156,8 +106,8 @@ func TestSongByUrl(t *testing.T) {
 
 func TestLogSongDownloaded(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	err := elysiumRepo.LogSongDownload(context.Background(), 1, 1, entity.SongDownloadSourceBot)
 	require.NoError(t, err)
@@ -165,8 +115,8 @@ func TestLogSongDownloaded(t *testing.T) {
 
 func TestSongByID(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	song, err := elysiumRepo.SongByID(context.Background(), 241)
 	require.NoError(t, err)

@@ -10,8 +10,8 @@ import (
 
 func TestCreateOrUpdateAccessHash(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	t.Run("create new access hash", func(t *testing.T) {
 		ah := entity.AccessHash{
@@ -73,8 +73,8 @@ func TestCreateOrUpdateAccessHash(t *testing.T) {
 
 func TestGetAccessHash(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	t.Run("get existing access hash", func(t *testing.T) {
 		ah := entity.AccessHash{
@@ -108,8 +108,8 @@ func TestGetAccessHash(t *testing.T) {
 
 func TestGetAllAccessHashes(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	t.Run("get all access hashes", func(t *testing.T) {
 		hashes := []entity.AccessHash{
@@ -164,8 +164,8 @@ func TestGetAllAccessHashes(t *testing.T) {
 
 func TestDeleteAccessHash(t *testing.T) {
 	t.Skip()
-	teardown := setupTest(t)
-	defer teardown(t)
+	//teardown := setupTest(t)
+	//defer teardown(t)
 
 	t.Run("delete existing access hash", func(t *testing.T) {
 		ah := entity.AccessHash{

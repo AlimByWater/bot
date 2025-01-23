@@ -23,6 +23,7 @@ func (m Module) GetEnv() (string, error) {
 	if !ok {
 		return "local", nil
 	}
+
 	return env, nil
 }
 

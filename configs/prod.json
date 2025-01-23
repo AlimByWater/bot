@@ -1,0 +1,58 @@
+{
+  "Http": {
+    "Mode": "release",
+    "Port": ":443"
+  },
+  "Demethra": {
+    "BotToken": "7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8",
+    "BotName": "t.me/elysium_demethra_bot",
+    "ChatIDForLogs": -1002044294733,
+    "ElysiumFmID": -1002129034021,
+    "ElysiumForumID": -1002124956071,
+    "ElysiumFmCommentID": -1002164548613,
+    "TracksDbChannel": -1002243776940,
+    "CurrentTrackMessageID": 18245,
+    "ListenerIdleTimeoutInMinutes": 3,
+    "TelegramBotApiServer": "http://telegram-bot-api:8081/bot%s/%s"
+  },
+  "ArimaDJ": {
+    "BotToken": "7447550770:AAHaO6tRmqNtb53fD9cIXPJVjYi1mHN3i_0",
+    "BotName": "t.me/arima_dj_bot",
+    "ChatIDForLogs": -1002044294733
+  },
+  "Postgres": {
+    "User": "elysium",
+    "Password": "OJocasd923sa0d3",
+    "Name": "elysium",
+    "Host": "postgres",
+    "Port": 5432,
+    "Driver": "postgres",
+    "SSLMode": "disable",
+    "MaxConn": 10
+  },
+  "Soundcloud": {
+    "ProxyURL": "http://bL6Rzf:TVWJC5@45.137.42.186:8000",
+    "DownloadPath": "/app/temp"
+  },
+  "Redis": {
+    "Host": "redis",
+    "Port": 6379,
+    "Password": "OJocasd923sa0d4"
+  },
+  "Auth": {
+    "Secret": "test-secret-elysium",
+    "TelegramBotToken": "7445477091:AAGOqZ_0_5vTkhHRNfK2iHWgk4ejM8UkL_8",
+    "ApiKey": "1234515151"
+  },
+  "Downloader": {
+    "GrpcHost": "elysium-downloader",
+    "GrpcPort": 8051
+  },
+  "Telegram": {
+    "UserBotAppID": 26094754,
+    "UserBotAppHash": "7f09f386e975844351a40e8e9e5478d8",
+    "UserBotTgPhone": "+79010462087",
+    "Local": false,
+    "SessionDir": "/app/sessions/user"
+  }
+}

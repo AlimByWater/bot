@@ -36,6 +36,10 @@ func (r *Repository) AddDb(db *sqlx.DB) {
 	r.db = db
 }
 
+func (r *Repository) DB() *sqlx.DB {
+	return r.db
+}
+
 func newQueries(db dbtx) *queries {
 	return &queries{db: db}
 }

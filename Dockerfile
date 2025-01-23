@@ -14,14 +14,16 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 RUN go mod download && \
      protoc --go_out=. --go-grpc_out=. pkg/proto/downloader.proto && \
-    CGO_ENABLED=0 GOOS=linux go build -o bot main.go
+    CGO_ENABLED=0 GOOS=linux go build -o main main.go
 
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/bot /app/bot
+COPY --from=builder /app/main /app/main
 COPY --from=builder /app/configs /app/configs
 RUN mkdir /app/temp
 
+ENV ENV=local
+
 EXPOSE 443
-ENTRYPOINT ["./bot"]
+ENTRYPOINT ["./main"]

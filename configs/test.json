@@ -47,5 +47,11 @@
   "Downloader": {
     "GrpcHost": "localhost",
     "GrpcPort": 8051
+  },
+  "Telegram": {
+    "UserBotAppID": 26094754,
+    "UserBotAppHash": "7f09f386e975844351a40e8e9e5478d8",
+    "UserBotTgPhone": "+79010462087",
+    "Test": true
   }
 }

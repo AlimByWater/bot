@@ -15,18 +15,18 @@ const (
 
 // easyjson:json
 type EmojiPack struct {
-	ID             int64     `json:"id" db:"id"`
-	User           User      `json:"user" db:"user"`
-	PackTitle      string    `json:"pack_title" db:"pack_title"`
-	TelegramFileID string    `json:"telegram_file_id" db:"telegram_file_id"` // telegram_file_id        string    `db:"file_url"`
-	PackLink       string    `json:"pack_link,omitempty" db:"pack_link"`
-	InitialCommand string    `json:"initial_command,omitempty" db:"initial_command"`
-	Bot            Bot       `json:"bot" db:"bot_name"`
-	EmojiCount     int       `json:"emoji_count" db:"emoji_count"`
-	Completed      bool      `json:"completed" db:"completed"`
-	Deleted        bool      `json:"deleted" db:"deleted"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
+	ID                int64     `json:"id" db:"id"`
+	CreatorTelegramID int64     `json:"creator_id" db:"creator_telegram_id"`
+	Bot               Bot       `json:"bot" db:"bot"`
+	PackTitle         string    `json:"pack_title" db:"pack_title"`
+	TelegramFileID    string    `json:"telegram_file_id" db:"telegram_file_id"`
+	PackLink          string    `json:"pack_link,omitempty" db:"pack_link"`
+	InitialCommand    string    `json:"initial_command,omitempty" db:"initial_command"`
+	EmojiCount        int       `json:"emoji_count" db:"emoji_count"`
+	Completed         bool      `json:"completed" db:"completed"`
+	Deleted           bool      `json:"deleted" db:"deleted"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // easyjson:json

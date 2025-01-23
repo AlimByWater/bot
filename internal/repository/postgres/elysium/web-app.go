@@ -12,7 +12,7 @@ import (
 func (r *Repository) SaveWebAppEvent(ctx context.Context, event entity.WebAppEvent) error {
 	err := r.execTX(ctx, func(q *queries) error {
 		query := `
-INSERT INTO elysium.web_app_events
+INSERT INTO web_app_events
 (event_type, telegram_id, payload, session_id, stream, timestamp)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
@@ -54,7 +54,7 @@ func (r *Repository) SaveWebAppEvents(ctx context.Context, events []entity.WebAp
 		}
 
 		query := fmt.Sprintf(`
-INSERT INTO elysium.web_app_events (event_type, telegram_id, payload, session_id, stream, timestamp)
+INSERT INTO web_app_events (event_type, telegram_id, payload, session_id, stream, timestamp)
 VALUES %s`, strings.Join(valueStrings, ","))
 
 		_, err := r.db.ExecContext(ctx, query, valueArgs...)
@@ -74,7 +74,7 @@ VALUES %s`, strings.Join(valueStrings, ","))
 func (r *Repository) GetEventsByTelegramUserID(ctx context.Context, telegramUserID int64, since time.Time) ([]entity.WebAppEvent, error) {
 	query := `
 		SELECT event_type, telegram_id, payload, session_id, timestamp
-		FROM elysium.web_app_events
+		FROM web_app_events
 		WHERE telegram_id = $1
 		ORDER BY timestamp DESC
 	`

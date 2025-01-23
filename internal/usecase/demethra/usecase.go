@@ -62,9 +62,6 @@ type repository interface {
 
 	AvailableStreams(ctx context.Context) ([]*entity.Stream, error)
 }
-type soundcloudDownloader interface {
-	DownloadTrackByURL(ctx context.Context, trackUrl string, info entity.TrackInfo) (string, error)
-}
 
 type downloader interface {
 	DownloadByLink(ctx context.Context, url string, format string) (string, []byte, error)
