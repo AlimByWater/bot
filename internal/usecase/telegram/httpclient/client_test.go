@@ -2,16 +2,28 @@ package httpclient
 
 import (
 	"bytes"
+	"elysium/internal/application/logger"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/time/rate"
+	"log/slog"
 	"net/http"
 	"testing"
 	"time"
 )
 
 func TestDo(t *testing.T) {
+	loggerModule := logger.New(
+		logger.Options{
+			AppName: "httpclient",
+			Writer:  nil,
+			HandlerOptions: &slog.HandlerOptions{
+				Level: slog.LevelDebug,
+			},
+		},
+	)
 	rl := rate.NewLimiter(rate.Every(1*time.Second), 30) // 50 request every 10 seconds
-	c := NewClient(rl)
+	c := NewClient(rl, loggerModule)
 	reqURL := "https://api.telegram.org/bot7486051673:AAEg2bzMqec1NkFK8tHycLn8gvGxK6xQ6ww/getFile"
 
 	body := []byte(`{
@@ -40,4 +52,8 @@ func TestDo(t *testing.T) {
 			assert.Fail(t, "Rate limit reached after %d requests", i)
 		}
 	}
+}
+
+func TestFmt(t *testing.T) {
+	t.Log(fmt.Sprintf("попробуйте через %.f минуты", float64(60)/60))
 }

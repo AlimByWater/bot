@@ -3,9 +3,9 @@ package telegram
 import (
 	"context"
 	"elysium/internal/entity"
+	"elysium/internal/usecase/emoji-gen/queue"
 	"elysium/internal/usecase/telegram/emoji-gen/processing"
 	progress "elysium/internal/usecase/telegram/emoji-gen/progress-manager"
-	"elysium/internal/usecase/telegram/emoji-gen/queue"
 	"elysium/internal/usecase/telegram/emoji-gen/uploader"
 	"elysium/internal/usecase/telegram/emoji-gen/vip_bot"
 	"elysium/internal/usecase/telegram/httpclient"
@@ -20,7 +20,7 @@ import (
 
 func (m *Manager) initVipBot(b *entity.Bot, logger *slog.Logger) (*botapi.Bot, error) {
 	rl := rate.NewLimiter(rate.Every(1*time.Second), 100)
-	c := httpclient.NewClient(rl)
+	c := httpclient.NewClient(rl, logger)
 
 	fmt.Println(b.Token)
 	api, err := botapi.New(b.Token,
@@ -32,7 +32,7 @@ func (m *Manager) initVipBot(b *entity.Bot, logger *slog.Logger) (*botapi.Bot, e
 	}
 	b.BotApi = api
 
-	processor := processing.NewProcessingModule()
+	processor := processing.NewProcessingModule(logger)
 
 	queueModule := queue.New()
 	uploaderModule := uploader.New(queueModule, logger)
@@ -59,6 +59,8 @@ func (m *Manager) vipHandlers(ctx context.Context, b *botapi.Bot, update *models
 			return
 		}
 	}
+
+	models.CallbackQuery{}
 
 	if update.Message == nil {
 		return

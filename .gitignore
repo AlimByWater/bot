@@ -4,3 +4,4 @@
 *_easyjson.go
 *.pb.go
 /ai_specs
+main

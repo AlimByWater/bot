@@ -1,10 +1,13 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"elysium/internal/entity"
+	"encoding/json"
 	"fmt"
 	"golang.org/x/time/rate"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -16,50 +19,97 @@ import (
 type RLHTTPClient struct {
 	client      *http.Client
 	Ratelimiter *rate.Limiter
+	logger      *slog.Logger
 }
 
 // Do dispatches the HTTP request to the network
 func (c *RLHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	// Comment out the below 5 lines to turn off ratelimiting
 	ctx := context.Background()
-	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	err := c.Ratelimiter.Wait(ctx)
 	if err != nil {
-		slog.Debug("CLIENT: wait", slog.String("err", err.Error()), slog.String("url", req.URL.String()))
+		c.logger.Debug("CLIENT: wait", slog.String("err", err.Error()), slog.String("url", req.URL.String()))
 		return nil, err
 	}
-	slog.Debug("CLIENT: wait no error", slog.String("url", req.URL.String()))
 
 	var resp *http.Response
+	var bodyBytes []byte
+	if req.Body != nil {
+		bodyBytes, err = io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	}
 
 	for {
+		if bodyBytes != nil {
+			req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		}
+
 		resp, err = c.client.Do(req)
-		slog.Debug("CLIENT: do", slog.String("url", req.URL.String()))
 		if err != nil {
-			if strings.Contains(err.Error(), "retry_after") {
-				// Извлекаем время ожидания из ошибки
-				parts := strings.Split(err.Error(), "retry_after ")
-				if len(parts) < 2 {
-					slog.Error("CLIENT: split", "err", err.Error())
+			c.logger.Debug("CLIENT: request error", slog.String("err", err.Error()), slog.String("url", req.URL.String()))
+			return nil, err
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			break
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests {
+			var retryAfter int
+
+			retryAfterHeader := resp.Header.Get("Retry-After")
+			if retryAfterHeader != "" {
+				waitTimeInt, err := strconv.Atoi(retryAfterHeader)
+				if err == nil {
+					retryAfter = waitTimeInt
+				}
+			}
+
+			if retryAfter == 0 {
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					c.logger.Error("CLIENT: read body", slog.String("err", err.Error()))
 					return nil, err
 				}
-				waitTimeInt, parseErr := strconv.Atoi(strings.TrimSpace(parts[len(parts)-1]))
-				if parseErr != nil {
-					slog.Error("CLIENT: parse", "err", parseErr.Error())
+
+				type apiResponse struct {
+					Description string `json:"description,omitempty"`
+					ErrorCode   int    `json:"error_code,omitempty"`
+					Parameters  struct {
+						RetryAfter int `json:"retry_after,omitempty"`
+					} `json:"parameters,omitempty"`
+				}
+
+				var r apiResponse
+				err = json.Unmarshal(body, &r)
+				if err != nil {
+					c.logger.Error("CLIENT: unmarshal body", slog.String("err", err.Error()))
 					return nil, err
 				}
 
-				waitTime := time.Duration(waitTimeInt) * time.Second
+				retryAfter = r.Parameters.RetryAfter
+			}
 
-				if waitTime.Seconds() > 100 {
-					return nil, fmt.Errorf("%w: попробуйте через %.0f секунд", entity.ErrEmojiPacksLimitExceeded, waitTime.Minutes())
+			if retryAfter > 0 {
+				if retryAfter > 100 {
+					if strings.Contains(req.URL.String(), "uploadStickerFile") || strings.Contains(req.URL.String(), "createNewStickerSet") || strings.Contains(req.URL.String(), "addStickerToSet") {
+						return nil, fmt.Errorf("%w: попробуйте через %.f минуты", entity.ErrEmojiPacksLimitExceeded, float64(retryAfter)/60)
+					} else {
+						return nil, fmt.Errorf("лимит запросов в секунду превышен")
+					}
 				}
 
-				time.Sleep(waitTime)
+				c.logger.Debug("CLIENT: rate limited", slog.Int("retry_after", retryAfter))
+				resp.Body.Close()
+				time.Sleep(time.Duration(retryAfter) * time.Second)
 				continue
 			} else {
-				return nil, err
+				return nil, fmt.Errorf("получен статус 429, но не удалось определить время ожидания")
 			}
 		}
+
 		break
 	}
 
@@ -67,10 +117,11 @@ func (c *RLHTTPClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 // NewClient return http client with a ratelimiter
-func NewClient(rl *rate.Limiter) *RLHTTPClient {
+func NewClient(rl *rate.Limiter, logger *slog.Logger) *RLHTTPClient {
 	c := &RLHTTPClient{
 		client:      http.DefaultClient,
 		Ratelimiter: rl,
+		logger:      logger,
 	}
 	return c
 }
