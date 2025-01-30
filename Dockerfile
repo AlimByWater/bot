@@ -21,6 +21,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main /app/main
 COPY --from=builder /app/configs /app/configs
+COPY --from=builder /app/assets /app/assets
 RUN mkdir /app/temp
 
 ENV ENV=local

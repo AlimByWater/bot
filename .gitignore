@@ -5,3 +5,4 @@
 *.pb.go
 /ai_specs
 main
+local

@@ -20,5 +20,15 @@
     "UserBotTgPhone": "+79010462087",
     "Local": true,
     "SessionDir": "/Users/admin/.sessions/user"
+  },
+
+  "Message": {
+    "DefaultLanguage": "ru",
+    "DirectoryName": "assets/languages/"
+  },
+
+  "DripTechBot": {
+    "Token": "7894673045:AAHgosEAHjdW78q44bPTSuwVqSZl8SEN0-w",
+    "Name": "optimus_polygon_bot"
   }
 }

@@ -60,8 +60,6 @@ func (m *Manager) vipHandlers(ctx context.Context, b *botapi.Bot, update *models
 		}
 	}
 
-	models.CallbackQuery{}
-
 	if update.Message == nil {
 		return
 	}

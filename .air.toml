@@ -4,8 +4,8 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  full_bin = "ENV=local ./emoji-gen"
-  cmd = "go build -o emoji-gen ./cmd/emoji-gen/"
+  full_bin = "ENV=local ./local"
+  cmd = "go build -o local ./cmd/driptech-bot/"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []

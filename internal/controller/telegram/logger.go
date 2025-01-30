@@ -10,7 +10,7 @@ type telegoLogger struct {
 }
 
 func (l telegoLogger) Debugf(format string, args ...any) {
-	l.logger.Debug(fmt.Sprintf(format+"\n", args...))
+	//l.logger.Debug(fmt.Sprintf(format+"\n", args...))
 }
 
 func (l telegoLogger) Errorf(format string, args ...any) {

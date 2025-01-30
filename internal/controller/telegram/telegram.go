@@ -62,7 +62,7 @@ type Module struct {
 func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog.Logger) (err error) {
 	m.ctx = ctx
 	m.stop = stop
-	m.logger = logger.With(slog.String("module", "💬 EMOJI GEN VIP"))
+	m.logger = logger.With(slog.String("module", "💬 TELEGRAM"))
 
 	m.bot, err = telego.NewBot(m.cfg.GetToken(), telego.WithLogger(telegoLogger{m.logger}))
 	if err != nil {
