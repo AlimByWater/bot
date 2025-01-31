@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS songs (
                                              artist_name VARCHAR(255) NOT NULL CHECK (artist_name <> ''),
                                              title VARCHAR(255),
                                              cover_link VARCHAR(255),
-                                             cover VARCHAR(255),
                                              cover_telegram_file_id VARCHAR(255),
                                              song_telegram_message_chat_id bigint,
                                              song_telegram_message_id bigint,
