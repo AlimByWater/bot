@@ -8,79 +8,54 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"time"
 )
 
+// CreateOrUpdateUser создает пользователя. Если пользователь уже существует, то обновляется его данные из телеграма (TelegramID, TelegramUsername, Firstname)
 func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error) {
 	err := r.execTX(ctx, func(q *queries) error {
-		currentUser, err := q.getUserByTelegramUserID(ctx, user.TelegramID)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("failed to get user: %w", err)
+		// Основной запрос для upsert пользователя
+		userQuery := `
+            INSERT INTO users AS u 
+                (telegram_id, telegram_username, firstname, balance)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (telegram_id) DO UPDATE
+                SET 
+                    telegram_username = COALESCE(NULLIF($2, ''), u.telegram_username),
+                    firstname = COALESCE(NULLIF($3, ''), u.firstname)
+            RETURNING id
+        `
+		// Получаем ID пользователя после вставки/обновления
+		err := q.db.QueryRowContext(ctx, userQuery,
+			user.TelegramID,
+			user.TelegramUsername,
+			user.Firstname,
+			user.Balance,
+		).Scan(&user.ID)
+		if err != nil {
+			return fmt.Errorf("failed to upsert user: %w", err)
 		}
 
-		if currentUser.ID != 0 {
-			user.ID = currentUser.ID
-			if currentUser.TelegramUsername != user.TelegramUsername || currentUser.Firstname != user.Firstname {
-				query := `
-				UPDATE users
-				SET firstname = $1, telegram_username = $2
-				WHERE id = $3
-				`
-				_, err := q.db.ExecContext(ctx, query, user.Firstname, user.TelegramUsername, currentUser.ID)
-				if err != nil {
-					return fmt.Errorf("failed to update user: %w", err)
-				}
-
-			}
-		} else {
-			query := `
-		INSERT INTO users 
-		(telegram_id, telegram_username, firstname, date_create, balance)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, balance
-	`
-
-			if user.DateCreate.IsZero() {
-				user.DateCreate = time.Now()
-			}
-
-			err = q.db.QueryRowContext(ctx, query,
-				user.TelegramID,
-				user.TelegramUsername,
-				user.Firstname,
-				user.DateCreate,
-				user.Balance,
-			).Scan(
-				&user.ID,
-				&user.Balance,
-			)
-
-			if err != nil {
-				return fmt.Errorf("failed to create user: %w", err)
-			}
-
-			// Insert default permissions
-			permQuery := `
-				INSERT INTO permissions 
-					(user_id, private_generation, use_by_channel_name, vip)
-				VALUES ($1, $2, $3, $4)
-				ON CONFLICT (user_id) DO NOTHING
-			`
-			_, err = q.db.ExecContext(ctx, permQuery,
-				user.ID,
-				user.Permissions.PrivateGeneration,
-				user.Permissions.UseByChannelName,
-				user.Permissions.Vip,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create permissions: %w", err)
-			}
+		// Добавляем права ТОЛЬКО для новых пользователей
+		permQuery := `
+            INSERT INTO permissions 
+                (user_id, private_generation, use_by_channel_name, vip)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id) DO NOTHING
+        `
+		_, err = q.db.ExecContext(ctx, permQuery,
+			user.ID,
+			user.Permissions.PrivateGeneration,
+			user.Permissions.UseByChannelName,
+			user.Permissions.Vip,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert permissions: %w", err)
 		}
 
 		return nil
 	})
 
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return entity.User{}, fmt.Errorf("exec tx: %w", err)
 	}
 

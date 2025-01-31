@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateOrUpdateUser(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	//teardown := setupTest(t)
 	//defer teardown(t)
 
@@ -32,8 +32,8 @@ func TestCreateOrUpdateUser(t *testing.T) {
 		{
 			name: "Update existing user",
 			user: entity.User{
-				TelegramID:       9000000001,
-				TelegramUsername: "updateduser1",
+				TelegramID:       251636949,
+				TelegramUsername: "no_alim",
 				Firstname:        "Updated",
 				DateCreate:       time.Now(),
 			},
@@ -76,7 +76,7 @@ func TestGetUserByTelegramID(t *testing.T) {
 	}{
 		{
 			name:        "Existing user",
-			telegramID:  9000000002,
+			telegramID:  251636949,
 			shouldExist: true,
 		},
 		{
