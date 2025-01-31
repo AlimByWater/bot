@@ -72,31 +72,28 @@ func (m *SaveUser) Handler() telegohandler.Middleware {
 		}
 
 		if update.Message != nil && strings.HasPrefix(update.Message.Text, "/start") {
-			b, err := bot.GetMe()
-			if err != nil {
-				m.logger.Error("Failed to get bot info",
-					slog.String("error", err.Error()))
+			botUser, ok := update.Context().Value(entity.BotSelfCtxKey).(*telego.User)
+			if !ok || botUser == nil {
+				m.logger.Error("bot info not found in context")
+				next(bot, update)
 				return
-			} else {
-				botIDstr := fmt.Sprintf("-100%d", b.ID)
-				botID, err := strconv.ParseInt(botIDstr, 10, 64)
-				if err != nil {
-					m.logger.Error("Failed to parse bot ID",
-						slog.String("error", err.Error()),
-						slog.String("bot_id", botIDstr))
-					return
-				}
+			}
 
-				err = m.userUC.SetUserToBotActive(context.Background(), savedUser.ID, botID)
-				if err != nil {
-					m.logger.Error("Failed to activate bot for user",
-						slog.Int("user_id", savedUser.ID),
-						slog.Int64("bot_id", botID),
-						slog.String("error", err.Error()))
-				}
-				m.logger.Debug("Activated bot for user",
+			botID, err := strconv.ParseInt(fmt.Sprintf("-100%d", botUser.ID), 10, 64)
+			if err != nil {
+				m.logger.Error("Failed to parse bot ID",
+					slog.Int64("bot_id", botUser.ID),
+					slog.String("error", err.Error()))
+				next(bot, update)
+				return
+			}
+
+			err = m.userUC.SetUserToBotActive(context.Background(), savedUser.ID, botID)
+			if err != nil {
+				m.logger.Error("Failed to activate bot for user",
 					slog.Int("user_id", savedUser.ID),
-					slog.Int64("bot_id", botID))
+					slog.Int64("bot_id", botID),
+					slog.String("error", err.Error()))
 			}
 		}
 

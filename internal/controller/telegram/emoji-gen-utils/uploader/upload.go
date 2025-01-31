@@ -6,19 +6,16 @@ import (
 	"elysium/internal/entity"
 	"errors"
 	"fmt"
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegoutil"
 	"log/slog"
 	"os"
 )
 
-func (m *Module) uploadSticker(ctx context.Context, b *bot.Bot, userID int64, filename string, data []byte) (string, error) {
-	newSticker, err := b.UploadStickerFile(ctx, &bot.UploadStickerFileParams{
-		UserID: userID,
-		Sticker: &models.InputFileUpload{
-			Filename: filename,
-			Data:     bytes.NewReader(data),
-		},
+func (m *Module) uploadSticker(ctx context.Context, b *telego.Bot, userID int64, filename string, data []byte) (string, error) {
+	newSticker, err := b.UploadStickerFile(&telego.UploadStickerFileParams{
+		UserID:        userID,
+		Sticker:       telegoutil.File(telegoutil.NameReader(bytes.NewReader(data), filename)),
 		StickerFormat: entity.DefaultStickerFormat,
 	})
 
@@ -33,7 +30,7 @@ func (m *Module) uploadSticker(ctx context.Context, b *bot.Bot, userID int64, fi
 }
 
 // uploadEmojiFiles загружает все файлы эмодзи и возвращает их fileIDs и метаданные
-func (m *Module) uploadEmojiFiles(ctx context.Context, b *bot.Bot, args *entity.EmojiCommand, set *models.StickerSet, emojiFiles []string) ([]string, [][]entity.EmojiMeta, error) {
+func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, set *telego.StickerSet, emojiFiles []string) ([]string, [][]entity.EmojiMeta, error) {
 	m.logger.Debug("uploading emoji stickers", slog.Int("count", len(emojiFiles)))
 
 	totalEmojis := len(emojiFiles)

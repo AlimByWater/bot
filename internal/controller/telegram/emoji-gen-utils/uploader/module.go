@@ -4,8 +4,7 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/mymmrac/telego"
 	"log/slog"
 	"os"
 )
@@ -29,7 +28,7 @@ func New(queuer Queuer, logger *slog.Logger) *Module {
 
 }
 
-func (m *Module) AddEmojis(ctx context.Context, b *bot.Bot, args *entity.EmojiCommand, emojiFiles []string) (*models.StickerSet, [][]entity.EmojiMeta, error) {
+func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFiles []string) (*telego.StickerSet, [][]entity.EmojiMeta, error) {
 	if err := m.ValidateEmojiFiles(emojiFiles); err != nil {
 		return nil, nil, err
 	}
@@ -49,10 +48,10 @@ func (m *Module) AddEmojis(ctx context.Context, b *bot.Bot, args *entity.EmojiCo
 	}
 	defer m.stickerQueue.Release(args.PackLink)
 
-	var set *models.StickerSet
+	var set *telego.StickerSet
 	if !args.NewSet {
 		var err error
-		set, err = b.GetStickerSet(ctx, &bot.GetStickerSetParams{
+		set, err = b.GetStickerSet(&telego.GetStickerSetParams{
 			Name: args.PackLink,
 		})
 		if err != nil {

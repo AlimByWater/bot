@@ -5,15 +5,15 @@ import (
 	"elysium/internal/entity"
 	"errors"
 	"fmt"
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegoutil"
 	"log/slog"
 	"strings"
 	"time"
 )
 
 // createNewStickerSet создает новый набор стикеров
-func (m *Module) createNewStickerSet(ctx context.Context, b *bot.Bot, args *entity.EmojiCommand, emojiFileIDs []string) (*models.StickerSet, error) {
+func (m *Module) createNewStickerSet(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFileIDs []string) (*telego.StickerSet, error) {
 	totalWithTransparent := len(emojiFileIDs)
 	if totalWithTransparent > entity.MaxStickersTotal {
 		return nil, fmt.Errorf("общее количество стикеров (%d) с прозрачными превысит максимум (%d)", totalWithTransparent, entity.MaxStickersTotal)
@@ -23,17 +23,17 @@ func (m *Module) createNewStickerSet(ctx context.Context, b *bot.Bot, args *enti
 }
 
 // createStickerSetWithBatches создает новый набор стикеров
-func (m *Module) createStickerSetWithBatches(ctx context.Context, b *bot.Bot, args *entity.EmojiCommand, emojiFileIDs []string) (*models.StickerSet, error) {
+func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFileIDs []string) (*telego.StickerSet, error) {
 	count := len(emojiFileIDs)
 	if count > entity.MaxStickersInBatch {
 		count = entity.MaxStickersInBatch
 	}
 
-	firstBatch := make([]models.InputSticker, count)
+	firstBatch := make([]telego.InputSticker, count)
 
 	for i := 0; i < count; i++ {
-		firstBatch[i] = models.InputSticker{
-			Sticker: &models.InputFileString{Data: emojiFileIDs[i]},
+		firstBatch[i] = telego.InputSticker{
+			Sticker: telegoutil.FileFromID(emojiFileIDs[i]),
 			Format:  entity.DefaultStickerFormat,
 			EmojiList: []string{
 				entity.DefaultEmojiIcon,
@@ -43,7 +43,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *bot.Bot, ar
 
 	var err error
 
-	_, err = b.CreateNewStickerSet(ctx, &bot.CreateNewStickerSetParams{
+	err = b.CreateNewStickerSet(&telego.CreateNewStickerSetParams{
 		UserID:      args.TelegramUserID,
 		Name:        args.PackLink,
 		Title:       args.SetTitle,
@@ -57,7 +57,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *bot.Bot, ar
 	} else if err != nil && strings.Contains(err.Error(), "STICKER_VIDEO_NOWEBM") {
 		count = 1
 
-		_, err := b.CreateNewStickerSet(ctx, &bot.CreateNewStickerSetParams{
+		err := b.CreateNewStickerSet(&telego.CreateNewStickerSetParams{
 			UserID:      args.TelegramUserID,
 			Name:        args.PackLink,
 			Title:       args.SetTitle,
@@ -79,7 +79,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *bot.Bot, ar
 	}
 
 	// Получаем финальное состояние набора
-	set, err := b.GetStickerSet(ctx, &bot.GetStickerSetParams{
+	set, err := b.GetStickerSet(&telego.GetStickerSetParams{
 		Name: args.PackLink,
 	})
 	if err != nil {
@@ -90,7 +90,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *bot.Bot, ar
 }
 
 // addToExistingStickerSet добавляет эмодзи в существующий набор
-func (m *Module) addToExistingStickerSet(ctx context.Context, b *bot.Bot, args *entity.EmojiCommand, stickerSet *models.StickerSet, emojiFileIDs []string) (*models.StickerSet, error) {
+func (m *Module) addToExistingStickerSet(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, stickerSet *telego.StickerSet, emojiFileIDs []string) (*telego.StickerSet, error) {
 
 	// Проверяем, что не превысим лимит
 	if len(stickerSet.Stickers)+len(emojiFileIDs) > entity.MaxStickersTotal {
@@ -108,23 +108,23 @@ func (m *Module) addToExistingStickerSet(ctx context.Context, b *bot.Bot, args *
 		return nil, fmt.Errorf("add stickers to set: %w", err)
 	}
 
-	return b.GetStickerSet(ctx, &bot.GetStickerSetParams{
+	return b.GetStickerSet(&telego.GetStickerSetParams{
 		Name: args.PackLink,
 	})
 }
 
 var maxRetries = 5
 
-func (m *Module) addStickersToSet(ctx context.Context, b *bot.Bot, args *entity.EmojiCommand, emojiFileIDs []string) error {
+func (m *Module) addStickersToSet(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFileIDs []string) error {
 	for i := 0; i < len(emojiFileIDs); i++ {
 
 		var err error
 		for j := 1; j <= maxRetries; j++ {
-			_, err = b.AddStickerToSet(ctx, &bot.AddStickerToSetParams{
+			err = b.AddStickerToSet(&telego.AddStickerToSetParams{
 				UserID: args.TelegramUserID,
 				Name:   args.PackLink,
-				Sticker: models.InputSticker{
-					Sticker: &models.InputFileString{Data: emojiFileIDs[i]},
+				Sticker: telego.InputSticker{
+					Sticker: telegoutil.FileFromID(emojiFileIDs[i]),
 					Format:  entity.DefaultStickerFormat,
 					EmojiList: []string{
 						entity.DefaultEmojiIcon,

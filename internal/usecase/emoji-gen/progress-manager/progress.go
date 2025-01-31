@@ -4,8 +4,7 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
+	"github.com/mymmrac/telego"
 	"strconv"
 	"sync"
 )
@@ -22,21 +21,21 @@ func NewManager() *ProgressManager {
 }
 
 // SendMessage отправляет новое сообщение о прогрессе
-func (m *ProgressManager) SendMessage(ctx context.Context, b *bot.Bot, chatID int64, replyToID int, userID int64, status string) (*entity.ProgressMessage, error) {
+func (m *ProgressManager) SendMessage(ctx context.Context, b *telego.Bot, chatID telego.ChatID, replyToID int, userID int64, status string) (*entity.ProgressMessage, error) {
 	// Формируем ключ отмены только из необходимых данных
-	cancelKey := fmt.Sprintf("%d_%d_%d", chatID, replyToID, userID)
+	cancelKey := fmt.Sprintf("%d_%d_%d", chatID.ID, replyToID, userID)
 
 	// Создаем кнопку отмены
-	keyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
+	keyboard := &telego.InlineKeyboardMarkup{
+		InlineKeyboard: [][]telego.InlineKeyboardButton{
 			{
 				{Text: "❌ Остановить генерацию", CallbackData: "cancel_" + cancelKey},
 			},
 		},
 	}
 
-	params := &bot.SendMessageParams{
-		ReplyParameters: &models.ReplyParameters{
+	params := &telego.SendMessageParams{
+		ReplyParameters: &telego.ReplyParameters{
 			MessageID: replyToID,
 			ChatID:    chatID,
 		},
@@ -45,20 +44,20 @@ func (m *ProgressManager) SendMessage(ctx context.Context, b *bot.Bot, chatID in
 		ReplyMarkup: keyboard,
 	}
 
-	msg, err := b.SendMessage(ctx, params)
+	msg, err := b.SendMessage(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send progress message: %w", err)
 	}
 
 	progress := &entity.ProgressMessage{
-		ChatID:    chatID,
-		MessageID: msg.ID,
+		ChatID:    chatID.ID,
+		MessageID: msg.MessageID,
 		Status:    status,
 		CancelKey: cancelKey,
 		UserID:    userID,
 	}
 
-	key := strconv.FormatInt(chatID, 10) + ":" + strconv.Itoa(msg.ID)
+	key := strconv.FormatInt(chatID.ID, 10) + ":" + strconv.Itoa(msg.MessageID)
 	m.progressMessages.Store(key, progress)
 
 	// Создаем канал отмены
@@ -85,20 +84,20 @@ func (m *ProgressManager) Cancel(cancelKey string) {
 }
 
 // DeleteMessage удаляет сообщение о прогрессе
-func (m *ProgressManager) DeleteMessage(ctx context.Context, b *bot.Bot, chatID int64, msgID int) error {
-	key := strconv.FormatInt(chatID, 10) + ":" + strconv.Itoa(msgID)
+func (m *ProgressManager) DeleteMessage(ctx context.Context, b *telego.Bot, chatID telego.ChatID, msgID int) error {
+	key := strconv.FormatInt(chatID.ID, 10) + ":" + strconv.Itoa(msgID)
 	progressRaw, exists := m.progressMessages.Load(key)
 	if !exists {
 		return nil // Если сообщения нет, это не ошибка
 	}
 
 	progress := progressRaw.(*entity.ProgressMessage)
-	params := &bot.DeleteMessageParams{
+	params := &telego.DeleteMessageParams{
 		ChatID:    chatID,
 		MessageID: progress.MessageID,
 	}
 
-	_, err := b.DeleteMessage(ctx, params)
+	err := b.DeleteMessage(params)
 	if err != nil {
 		return fmt.Errorf("failed to delete progress message: %w", err)
 	}
@@ -108,32 +107,32 @@ func (m *ProgressManager) DeleteMessage(ctx context.Context, b *bot.Bot, chatID 
 }
 
 // UpdateMessage обновляет существующее сообщение о прогрессе
-func (m *ProgressManager) UpdateMessage(ctx context.Context, b *bot.Bot, chatID int64, msgID int, status string) error {
-	key := strconv.FormatInt(chatID, 10) + ":" + strconv.Itoa(msgID)
+func (m *ProgressManager) UpdateMessage(ctx context.Context, b *telego.Bot, chatID telego.ChatID, msgID int, status string) error {
+	key := strconv.FormatInt(chatID.ID, 10) + ":" + strconv.Itoa(msgID)
 	progressRaw, exists := m.progressMessages.Load(key)
 	if !exists {
-		return fmt.Errorf("progress message not found for chat %d", chatID)
+		return fmt.Errorf("progress message not found for chat %d", chatID.ID)
 	}
 
 	progress := progressRaw.(*entity.ProgressMessage)
 
 	// Сохраняем клавиатуру
-	keyboard := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{
+	keyboard := &telego.InlineKeyboardMarkup{
+		InlineKeyboard: [][]telego.InlineKeyboardButton{
 			{
 				{Text: "❌ Остановить генерацию", CallbackData: "cancel_" + progress.CancelKey},
 			},
 		},
 	}
 
-	params := &bot.EditMessageTextParams{
+	params := &telego.EditMessageTextParams{
 		ChatID:      chatID,
 		MessageID:   progress.MessageID,
 		Text:        status,
 		ReplyMarkup: keyboard,
 	}
 
-	_, err := b.EditMessageText(ctx, params)
+	_, err := b.EditMessageText(params)
 	if err != nil {
 		return fmt.Errorf("failed to update progress message: %w", err)
 	}

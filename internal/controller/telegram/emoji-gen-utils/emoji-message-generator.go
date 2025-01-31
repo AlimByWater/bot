@@ -1,11 +1,11 @@
-package processing
+package emoji_gen_utils
 
 import (
 	"elysium/internal/entity"
-	"github.com/go-telegram/bot/models"
+	"github.com/mymmrac/telego"
 )
 
-func (m *Module) GenerateEmojiMessage(emojiMetaRows [][]entity.EmojiMeta, stickerSet *models.StickerSet, emojiArgs *entity.EmojiCommand) []entity.EmojiMeta {
+func GenerateEmojiMessage(emojiMetaRows [][]entity.EmojiMeta, stickerSet *telego.StickerSet, emojiArgs *entity.EmojiCommand) []entity.EmojiMeta {
 	transparentCount := 0
 	newEmojis := make([]entity.EmojiMeta, 0, entity.MaxStickerInMessage)
 	for _, row := range emojiMetaRows {

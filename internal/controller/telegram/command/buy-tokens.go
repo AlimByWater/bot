@@ -44,18 +44,48 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 		chat := update.CallbackQuery.Message.GetChat()
 
 		langCode := update.CallbackQuery.From.LanguageCode
-		h.logger.Info("buy tokens", slog.String("from", chat.Username))
 		text := h.message.BuyTokens(langCode)
+
+		labeldPrices := []telego.LabeledPrice{
+			{"⭐️50", 50},
+			{"⭐️⭐️100", 100},
+			{"⭐️⭐️⭐️500", 500},
+		}
+
+		invoiceLinks := make([]string, 0, len(labeldPrices))
+		buttons := make([]telego.InlineKeyboardButton, 0, len(labeldPrices))
+
+		for _, price := range labeldPrices {
+			invoiceLink, err := bot.CreateInvoiceLink(&telego.CreateInvoiceLinkParams{
+				Title:       "title",
+				Payload:     "payload",
+				Description: text,
+				//ProviderToken: "provider_token",
+				Currency: "XTR",
+				Prices:   []telego.LabeledPrice{price},
+			})
+			if err != nil {
+				h.logger.Error("create invoice link", slog.String("err", err.Error()))
+				continue
+			}
+			invoiceLinks = append(invoiceLinks, *invoiceLink)
+			buttons = append(buttons, telegoutil.InlineKeyboardButton(price.Label).WithURL(*invoiceLink).WithPay())
+		}
+
 		inlineKeyboard := telegoutil.InlineKeyboard(
-			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton("50").WithCallbackData("buy:50"),
-				telegoutil.InlineKeyboardButton("100").WithCallbackData("buy:100"),
-				telegoutil.InlineKeyboardButton("500").WithCallbackData("buy:500"),
-			),
+			telegoutil.InlineKeyboardRow(buttons[0]),
+			telegoutil.InlineKeyboardRow(buttons[1]),
+			telegoutil.InlineKeyboardRow(buttons[2]),
 			telegoutil.InlineKeyboardRow(
 				telegoutil.InlineKeyboardButton(h.message.BackBtn(langCode)).WithCallbackData("start"),
 			),
 		)
+
+		//inv := telegoutil.Invoice(chat.ChatID(), "title", text, "payload", "", "XTR")
+		//inv.WithPrices(labeldPrices[0])
+		//inv.WithReplyMarkup(inlineKeyboard)
+
+		//m, err := bot.SendInvoice(inv)
 
 		_, err := bot.EditMessageText(&telego.EditMessageTextParams{
 			ChatID:      chat.ChatID(),

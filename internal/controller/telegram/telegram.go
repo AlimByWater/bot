@@ -2,10 +2,17 @@ package telegram
 
 import (
 	"context"
+	"elysium/internal/controller/telegram/httpcaller"
+	"elysium/internal/controller/telegram/middleware"
+	"fmt"
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegohandler"
+	"golang.org/x/time/rate"
 	"log/slog"
+	"time"
 )
+
+const DefaultRateLimit = 100
 
 type config interface {
 	GetToken() string
@@ -64,7 +71,13 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 	m.stop = stop
 	m.logger = logger.With(slog.String("module", "💬 TELEGRAM"))
 
-	m.bot, err = telego.NewBot(m.cfg.GetToken(), telego.WithLogger(telegoLogger{m.logger}))
+	rl := rate.NewLimiter(rate.Every(1*time.Second), DefaultRateLimit)
+
+	m.bot, err = telego.NewBot(m.cfg.GetToken(),
+		telego.WithLogger(telegoLogger{m.logger}),
+		telego.WithAPICaller(httpcaller.NewFastHttpCallerWithLimiter(rl, m.logger)),
+	)
+
 	if err != nil {
 		return
 	}
@@ -81,6 +94,18 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 
 	m.botHandler.Use(telegohandler.PanicRecoveryHandler(telegoRecovery{m.logger}.Handler))
 
+	// Get bot info for middleware
+	me, err := m.bot.GetMe()
+	if err != nil {
+		return fmt.Errorf("failed to get bot info: %w", err)
+	}
+
+	// Create and add bot self middleware first
+	botSelfMiddleware := middleware.NewBotSelf(me)
+	botSelfMiddleware.AddLogger(m.logger)
+	m.botHandler.Use(botSelfMiddleware.Handler())
+
+	// Add remaining middleware
 	for _, mid := range m.middleware {
 		mid.AddLogger(m.logger)
 		m.botHandler.Use(mid.Handler())
