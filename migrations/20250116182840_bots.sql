@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS bots
     enabled BOOLEAN DEFAULT TRUE
 );
 
+INSERT INTO bots (id, name, token, purpose, test, enabled)
+VALUES (-1007894673045, 'optimus_polygon_bot', '7894673045:AAHgosEAHjdW78q44bPTSuwVqSZl8SEN0-w', 'emoji-gen-vip', true, true);
+
 -- Создание таблицы для хранения информации о пользователях ботов
 CREATE TABLE IF NOT EXISTS user_to_bots
 (

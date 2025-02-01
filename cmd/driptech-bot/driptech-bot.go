@@ -10,6 +10,8 @@ import (
 	"elysium/internal/controller/telegram"
 	"elysium/internal/controller/telegram/command"
 	"elysium/internal/controller/telegram/middleware"
+	"elysium/internal/repository/clickhouse"
+	"elysium/internal/repository/clickhouse/bot_updates_insert"
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
@@ -39,12 +41,14 @@ func main() {
 	messageCfg := config_module.NewMessageConfig()
 	postgresCfg := config_module.NewPostgresConfig()
 	redisCfg := config_module.NewRedisConfig()
+	clickhouseCfg := config_module.NewClickhouseConfig()
 
 	configModule := config.New(
 		driptechCfg,
 		messageCfg,
 		postgresCfg,
 		redisCfg,
+		clickhouseCfg,
 	)
 
 	/*********************************/
@@ -55,6 +59,10 @@ func main() {
 
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
 	redisCache := redis.New(redisCfg)
+
+	botUpdatesInsert := bot_updates_insert.NewInsertTable()
+	clickhouseRepo := clickhouse.New(clickhouseCfg)
+	clickhouseRepo.AddInsertTable(botUpdatesInsert)
 
 	/*********************************/
 	/************ USECASE ************/
@@ -73,11 +81,13 @@ func main() {
 		messageUC,
 	)
 
+	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
 
 	driptechBot := telegram.New(
 		driptechCfg,
 		[]telegram.Middleware{
+			saveUpdateMiddleware,
 			saveUserMiddleware,
 		},
 		[]telegram.Command{
@@ -97,6 +107,7 @@ func main() {
 	app.AddRepositories(
 		postgresql,
 		redisCache,
+		clickhouseRepo,
 	)
 	app.AddUsecases(
 		userUC,
