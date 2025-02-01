@@ -21,13 +21,34 @@ CREATE TABLE IF NOT EXISTS user_to_bots
 );
 
 
+CREATE TABLE IF NOT EXISTS services (
+    id SERIAL PRIMARY KEY,
+    bot_id BIGINT NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price INT NOT NULL CHECK (price >= 0),  -- Стоимость в токенах
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
 CREATE TABLE IF NOT EXISTS user_transactions
 (
     id SERIAL PRIMARY KEY NOT NULL,
-    user_id INT NOT NULL REFERENCES users(id),
-    amount INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    bot_id BIGINT REFERENCES bots(id) ON DELETE SET NULL,
+    service_id INT REFERENCES services(id) ON DELETE SET NULL,  -- Если есть услуги
+    type VARCHAR(20) NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'refund')),
+    amount INT NOT NULL CHECK (amount != 0),
+    balance_after INT NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'completed', 'failed')),
+    description VARCHAR(255),
+    provider VARCHAR(255),
+    external_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS emoji_packs
@@ -60,6 +81,8 @@ VALUES
 ('-1002491830452', '@fullytestingpolygon', 1750568581171467725, 2491830452)
 ON CONFLICT DO NOTHING;
 
+
+
 -- +goose StatementEnd
 
 -- +goose Down
@@ -68,5 +91,6 @@ DROP TABLE IF EXISTS access_hashes;
 DROP TABLE IF EXISTS emoji_packs;
 DROP TABLE IF EXISTS user_to_bots;
 DROP TABLE IF EXISTS user_transactions;
+DROP TABLE IF EXISTS services;
 DROP TABLE IF EXISTS bots;
 -- +goose StatementEnd
