@@ -30,6 +30,23 @@
     "SSLMode": "disable",
     "MaxConn": 10
   },
+  "Clickhouse": {
+    "BlockBufferSize": 10,
+    "ConnMaxLifetime": 10,
+    "Dbname": "default",
+    "Debug": false,
+    "DialTimeout": 10,
+    "IP": [
+      "clickhouse:9000"
+    ],
+    "MaxExecutionTime": 10,
+    "MaxIdleConns": 5,
+    "MaxOpenConns": 5,
+    "Password": "OJocasd923sa0d3",
+    "SaveTime": 10,
+    "Size": 10000,
+    "User": "elysium"
+  },
   "Soundcloud": {
     "ProxyURL": "http://bL6Rzf:TVWJC5@45.137.42.186:8000",
     "DownloadPath": "/app/temp"

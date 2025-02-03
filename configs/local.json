@@ -9,6 +9,23 @@
     "SSLMode": "disable",
     "MaxConn": 10
   },
+  "Clickhouse": {
+    "BlockBufferSize": 10,
+    "ConnMaxLifetime": 10,
+    "Dbname": "default",
+    "Debug": false,
+    "DialTimeout": 10,
+    "IP": [
+      "80.93.187.209:9008"
+    ],
+    "MaxExecutionTime": 10,
+    "MaxIdleConns": 5,
+    "MaxOpenConns": 5,
+    "Password": "OJocasd923sa0d3",
+    "SaveTime": 10,
+    "Size": 10000,
+    "User": "elysium"
+  },
   "Redis": {
     "Host": "80.93.187.209",
     "Port": 6379,
