@@ -3,6 +3,6 @@
 .aider*
 *_easyjson.go
 *.pb.go
-/ai_specs
 main
 local
+/tmp
