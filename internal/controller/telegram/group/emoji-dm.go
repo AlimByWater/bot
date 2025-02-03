@@ -1,4 +1,4 @@
-package command
+package group
 
 import (
 	"github.com/mymmrac/telego"
@@ -48,6 +48,11 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 	}
 }
 
+func (h *EmojiDM) Predicate() telegohandler.Predicate {
+	return telegohandler.And(privateChatPredicate(), telegohandler.CommandEqual(h.Command()))
+
+}
+
 func privateChatPredicate() telegohandler.Predicate {
 	return func(update telego.Update) bool {
 		if update.Message == nil {
@@ -56,9 +61,4 @@ func privateChatPredicate() telegohandler.Predicate {
 
 		return update.Message.Chat.Type == "private"
 	}
-}
-
-func (h *EmojiDM) Predicate() telegohandler.Predicate {
-	return telegohandler.And(privateChatPredicate(), telegohandler.CommandEqual(h.Command()))
-
 }

@@ -3,7 +3,7 @@ package entity
 import (
 	"errors"
 	"fmt"
-	"github.com/go-telegram/bot/models"
+	"github.com/mymmrac/telego"
 	"log/slog"
 	"time"
 )
@@ -104,7 +104,7 @@ type EmojiCommand struct {
 	BackgroundSim   string       `json:"background_sim"`
 	TelegramUserID  int64        `json:"telegram_user_id"`
 	DownloadedFile  string       `json:"downloaded_file"`
-	File            *models.File `json:"file"`
+	File            *telego.File `json:"file"`
 
 	QualityValue int `json:"quality_value"`
 
