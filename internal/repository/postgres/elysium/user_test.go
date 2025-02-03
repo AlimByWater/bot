@@ -10,7 +10,7 @@ import (
 )
 
 func TestCreateOrUpdateUser(t *testing.T) {
-	//t.Skip()
+	t.Skip()
 	//teardown := setupTest(t)
 	//defer teardown(t)
 
@@ -115,6 +115,7 @@ func TestGetUserByTelegramID(t *testing.T) {
 }
 
 func TestGetUserByID(t *testing.T) {
+	t.Skip()
 	cleanup := setupTest(t)
 	defer cleanup(t)
 

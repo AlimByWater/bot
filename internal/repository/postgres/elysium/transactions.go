@@ -8,60 +8,56 @@ import (
 )
 
 func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error) {
-	err := r.execTX(ctx, func(q *queries) error {
-		// Блокируем запись пользователя для обновления
-		var currentBalance int
-		lockQuery := `SELECT balance FROM users WHERE id = $1 FOR UPDATE`
-		if err := q.db.QueryRowContext(ctx, lockQuery, txn.UserID).Scan(&currentBalance); err != nil {
-			return fmt.Errorf("failed to lock user: %w", err)
-		}
+	query := `                                                                                                                                                                                                    
+         WITH locked_user AS (                                                                                                                                                                                     
+             SELECT id, balance                                                                                                                                                                                    
+             FROM users                                                                                                                                                                                            
+             WHERE id = $1                                                                                                                                                                                         
+             FOR UPDATE                                                                                                                                                                                            
+         ),                                                                                                                                                                                                        
+         new_balance AS (                                                                                                                                                                                          
+             SELECT                                                                                                                                                                                                
+                 CASE $2                                                                                                                                                                                           
+                     WHEN 'deposit' THEN balance + $3                                                                                                                                                              
+                     WHEN 'withdrawal' THEN balance - $3                                                                                                                                                           
+                     WHEN 'refund' THEN balance + $3                                                                                                                                                               
+                 END AS balance                                                                                                                                                                                    
+             FROM locked_user                                                                                                                                                                                      
+         ),                                                                                                                                                                                                        
+         insert_txn AS (                                                                                                                                                                                           
+             INSERT INTO user_transactions (                                                                                                                                                                       
+                 user_id, type, amount, status, provider, external_id,                                                                                                                                             
+                 service_id, bot_id, balance_after, description                                                                                                                                                    
+             )                                                                                                                                                                                                     
+             SELECT                                                                                                                                                                                                
+                 $1, $2, $3, $4, $5, $6, $7, $8, nb.balance, $9                                                                                                                                                    
+             FROM new_balance nb                                                                                                                                                                                   
+             RETURNING                                                                                                                                                                                             
+                 id, created_at, updated_at, balance_after                                                                                                                                                         
+         )                                                                                                                                                                                                         
+         UPDATE users u                                                                                                                                                                                            
+         SET balance = ib.balance_after                                                                                                                                                                            
+         FROM insert_txn ib                                                                                                                                                                                        
+         WHERE u.id = $1                                                                                                                                                                                           
+         RETURNING ib.id, ib.created_at, ib.updated_at, ib.balance_after                                                                                                                                           
+     `
 
-		// Рассчитываем новый баланс
-		newBalance := currentBalance
-		switch txn.Type {
-		case entity.TransactionTypeDeposit, entity.TransactionTypeRefund:
-			newBalance += txn.Amount
-		case entity.TransactionTypeWithdrawal:
-			newBalance -= txn.Amount
-		default:
-			return fmt.Errorf("invalid transaction type: %s", txn.Type)
-		}
-
-		// Создаем запись транзакции
-		txnQuery := `
-			INSERT INTO user_transactions (
-				user_id, type, amount, status, provider, external_id, 
-				service_id, bot_id, balance_after, description
-			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-			) RETURNING id, created_at, updated_at
-		`
-		err := q.db.QueryRowContext(ctx, txnQuery,
-			txn.UserID,
-			txn.Type,
-			txn.Amount,
-			txn.Status,
-			txn.Provider,
-			txn.ExternalID,
-			txn.ServiceID,
-			txn.BotID,
-			newBalance,
-			txn.Description,
-		).Scan(&txn.ID, &txn.CreatedAt, &txn.UpdatedAt)
-		if err != nil {
-			return fmt.Errorf("failed to create transaction: %w", err)
-		}
-
-		// Обновляем баланс пользователя
-		updateQuery := `UPDATE users SET balance = $1 WHERE id = $2`
-		_, err = q.db.ExecContext(ctx, updateQuery, newBalance, txn.UserID)
-		if err != nil {
-			return fmt.Errorf("failed to update balance: %w", err)
-		}
-
-		txn.BalanceAfter = newBalance
-		return nil
-	})
+	err := r.db.QueryRowContext(ctx, query,
+		txn.UserID,
+		txn.Type,
+		txn.Amount,
+		txn.Status,
+		txn.Provider,
+		txn.ExternalID,
+		txn.ServiceID,
+		txn.BotID,
+		txn.Description,
+	).Scan(
+		&txn.ID,
+		&txn.CreatedAt,
+		&txn.UpdatedAt,
+		&txn.BalanceAfter,
+	)
 
 	if err != nil {
 		return entity.UserTransaction{}, fmt.Errorf("transaction failed: %w", err)
@@ -89,7 +85,7 @@ func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([
 		FROM user_transactions t
 		LEFT JOIN services s ON t.service_id = s.id
 		WHERE t.user_id = $1
-		ORDER BY t.created_at DESC
+		ORDER BY t.created_at DESC, t.id DESC
 	`
 
 	var transactions []entity.UserTransaction

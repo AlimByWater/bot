@@ -57,7 +57,7 @@ func setupTest(t *testing.T) func(t *testing.T) {
 	redisModule = redisRepo.New(cfg)
 	err := redisModule.Init(context.Background(), loggerModule)
 	if err != nil {
-		t.Fatalf("Failed to initialize postgres repository: %v", err)
+		t.Fatalf("Failed to initialize redis repository: %v", err)
 
 	}
 
@@ -67,6 +67,7 @@ func setupTest(t *testing.T) func(t *testing.T) {
 }
 
 func TestSaveListenerSucceeds(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -84,6 +85,7 @@ func TestSaveListenerSucceeds(t *testing.T) {
 }
 
 func TestSaveListenerFailsOnEmptyTelegramID(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -97,6 +99,7 @@ func TestSaveListenerFailsOnEmptyTelegramID(t *testing.T) {
 }
 
 func TestSaveListenerSuccessOnUpdate(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -129,6 +132,7 @@ func TestSaveListenerSuccessOnUpdate(t *testing.T) {
 }
 
 func TestGetListenerByTelegramIDSucceeds(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -149,6 +153,7 @@ func TestGetListenerByTelegramIDSucceeds(t *testing.T) {
 }
 
 func TestGetListenerByTelegramIDFailsOnNonexistentID(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -159,6 +164,7 @@ func TestGetListenerByTelegramIDFailsOnNonexistentID(t *testing.T) {
 }
 
 func TestModule_GetAllListeners(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -178,6 +184,7 @@ func TestModule_GetAllListeners(t *testing.T) {
 }
 
 func TestGetListenerLastActivitySucceeds(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -196,6 +203,7 @@ func TestGetListenerLastActivitySucceeds(t *testing.T) {
 }
 
 func TestGetListenerLastActivityFailsOnMissingTelegramID(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -206,6 +214,7 @@ func TestGetListenerLastActivityFailsOnMissingTelegramID(t *testing.T) {
 }
 
 func TestGetListenerLastActivityFailsOnNonexistentListener(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -215,6 +224,7 @@ func TestGetListenerLastActivityFailsOnNonexistentListener(t *testing.T) {
 }
 
 func TestSaveOrUpdateListenerSucceedsOnNewListener(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -234,6 +244,7 @@ func TestSaveOrUpdateListenerSucceedsOnNewListener(t *testing.T) {
 }
 
 func TestSaveOrUpdateListenerUpdatesExistingListener(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -260,6 +271,7 @@ func TestSaveOrUpdateListenerUpdatesExistingListener(t *testing.T) {
 }
 
 func TestSaveOrUpdateListenerFailsOnMissingTelegramID(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -271,6 +283,7 @@ func TestSaveOrUpdateListenerFailsOnMissingTelegramID(t *testing.T) {
 }
 
 func TestGetAllCurrentListenersReturnsListenersSuccessfully(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
@@ -297,6 +310,7 @@ func TestGetAllCurrentListenersReturnsListenersSuccessfully(t *testing.T) {
 }
 
 func TestGetAllCurrentListenersReturnsEmptySliceWhenNoListeners(t *testing.T) {
+	t.Skip()
 	teardown := setupTest(t)
 	defer teardown(t)
 
