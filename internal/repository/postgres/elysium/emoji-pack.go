@@ -4,6 +4,7 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
+	"strconv"
 )
 
 func (r *Repository) GetEmojiPackByPackLink(ctx context.Context, packLink string) (entity.EmojiPack, error) {
@@ -15,7 +16,7 @@ func (r *Repository) GetEmojiPackByPackLink(ctx context.Context, packLink string
 			pack_title,
 			telegram_file_id,
 			initial_command,
-			bot_id as "bot.id",
+			bot_id as "bot_id",
 			emoji_count,
 			deleted,
 			created_at,
@@ -42,7 +43,7 @@ func (r *Repository) GetEmojiPacksByCreator(ctx context.Context, creator int64, 
 			pack_title,
 			telegram_file_id,
 			initial_command,
-			bot_id as "bot.id",
+			bot_id as "bot_id",
 			emoji_count,
 			deleted,
 			created_at,
@@ -108,13 +109,21 @@ func (r *Repository) CreateNewEmojiPack(ctx context.Context, pack entity.EmojiPa
 		RETURNING id
 	`
 
+	if pack.BotID > 0 {
+		var err error
+		pack.BotID, err = strconv.ParseInt(fmt.Sprintf("-100%d", pack.BotID), 10, 64)
+		if err != nil {
+			return entity.EmojiPack{}, fmt.Errorf("failed to parse bot id: %w", err)
+		}
+	}
+
 	err := r.db.QueryRowContext(ctx, query,
 		pack.PackLink,
 		pack.CreatorTelegramID,
 		pack.PackTitle,
 		pack.TelegramFileID,
 		pack.InitialCommand,
-		pack.Bot.ID,
+		pack.BotID,
 		pack.EmojiCount,
 		pack.Deleted,
 		pack.CreatedAt,

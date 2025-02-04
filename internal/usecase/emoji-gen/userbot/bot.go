@@ -302,7 +302,6 @@ func (u *User) echo(ctx *ext.Context, update *ext.Update) error {
 
 // saveAccessHash сохраняет все хэши доступа от чатов с ботами в базу данных
 func (u *User) saveAccessHash(ctx *ext.Context, update *ext.Update) error {
-	fmt.Println("saveAccessHash")
 	userChat := update.GetUserChat()
 	if userChat == nil {
 		//u.logger.Error("update.GetUserChat() вернул nil")

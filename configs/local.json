@@ -47,5 +47,12 @@
   "DripTechBot": {
     "Token": "7894673045:AAHgosEAHjdW78q44bPTSuwVqSZl8SEN0-w",
     "Name": "optimus_polygon_bot"
+  },
+  "UserBot": {
+    "UserBotAppID": 26094754,
+    "UserBotAppHash": "7f09f386e975844351a40e8e9e5478d8",
+    "UserBotTgPhone": "+79010462087",
+    "SessionDir": "/Users/admin/.sessions/user"
   }
+
 }

@@ -90,7 +90,7 @@ func (d *DBot) downloadFile(ctx context.Context, m *models.Message, args *entity
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", entity.ErrGetFileFromTelegram, err)
 	}
-	args.File = file
+	//args.File = file
 
 	switch mimeType {
 	case "image/gif":

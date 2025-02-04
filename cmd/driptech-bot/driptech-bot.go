@@ -9,12 +9,16 @@ import (
 	"elysium/internal/application/logger"
 	"elysium/internal/controller/telegram"
 	"elysium/internal/controller/telegram/command"
+	"elysium/internal/controller/telegram/emoji-gen-utils/processing"
+	"elysium/internal/controller/telegram/group"
 	"elysium/internal/controller/telegram/middleware"
 	"elysium/internal/repository/clickhouse"
 	"elysium/internal/repository/clickhouse/bot_updates_insert"
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
+	"elysium/internal/usecase/emoji-gen/userbot"
+	"elysium/internal/usecase/use_cache"
 	"elysium/internal/usecase/use_message"
 	"elysium/internal/usecase/users"
 	"log/slog"
@@ -42,6 +46,7 @@ func main() {
 	postgresCfg := config_module.NewPostgresConfig()
 	redisCfg := config_module.NewRedisConfig()
 	clickhouseCfg := config_module.NewClickhouseConfig()
+	userBotCfg := config_module.NewUserBotConfig()
 
 	configModule := config.New(
 		driptechCfg,
@@ -49,6 +54,7 @@ func main() {
 		postgresCfg,
 		redisCfg,
 		clickhouseCfg,
+		userBotCfg,
 	)
 
 	/*********************************/
@@ -60,8 +66,9 @@ func main() {
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
 	redisCache := redis.New(redisCfg)
 
-	botUpdatesInsert := bot_updates_insert.NewInsertTable()
 	clickhouseRepo := clickhouse.New(clickhouseCfg)
+
+	botUpdatesInsert := bot_updates_insert.NewInsertTable()
 	clickhouseRepo.AddInsertTable(botUpdatesInsert)
 
 	/*********************************/
@@ -70,16 +77,20 @@ func main() {
 	messageUC := use_message.New(messageCfg)
 	userUC := users.New(redisCache, elysiumRepo)
 
+	useCache := use_cache.New()
+
+	// emoji-gen modules
+	userBot := userbot.NewBot(elysiumRepo, userBotCfg)
+	processingUC := processing.NewProcessingModule(loggerModule)
+
 	/*********************************/
 	/********** CONTROLLER ***********/
 	/*********************************/
-	commStart := command.NewStart(
-		messageUC,
-	)
+	commStart := command.NewStart(messageUC)
+	buyTokens := command.NewBuyTokens(messageUC)
+	emojiMsgTracker := group.NewEmojiMessageTracker(userBot, useCache)
 
-	buyTokens := command.NewBuyTokens(
-		messageUC,
-	)
+	emojiDM := group.NewEmojiDM(useCache, messageUC, userUC, processingUC, elysiumRepo, userBot)
 
 	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
@@ -95,6 +106,8 @@ func main() {
 		},
 		[]telegram.GroupHandle{},
 		[]telegram.Handle{
+			emojiDM,
+			emojiMsgTracker,
 			commStart,
 		},
 	)
@@ -112,6 +125,8 @@ func main() {
 	app.AddUsecases(
 		userUC,
 		messageUC,
+		useCache,
+		userBot,
 	)
 	app.AddControllers(
 		driptechBot,

@@ -69,7 +69,13 @@
     "UserBotAppID": 26094754,
     "UserBotAppHash": "7f09f386e975844351a40e8e9e5478d8",
     "UserBotTgPhone": "+79010462087",
-    "Local": false,
+    "SessionDir": "/app/sessions/user",
+    "Local": false
+  },
+  "UserBot": {
+    "UserBotAppID": 26094754,
+    "UserBotAppHash": "7f09f386e975844351a40e8e9e5478d8",
+    "UserBotTgPhone": "+79010462087",
     "SessionDir": "/app/sessions/user"
   }
 }

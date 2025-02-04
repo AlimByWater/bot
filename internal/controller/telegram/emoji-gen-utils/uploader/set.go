@@ -27,6 +27,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 	count := len(emojiFileIDs)
 	if count > entity.MaxStickersInBatch {
 		count = entity.MaxStickersInBatch
+		//count = 1
 	}
 
 	firstBatch := make([]telego.InputSticker, count)
@@ -42,7 +43,6 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 	}
 
 	var err error
-
 	err = b.CreateNewStickerSet(&telego.CreateNewStickerSetParams{
 		UserID:      args.TelegramUserID,
 		Name:        args.PackLink,

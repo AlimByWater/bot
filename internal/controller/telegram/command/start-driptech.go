@@ -52,17 +52,16 @@ func (h *Start) Handler() telegohandler.Handler {
 			lang = update.Message.From.LanguageCode
 			chat = update.Message.Chat
 		}
-
 		text := h.message.StartDripTech(lang)
 
 		inlineKeyboard := telegoutil.InlineKeyboard(
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.BalanceBtn(update.Message.From.LanguageCode)).WithCallbackData("balance"),
-				telegoutil.InlineKeyboardButton(h.message.BotsListBtn(update.Message.From.LanguageCode)).WithCallbackData("bots_list"),
-				telegoutil.InlineKeyboardButton(h.message.SupportBtn(update.Message.From.LanguageCode)).WithCallbackData("support"),
+				telegoutil.InlineKeyboardButton(h.message.BalanceBtn(lang)).WithCallbackData("balance"),
+				//telegoutil.InlineKeyboardButton(h.message.BotsListBtn(lang)).WithCallbackData("bots_list"),
+				telegoutil.InlineKeyboardButton(h.message.SupportBtn(lang)).WithCallbackData("support"),
 			),
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.BuyTokensBtn(update.Message.From.LanguageCode)).WithCallbackData("buy_tokens"),
+				telegoutil.InlineKeyboardButton(h.message.BuyTokensBtn(lang)).WithCallbackData("buy_tokens"),
 			),
 		)
 
@@ -85,6 +84,7 @@ func (h *Start) Handler() telegohandler.Handler {
 			if err != nil {
 				h.logger.Error("send message", slog.String("err", err.Error()))
 			}
+
 		}
 
 	}

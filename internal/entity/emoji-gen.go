@@ -18,6 +18,8 @@ type EmojiPack struct {
 	ID                int64     `json:"id" db:"id"`
 	CreatorTelegramID int64     `json:"creator_id" db:"creator_telegram_id"`
 	Bot               Bot       `json:"bot" db:"bot"`
+	BotUsername       string    `json:"bot_username" db:"bot_username"`
+	BotID             int64     `json:"bot_id" db:"bot_id"`
 	PackTitle         string    `json:"pack_title" db:"pack_title"`
 	TelegramFileID    string    `json:"telegram_file_id" db:"telegram_file_id"`
 	PackLink          string    `json:"pack_link,omitempty" db:"pack_link"`

@@ -29,6 +29,7 @@ type Module struct {
 }
 
 func NewProcessingModule(logger *slog.Logger) *Module {
+	logger = logger.With(slog.String("module", "processing emoji-gen"))
 	return &Module{
 		directories: sync.Map{},
 		logger:      logger,

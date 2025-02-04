@@ -13,7 +13,6 @@ type cacheUC interface {
 	GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error)
 	GetUserByTelegramIDCache(ctx context.Context, telegramID int64) (entity.User, error)
 	SaveOrUpdateUserCache(ctx context.Context, user entity.User) error
-	RemoveUserCache(ctx context.Context, telegramID int64) error
 }
 
 type repository interface {
@@ -43,12 +42,6 @@ func New(cache cacheUC, repo repository) *Module {
 func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	m.ctx = ctx
 	m.logger = logger.With(slog.String("module", "🏓 USERS"))
-
-	// Test Redis connection
-	_, err := m.client.Ping(ctx).Result()
-	if err != nil {
-		return fmt.Errorf("failed to connect to Redis: %w", err)
-	}
 
 	go m.updateOnlineUsersCountLoop()
 	return nil

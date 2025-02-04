@@ -13,7 +13,6 @@ import (
 type Queuer interface {
 	Acquire(packLink string) (bool, chan struct{})
 	Release(packLink string)
-	Clear()
 }
 
 type Module struct {

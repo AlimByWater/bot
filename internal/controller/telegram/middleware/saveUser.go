@@ -49,8 +49,15 @@ func (m *SaveUser) Handler() telegohandler.Middleware {
 			return
 		}
 
+		if user == nil {
+			m.logger.Debug("Skipping update without user",
+				slog.Any("update", update))
+			next(bot, update)
+			return
+		}
+
 		// Проверяем валидность пользователя
-		if user == nil || user.IsBot || user.ID <= 0 {
+		if user.IsBot || user.ID <= 0 {
 			m.logger.Debug("Skipping invalid user",
 				slog.Any("user", user),
 				slog.Bool("is_bot", user != nil && user.IsBot),
@@ -71,31 +78,33 @@ func (m *SaveUser) Handler() telegohandler.Middleware {
 				slog.String("error", err.Error()))
 		}
 
-		if update.Message != nil && strings.HasPrefix(update.Message.Text, "/start") {
-			botUser, ok := update.Context().Value(entity.BotSelfCtxKey).(*telego.User)
-			if !ok || botUser == nil {
-				m.logger.Error("bot info not found in context")
-				next(bot, update)
-				return
-			}
+		go func() {
+			if update.Message != nil && strings.HasPrefix(update.Message.Text, "/start") {
+				botUser, ok := update.Context().Value(entity.BotSelfCtxKey).(*telego.User)
+				if !ok || botUser == nil {
+					m.logger.Error("bot info not found in context")
+					next(bot, update)
+					return
+				}
 
-			botID, err := strconv.ParseInt(fmt.Sprintf("-100%d", botUser.ID), 10, 64)
-			if err != nil {
-				m.logger.Error("Failed to parse bot ID",
-					slog.Int64("bot_id", botUser.ID),
-					slog.String("error", err.Error()))
-				next(bot, update)
-				return
-			}
+				botID, err := strconv.ParseInt(fmt.Sprintf("-100%d", botUser.ID), 10, 64)
+				if err != nil {
+					m.logger.Error("Failed to parse bot ID",
+						slog.Int64("bot_id", botUser.ID),
+						slog.String("error", err.Error()))
+					next(bot, update)
+					return
+				}
 
-			err = m.userUC.SetUserToBotActive(context.Background(), savedUser.ID, botID)
-			if err != nil {
-				m.logger.Error("Failed to activate bot for user",
-					slog.Int("user_id", savedUser.ID),
-					slog.Int64("bot_id", botID),
-					slog.String("error", err.Error()))
+				err = m.userUC.SetUserToBotActive(context.Background(), savedUser.ID, botID)
+				if err != nil {
+					m.logger.Error("Failed to activate bot for user",
+						slog.Int("user_id", savedUser.ID),
+						slog.Int64("bot_id", botID),
+						slog.String("error", err.Error()))
+				}
 			}
-		}
+		}()
 
 		next(bot, update)
 	}

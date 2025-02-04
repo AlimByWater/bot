@@ -2,7 +2,6 @@ package bot_updates_insert
 
 import (
 	"elysium/internal/entity"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -93,7 +92,7 @@ func (table *Example) setSaveTime(t time.Time) {
 
 func (table *Example) SaveUpdate(botUpdate entity.BotUpdate) (err error) {
 	table.add(botUpdate)
-	fmt.Println(table.Len(), table.size, time.Since(table.getSaveTime()), time.Second*time.Duration(table.saveTimeout))
+	//fmt.Println(table.Len(), table.size, time.Since(table.getSaveTime()), time.Second*time.Duration(table.saveTimeout))
 	if table.Len() >= table.size || time.Since(table.getSaveTime()) > time.Second*time.Duration(table.saveTimeout) {
 		err = table.save(table.Len(), table.QueryInsert(), table.Data())
 		if err != nil {

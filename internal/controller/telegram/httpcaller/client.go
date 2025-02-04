@@ -35,19 +35,18 @@ func (c *FastHttpCallerWithLimiter) Call(url string, data *telegoapi.RequestData
 		return nil, err
 	}
 
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
-
-	req.SetRequestURI(url)
-	req.Header.SetContentType(data.ContentType)
-	req.Header.SetMethod(fasthttp.MethodPost)
-	req.SetBodyRaw(data.Buffer.Bytes())
-
 	for {
+		req := fasthttp.AcquireRequest()
+		req.SetRequestURI(url)
+		req.Header.SetContentType(data.ContentType)
+		req.Header.SetMethod(fasthttp.MethodPost)
+		req.SetBodyRaw(data.Buffer.Bytes())
+
 		resp := fasthttp.AcquireResponse()
 		err = c.Client.Do(req, resp)
 		if err != nil {
 			c.Logger.Debug("CLIENT: request error", slog.String("err", err.Error()), slog.String("url", url))
+			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(resp)
 			return nil, err
 		}
@@ -58,6 +57,7 @@ func (c *FastHttpCallerWithLimiter) Call(url string, data *telegoapi.RequestData
 		if statusCode == fasthttp.StatusOK {
 			apiResp := &telegoapi.Response{}
 			err = json.Unmarshal(respBody, apiResp)
+			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(resp)
 			if err != nil {
 				return nil, fmt.Errorf("decode json: %w", err)
@@ -81,6 +81,7 @@ func (c *FastHttpCallerWithLimiter) Call(url string, data *telegoapi.RequestData
 				err = json.Unmarshal(respBody, apiResp)
 				if err != nil {
 					c.Logger.Error("CLIENT: unmarshal body", slog.String("err", err.Error()))
+					fasthttp.ReleaseRequest(req)
 					fasthttp.ReleaseResponse(resp)
 					return nil, err
 				}
@@ -92,22 +93,26 @@ func (c *FastHttpCallerWithLimiter) Call(url string, data *telegoapi.RequestData
 
 			if retryAfter > 0 {
 				c.Logger.Debug("CLIENT: rate limited", slog.Int("retry_after", retryAfter))
+				fasthttp.ReleaseRequest(req)
 				fasthttp.ReleaseResponse(resp)
-				time.Sleep(time.Duration(retryAfter) * time.Second)
+				time.Sleep(time.Duration(retryAfter+retryAfter) * time.Second)
 				continue
 			} else {
+				fasthttp.ReleaseRequest(req)
 				fasthttp.ReleaseResponse(resp)
 				return nil, fmt.Errorf("получен статус 429, но не удалось определить время ожидания")
 			}
 		}
 
 		if statusCode >= fasthttp.StatusInternalServerError {
+			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(resp)
 			return nil, fmt.Errorf("internal server error: %d", statusCode)
 		}
 
 		apiResp := &telegoapi.Response{}
 		err = json.Unmarshal(respBody, apiResp)
+		fasthttp.ReleaseRequest(req)
 		fasthttp.ReleaseResponse(resp)
 		if err != nil {
 			return nil, fmt.Errorf("decode json: %w", err)

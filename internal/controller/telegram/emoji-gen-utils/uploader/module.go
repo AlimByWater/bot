@@ -12,7 +12,6 @@ import (
 type Queuer interface {
 	Acquire(packLink string) (bool, chan struct{})
 	Release(packLink string)
-	Clear()
 }
 
 type Module struct {
@@ -20,12 +19,15 @@ type Module struct {
 	logger       *slog.Logger
 }
 
-func New(queuer Queuer, logger *slog.Logger) *Module {
+func New(queuer Queuer) *Module {
 	return &Module{
 		stickerQueue: queuer,
-		logger:       logger,
 	}
 
+}
+
+func (m *Module) AddLogger(logger *slog.Logger) {
+	m.logger = logger.With(slog.String("module", "emoji-gen uploader"))
 }
 
 func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFiles []string) (*telego.StickerSet, [][]entity.EmojiMeta, error) {

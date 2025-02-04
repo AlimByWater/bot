@@ -82,6 +82,14 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 		return
 	}
 
+	// Get bot info for middleware
+	me, err := m.bot.GetMe()
+	if err != nil {
+		return fmt.Errorf("failed to get bot info: %w", err)
+	}
+
+	m.logger = m.logger.With(slog.String("bot_name", me.Username), slog.Int64("bot_id", me.ID))
+
 	m.updates, err = m.bot.UpdatesViaLongPolling(nil)
 	if err != nil {
 		return
@@ -93,12 +101,6 @@ func (m *Module) Init(ctx context.Context, stop context.CancelFunc, logger *slog
 	}
 
 	m.botHandler.Use(telegohandler.PanicRecoveryHandler(telegoRecovery{m.logger}.Handler))
-
-	// Get bot info for middleware
-	me, err := m.bot.GetMe()
-	if err != nil {
-		return fmt.Errorf("failed to get bot info: %w", err)
-	}
 
 	// Create and add bot self middleware first
 	botSelfMiddleware := middleware.NewBotSelf(me)
