@@ -4,9 +4,10 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
-	"github.com/mymmrac/telego"
 	"log/slog"
 	"os"
+
+	"github.com/mymmrac/telego"
 )
 
 type Queuer interface {
@@ -31,8 +32,10 @@ func (m *Module) AddLogger(logger *slog.Logger) {
 }
 
 func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFiles []string) (*telego.StickerSet, [][]entity.EmojiMeta, error) {
-	if err := m.ValidateEmojiFiles(emojiFiles); err != nil {
-		return nil, nil, err
+	select {
+	case <-ctx.Done():
+		return nil, nil, nil
+	default:
 	}
 
 	// Пытаемся получить доступ к обработке пака
@@ -49,6 +52,10 @@ func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.Emoj
 		}
 	}
 	defer m.stickerQueue.Release(args.PackLink)
+
+	if err := m.ValidateEmojiFiles(emojiFiles); err != nil {
+		return nil, nil, err
+	}
 
 	var set *telego.StickerSet
 	if !args.NewSet {

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 func (m *Module) RoundDimensions(width, height int) (int, int) {
@@ -265,7 +266,8 @@ func worker(ctx context.Context, jobs <-chan tile, results chan<- processResult,
 			}
 
 			// Создаем команду с возможностью отмены
-			cmd := exec.CommandContext(ctx, "ffmpeg", job.FFmpegArgs...)
+			cmd := exec.Command("ffmpeg", job.FFmpegArgs...)
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			err := cmd.Run()
 
 			// Проверяем отмену перед отправкой результата
@@ -295,6 +297,7 @@ func (m *Module) cropVideoHeight(inputFile string, workingDir string, height int
 		"-vf", fmt.Sprintf("crop=iw:%.0f:0:0", float64(newHeight)),
 		"-y",
 		outputFile)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("ошибка при обрезке видео: %w", err)
@@ -312,6 +315,7 @@ func (m *Module) resizeVideo(args *entity.EmojiCommand, toWidth, toHeight int) (
 		"-vf", fmt.Sprintf("scale=%d:%d", toWidth, toHeight),
 		"-y",
 		outputFile)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("ошибка при изменении размера файла: %w", err)

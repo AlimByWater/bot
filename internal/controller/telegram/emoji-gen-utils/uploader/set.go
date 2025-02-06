@@ -5,11 +5,12 @@ import (
 	"elysium/internal/entity"
 	"errors"
 	"fmt"
-	"github.com/mymmrac/telego"
-	"github.com/mymmrac/telego/telegoutil"
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegoutil"
 )
 
 // createNewStickerSet создает новый набор стикеров
@@ -43,6 +44,11 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 	}
 
 	var err error
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	err = b.CreateNewStickerSet(&telego.CreateNewStickerSetParams{
 		UserID:      args.TelegramUserID,
 		Name:        args.PackLink,
@@ -108,6 +114,11 @@ func (m *Module) addToExistingStickerSet(ctx context.Context, b *telego.Bot, arg
 		return nil, fmt.Errorf("add stickers to set: %w", err)
 	}
 
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	return b.GetStickerSet(&telego.GetStickerSetParams{
 		Name: args.PackLink,
 	})
@@ -117,9 +128,19 @@ var maxRetries = 5
 
 func (m *Module) addStickersToSet(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFileIDs []string) error {
 	for i := 0; i < len(emojiFileIDs); i++ {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 
 		var err error
 		for j := 1; j <= maxRetries; j++ {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
 			err = b.AddStickerToSet(&telego.AddStickerToSetParams{
 				UserID: args.TelegramUserID,
 				Name:   args.PackLink,

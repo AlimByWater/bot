@@ -2,14 +2,16 @@ package httpcaller
 
 import (
 	"context"
+	"elysium/internal/entity"
 	"encoding/json"
 	"fmt"
-	"github.com/mymmrac/telego/telegoapi"
-	"github.com/valyala/fasthttp"
-	"golang.org/x/time/rate"
 	"log/slog"
 	"strconv"
 	"time"
+
+	"github.com/mymmrac/telego/telegoapi"
+	"github.com/valyala/fasthttp"
+	"golang.org/x/time/rate"
 )
 
 type FastHttpCallerWithLimiter struct {
@@ -19,6 +21,7 @@ type FastHttpCallerWithLimiter struct {
 }
 
 func NewFastHttpCallerWithLimiter(rateLimiter *rate.Limiter, logger *slog.Logger) *FastHttpCallerWithLimiter {
+
 	return &FastHttpCallerWithLimiter{
 		Client:      &fasthttp.Client{},
 		RateLimiter: rateLimiter,
@@ -38,9 +41,10 @@ func (c *FastHttpCallerWithLimiter) Call(url string, data *telegoapi.RequestData
 	for {
 		req := fasthttp.AcquireRequest()
 		req.SetRequestURI(url)
-		req.Header.SetContentType(data.ContentType)
 		req.Header.SetMethod(fasthttp.MethodPost)
+
 		req.SetBodyRaw(data.Buffer.Bytes())
+		req.Header.SetContentType(data.ContentType)
 
 		resp := fasthttp.AcquireResponse()
 		err = c.Client.Do(req, resp)
@@ -91,11 +95,17 @@ func (c *FastHttpCallerWithLimiter) Call(url string, data *telegoapi.RequestData
 				}
 			}
 
+			if retryAfter > 100 {
+				if retryAfter > 100 {
+					return nil, fmt.Errorf("%w: попробуйте через %.f минуты", entity.ErrEmojiPacksLimitExceeded, float64(retryAfter)/60)
+				}
+			}
+
 			if retryAfter > 0 {
 				c.Logger.Debug("CLIENT: rate limited", slog.Int("retry_after", retryAfter))
 				fasthttp.ReleaseRequest(req)
 				fasthttp.ReleaseResponse(resp)
-				time.Sleep(time.Duration(retryAfter+retryAfter) * time.Second)
+				time.Sleep(time.Duration(retryAfter+1) * time.Second)
 				continue
 			} else {
 				fasthttp.ReleaseRequest(req)

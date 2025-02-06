@@ -3,8 +3,9 @@ package elysium_test
 import (
 	"context"
 	"elysium/internal/entity"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateService(t *testing.T) {
@@ -22,7 +23,7 @@ func TestCreateService(t *testing.T) {
 				Name:        "Test Service",
 				Description: "Test Description",
 				Price:       100,
-				Active:      true,
+				IsActive:    true,
 			},
 			expectError: false,
 		},
@@ -39,7 +40,7 @@ func TestCreateService(t *testing.T) {
 			require.NotZero(t, createdService.ID)
 
 			t.Cleanup(func() {
-				err := elysiumRepo.DeleteService(context.Background(), createdService.ID)
+				err := elysiumRepo.DeleteServiceHard(context.Background(), createdService.ID)
 				require.NoError(t, err)
 			})
 
@@ -48,7 +49,7 @@ func TestCreateService(t *testing.T) {
 			require.Equal(t, tc.service.Name, fetchedService.Name)
 			require.Equal(t, tc.service.Description, fetchedService.Description)
 			require.Equal(t, tc.service.Price, fetchedService.Price)
-			require.Equal(t, tc.service.Active, fetchedService.Active)
+			require.Equal(t, tc.service.IsActive, fetchedService.IsActive)
 		})
 	}
 }
@@ -62,14 +63,14 @@ func TestUpdateService(t *testing.T) {
 		Name:        "Initial Service",
 		Description: "Initial Description",
 		Price:       100,
-		Active:      true,
+		IsActive:    true,
 	}
 
 	createdService, err := elysiumRepo.CreateService(context.Background(), initialService)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		err := elysiumRepo.DeleteService(context.Background(), createdService.ID)
+		err := elysiumRepo.DeleteServiceHard(context.Background(), createdService.ID)
 		require.NoError(t, err)
 	})
 
@@ -78,7 +79,7 @@ func TestUpdateService(t *testing.T) {
 	updatedService.Name = "Updated Service"
 	updatedService.Description = "Updated Description"
 	updatedService.Price = 200
-	updatedService.Active = false
+	updatedService.IsActive = false
 
 	result, err := elysiumRepo.UpdateService(context.Background(), updatedService)
 	require.NoError(t, err)
@@ -90,7 +91,7 @@ func TestUpdateService(t *testing.T) {
 	require.Equal(t, updatedService.Name, fetchedService.Name)
 	require.Equal(t, updatedService.Description, fetchedService.Description)
 	require.Equal(t, updatedService.Price, fetchedService.Price)
-	require.Equal(t, updatedService.Active, fetchedService.Active)
+	require.Equal(t, updatedService.IsActive, fetchedService.IsActive)
 }
 
 func TestGetServiceByID(t *testing.T) {
@@ -102,14 +103,14 @@ func TestGetServiceByID(t *testing.T) {
 		Name:        "Test Service",
 		Description: "Test Description",
 		Price:       100,
-		Active:      true,
+		IsActive:    true,
 	}
 
 	createdService, err := elysiumRepo.CreateService(context.Background(), service)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		err := elysiumRepo.DeleteService(context.Background(), createdService.ID)
+		err := elysiumRepo.DeleteServiceHard(context.Background(), createdService.ID)
 		require.NoError(t, err)
 	})
 
@@ -120,7 +121,7 @@ func TestGetServiceByID(t *testing.T) {
 	require.Equal(t, service.Name, fetchedService.Name)
 	require.Equal(t, service.Description, fetchedService.Description)
 	require.Equal(t, service.Price, fetchedService.Price)
-	require.Equal(t, service.Active, fetchedService.Active)
+	require.Equal(t, service.IsActive, fetchedService.IsActive)
 
 	// Test getting non-existent service
 	_, err = elysiumRepo.GetServiceByID(context.Background(), 99999)
@@ -139,14 +140,14 @@ func TestListServicesByBotID(t *testing.T) {
 			Name:        "Service 1",
 			Description: "Description 1",
 			Price:       100,
-			Active:      true,
+			IsActive:    true,
 		},
 		{
 			BotID:       botID,
 			Name:        "Service 2",
 			Description: "Description 2",
 			Price:       200,
-			Active:      true,
+			IsActive:    true,
 		},
 	}
 
@@ -159,7 +160,7 @@ func TestListServicesByBotID(t *testing.T) {
 
 	t.Cleanup(func() {
 		for _, id := range createdIDs {
-			err := elysiumRepo.DeleteService(context.Background(), id)
+			err := elysiumRepo.DeleteServiceHard(context.Background(), id)
 			require.NoError(t, err)
 		}
 	})
@@ -170,7 +171,7 @@ func TestListServicesByBotID(t *testing.T) {
 	require.Len(t, fetchedServices, len(services))
 }
 
-func TestDeleteService(t *testing.T) {
+func TestDeleteServiceHard(t *testing.T) {
 	t.Skip()
 
 	// Create a service first
@@ -179,14 +180,14 @@ func TestDeleteService(t *testing.T) {
 		Name:        "Test Service",
 		Description: "Test Description",
 		Price:       100,
-		Active:      true,
+		IsActive:    true,
 	}
 
 	createdService, err := elysiumRepo.CreateService(context.Background(), service)
 	require.NoError(t, err)
 
 	// Test deleting the service
-	err = elysiumRepo.DeleteService(context.Background(), createdService.ID)
+	err = elysiumRepo.DeleteServiceHard(context.Background(), createdService.ID)
 	require.NoError(t, err)
 
 	// Verify the service is deleted
@@ -194,6 +195,6 @@ func TestDeleteService(t *testing.T) {
 	require.Error(t, err)
 
 	// Test deleting non-existent service
-	err = elysiumRepo.DeleteService(context.Background(), 99999)
+	err = elysiumRepo.DeleteServiceHard(context.Background(), 99999)
 	require.Error(t, err)
 }

@@ -1,11 +1,12 @@
 package command
 
 import (
+	"log/slog"
+	"reflect"
+
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegohandler"
 	"github.com/mymmrac/telego/telegoutil"
-	"log/slog"
-	"reflect"
 )
 
 type BuyTokens struct {
@@ -100,5 +101,5 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 }
 
 func (h *BuyTokens) Predicate() telegohandler.Predicate {
-	return telegohandler.CallbackDataPrefix(h.Command())
+	return telegohandler.Or(telegohandler.CallbackDataPrefix(h.Command()), telegohandler.CommandEqual(h.Command()))
 }

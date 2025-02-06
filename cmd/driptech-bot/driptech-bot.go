@@ -10,7 +10,9 @@ import (
 	"elysium/internal/controller/telegram"
 	"elysium/internal/controller/telegram/command"
 	"elysium/internal/controller/telegram/emoji-gen-utils/processing"
+	progress_manager "elysium/internal/controller/telegram/emoji-gen-utils/progress-manager"
 	"elysium/internal/controller/telegram/group"
+	"elysium/internal/controller/telegram/inline_keyboard"
 	"elysium/internal/controller/telegram/middleware"
 	"elysium/internal/repository/clickhouse"
 	"elysium/internal/repository/clickhouse/bot_updates_insert"
@@ -79,6 +81,8 @@ func main() {
 
 	useCache := use_cache.New()
 
+	progressManager := progress_manager.NewManager()
+
 	// emoji-gen modules
 	userBot := userbot.NewBot(elysiumRepo, userBotCfg)
 	processingUC := processing.NewProcessingModule(loggerModule)
@@ -89,8 +93,9 @@ func main() {
 	commStart := command.NewStart(messageUC)
 	buyTokens := command.NewBuyTokens(messageUC)
 	emojiMsgTracker := group.NewEmojiMessageTracker(userBot, useCache)
+	cancelEmojiHandler := inline_keyboard.NewCancelEmojiPackGeneration(progressManager)
 
-	emojiDM := group.NewEmojiDM(useCache, messageUC, userUC, processingUC, elysiumRepo, userBot)
+	emojiDM := group.NewEmojiDM(useCache, messageUC, userUC, processingUC, elysiumRepo, userBot, progressManager)
 
 	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
@@ -109,6 +114,7 @@ func main() {
 			emojiDM,
 			emojiMsgTracker,
 			commStart,
+			cancelEmojiHandler,
 		},
 	)
 	/*********************************/

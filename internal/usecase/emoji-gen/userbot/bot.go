@@ -4,6 +4,12 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
+	"log/slog"
+	"math"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/celestix/gotgproto"
 	"github.com/celestix/gotgproto/dispatcher/handlers"
 	"github.com/celestix/gotgproto/dispatcher/handlers/filters"
@@ -15,11 +21,6 @@ import (
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/tg"
-	"log/slog"
-	"math"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 type repo interface {

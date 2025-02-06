@@ -6,13 +6,19 @@ import (
 	"elysium/internal/entity"
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegoutil"
-	"log/slog"
-	"os"
 )
 
 func (m *Module) uploadSticker(ctx context.Context, b *telego.Bot, userID int64, filename string, data []byte) (string, error) {
+	// Добавляем проверку контекста
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
 	newSticker, err := b.UploadStickerFile(&telego.UploadStickerFileParams{
 		UserID:        userID,
 		Sticker:       telegoutil.File(telegoutil.NameReader(bytes.NewReader(data), filename)),
@@ -31,7 +37,7 @@ func (m *Module) uploadSticker(ctx context.Context, b *telego.Bot, userID int64,
 
 // uploadEmojiFiles загружает все файлы эмодзи и возвращает их fileIDs и метаданные
 func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, set *telego.StickerSet, emojiFiles []string) ([]string, [][]entity.EmojiMeta, error) {
-	m.logger.Debug("uploading emoji stickers", slog.Int("count", len(emojiFiles)))
+	// m.logger.Debug("uploading emoji stickers", slog.Int("count", len(emojiFiles)))
 
 	totalEmojis := len(emojiFiles)
 	rows := (totalEmojis + args.Width - 1) / args.Width // Округляем вверх
@@ -73,6 +79,11 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 
 	// Сначала загружаем все эмодзи и заполняем метаданные
 	for i, emojiFile := range emojiFiles {
+		select {
+		case <-ctx.Done():
+			return nil, nil, nil
+		default:
+		}
 		fileData, err := os.ReadFile(emojiFile)
 		if err != nil {
 			return nil, nil, fmt.Errorf("open emoji file: %w", err)
@@ -101,16 +112,15 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 			// Для нечетного количества отступов, слева меньше на 1
 			leftPadding = (totalPadding - 1) / 2
 		}
-		transparentFileID, err := m.uploadSticker(ctx, b, args.TelegramUserID, "transparent.webm", transparentData)
-		if err != nil {
-			return nil, nil, fmt.Errorf("upload transparent sticker: %w", err)
-		}
 
 		// Загружаем прозрачные эмодзи слева только если нужно
 		if args.Width < entity.DefaultWidth {
 			for j := 0; j < leftPadding; j++ {
 				if emojiMetaRows[row][j].FileID == "" {
-
+					transparentFileID, err := m.uploadSticker(ctx, b, args.TelegramUserID, "transparent.webm", transparentData)
+					if err != nil {
+						return nil, nil, fmt.Errorf("upload transparent sticker: %w", err)
+					}
 					emojiMetaRows[row][j] = entity.EmojiMeta{
 						FileID:      transparentFileID,
 						FileName:    "transparent.webm",
@@ -135,6 +145,10 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 		if args.Width < entity.DefaultWidth {
 			for j := col + leftPadding + 1; j < entity.DefaultWidth; j++ {
 				if emojiMetaRows[row][j].FileID == "" {
+					transparentFileID, err := m.uploadSticker(ctx, b, args.TelegramUserID, "transparent.webm", transparentData)
+					if err != nil {
+						return nil, nil, fmt.Errorf("upload transparent sticker: %w", err)
+					}
 					emojiMetaRows[row][j] = entity.EmojiMeta{
 						FileID:      transparentFileID,
 						FileName:    "transparent.webm",

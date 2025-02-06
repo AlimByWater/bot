@@ -61,6 +61,20 @@ func (r *Repository) GetEmojiPacksByCreator(ctx context.Context, creator int64, 
 	return packs, nil
 }
 
+func (r *Repository) DeleteEmojiPackHard(ctx context.Context, packID int64) error {
+	query := `
+		DELETE FROM emoji_packs
+		WHERE id = $1
+	`
+
+	_, err := r.db.ExecContext(ctx, query, packID)
+	if err != nil {
+		return fmt.Errorf("failed to delete emoji pack: %w", err)
+	}
+
+	return nil
+}
+
 func (r *Repository) SetEmojiPackDeleted(ctx context.Context, packName string) error {
 	query := `
 		UPDATE emoji_packs
@@ -101,7 +115,7 @@ func (r *Repository) CreateNewEmojiPack(ctx context.Context, pack entity.EmojiPa
 			initial_command,
 			bot_id,
 			emoji_count,
-		
+
 			deleted,
 			created_at,
 			updated_at

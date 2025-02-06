@@ -4,9 +4,10 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"fmt"
-	"github.com/mymmrac/telego"
 	"strconv"
 	"sync"
+
+	"github.com/mymmrac/telego"
 )
 
 // ProgressManager управляет сообщениями о прогрессе
@@ -17,7 +18,10 @@ type ProgressManager struct {
 
 // NewManager создает новый менеджер прогресса
 func NewManager() *ProgressManager {
-	return &ProgressManager{}
+	return &ProgressManager{
+		progressMessages: sync.Map{},
+		cancelChannels:   sync.Map{},
+	}
 }
 
 // SendMessage отправляет новое сообщение о прогрессе

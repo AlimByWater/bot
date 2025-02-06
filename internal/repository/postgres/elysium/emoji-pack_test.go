@@ -2,11 +2,18 @@ package elysium_test
 
 import (
 	"context"
+	"elysium/internal/application/logger"
+	"elysium/internal/controller/telegram/httpcaller"
 	"elysium/internal/entity"
 	"fmt"
-	"github.com/google/uuid"
+	"log/slog"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/mymmrac/telego"
+	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/require"
 )
@@ -240,4 +247,65 @@ func TestGetEmojiPacksByCreator(t *testing.T) {
 			require.NoError(t, err)
 		})
 	})
+}
+
+func TestDeleteEmojiPacks(t *testing.T) {
+	ctx := context.TODO()
+
+	creatorID := int64(251636949)
+
+	loggerModule := logger.New(
+		logger.Options{
+			AppName: "driptech-bot-test",
+			Writer:  os.Stdout,
+			HandlerOptions: &slog.HandlerOptions{
+				Level: slog.LevelDebug,
+			},
+		},
+	)
+
+	bots, err := elysiumRepo.GetAllBots(ctx)
+	require.NoError(t, err)
+
+	packs1, err := elysiumRepo.GetEmojiPacksByCreator(ctx, creatorID, false)
+	require.NoError(t, err)
+
+	packsByBotID := make(map[string][]entity.EmojiPack)
+	for _, pack := range packs1 {
+		packsByBotID[fmt.Sprintf("%d", pack.BotID)] = append(packsByBotID[fmt.Sprintf("%d", pack.BotID)], pack)
+	}
+
+	for _, b := range bots {
+		rl := rate.NewLimiter(rate.Every(1*time.Second), 80)
+		bot, err := telego.NewBot(b.Token,
+			telego.WithAPICaller(httpcaller.NewFastHttpCallerWithLimiter(rl, loggerModule)),
+		)
+		if err != nil {
+			t.Log("Newbot", b.Name)
+		}
+
+		// Get bot info for middleware
+		me, err := bot.GetMe()
+		if err != nil {
+			continue
+		}
+
+		packs, ok := packsByBotID[fmt.Sprintf("-100%d", me.ID)]
+		if !ok {
+			continue
+		}
+
+		for _, pack := range packs {
+			err = bot.DeleteStickerSet(&telego.DeleteStickerSetParams{Name: pack.PackLink})
+			if err != nil {
+				t.Log("DeleteStickerSet", pack.ID)
+			} else {
+				err2 := elysiumRepo.DeleteEmojiPackHard(ctx, pack.ID)
+				if err2 != nil {
+					t.Log("DeleteEmojiPackHard", pack.ID)
+				}
+			}
+		}
+	}
+
 }

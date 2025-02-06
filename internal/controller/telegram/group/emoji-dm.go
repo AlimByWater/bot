@@ -3,20 +3,20 @@ package group
 import (
 	"context"
 	emoji_gen_utils "elysium/internal/controller/telegram/emoji-gen-utils"
-	progress_manager "elysium/internal/controller/telegram/emoji-gen-utils/progress-manager"
 	"elysium/internal/controller/telegram/emoji-gen-utils/queue"
 	"elysium/internal/controller/telegram/emoji-gen-utils/uploader"
 	"errors"
 	"fmt"
-	"github.com/cavaliergopher/grab/v3"
-	"github.com/mymmrac/telego"
-	"github.com/mymmrac/telego/telegohandler"
 	"log/slog"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cavaliergopher/grab/v3"
+	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegohandler"
 
 	"elysium/internal/entity"
 )
@@ -103,10 +103,15 @@ func NewEmojiDM(
 		GetID() int64
 		SendMessageWithEmojisToBot(ctx context.Context, chatID string, width int, packLink string, emojis []entity.EmojiMeta) (int, error)
 	},
+	progressManager interface {
+		SendMessage(ctx context.Context, bot *telego.Bot, chatID telego.ChatID, replyToID int, userID int64, status string) (*entity.ProgressMessage, error)
+		UpdateMessage(ctx context.Context, bot *telego.Bot, chatID telego.ChatID, msgID int, status string) error
+		DeleteMessage(ctx context.Context, bot *telego.Bot, chatID telego.ChatID, msgID int) error
+		GetCancelChannel(cancelKey string) chan struct{}
+	},
 ) *EmojiDM {
 	queueModule := queue.New()
 	uploaderModule := uploader.New(queueModule)
-	progressManager := progress_manager.NewManager()
 	return &EmojiDM{
 		cache:           cache,
 		message:         message,
@@ -125,12 +130,12 @@ func (h *EmojiDM) AddLogger(logger *slog.Logger) {
 	h.logger = logger.With(slog.String("handler", reflect.Indirect(reflect.ValueOf(h)).Type().PkgPath()))
 }
 
-func (h *EmojiDM) Command() string     { return "emoji" }
-func (h *EmojiDM) Description() string { return "Start DripTech Bot" }
+func (h *EmojiDM) Command() string { return "emoji" }
 
 func (h *EmojiDM) Handler() telegohandler.Handler {
 	return func(bot *telego.Bot, update telego.Update) {
-		ctx := context.Background() // TODO что с этим контекстом?
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 		if update.Message == nil {
 			return
 		}
@@ -193,10 +198,6 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 			return
 		}
 
-		// Контекст с отменой
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
 		// Прогресс сообщение
 		progress, err := h.progressManager.SendMessage(
 			ctx, bot,
@@ -208,7 +209,12 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 		if err != nil {
 			h.logger.Error("Progress message failed", slog.String("err", err.Error()))
 		}
-		defer h.progressManager.DeleteMessage(ctx, bot, telego.ChatID{ID: update.Message.Chat.ID}, progress.MessageID)
+		defer func() {
+			err := h.progressManager.DeleteMessage(ctx, bot, telego.ChatID{ID: update.Message.Chat.ID}, progress.MessageID)
+			if err != nil {
+				h.logger.Error("Failed to delete progress message", slog.String("err", err.Error()))
+			}
+		}()
 
 		// Обработка отмены
 		cancelCh := h.progressManager.GetCancelChannel(progress.CancelKey)
@@ -221,6 +227,7 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 					_ = bot.DeleteStickerSet(&telego.DeleteStickerSetParams{Name: emojiArgs.PackLink})
 				}
 			case <-ctx.Done():
+				cancel()
 			}
 		}()
 
@@ -240,14 +247,30 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 			h.progressManager.UpdateMessage(ctx, bot, telego.ChatID{ID: update.Message.Chat.ID}, progress.MessageID, "✨ Uploading emojis...") // TODO текст прогресса
 			stickerSet, emojiMetaRows, err = h.uploader.AddEmojis(ctx, bot, emojiArgs, files)
 			if err != nil {
+				if errors.Is(err, context.Canceled) {
+					return
+				}
+
 				if strings.Contains(err.Error(), "STICKER_VIDEO_BIG") {
 					emojiArgs.QualityValue++
 					continue
 				}
+
+				if errors.Is(err, entity.ErrEmojiPacksLimitExceeded) {
+					h.sendMessage(bot, update.Message.Chat.ID, update.Message.MessageID, err.Error()) // TODO текст ошибки
+					return
+				}
+
 				h.sendMessage(bot, update.Message.Chat.ID, update.Message.MessageID, "Upload error: "+err.Error()) // TODO текст ошибки
 				return
 			}
 			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 
 		// Обновляем количество эмодзи в базе данных
@@ -274,7 +297,7 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 				slog.Int64("user_id", emojiArgs.TelegramUserID),
 			)
 		} else {
-			sent := h.waitForEmojiMessageAndForwardIt(ctx, bot, update.Message.From.ID, emojiArgs.PackLink)
+			sent := h.waitForEmojiMessageAndForwardIt(update.Context(), bot, update.Message.From.ID, emojiArgs.PackLink)
 			if sent {
 				return
 			}
@@ -300,11 +323,11 @@ func (h *EmojiDM) waitForEmojiMessageAndForwardIt(ctx context.Context, bot *tele
 
 			msgID, ok := msgIDRaw.(int)
 			if !ok {
-				time.Sleep(time.Second)
 				continue
 			}
 
 			h.forwardMessage(bot, h.userBot.GetID(), userID, msgID)
+			return true
 		case <-ctx.Done():
 			return false
 		}
