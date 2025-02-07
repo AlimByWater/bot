@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"reflect"
 	"runtime"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type group interface {

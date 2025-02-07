@@ -110,13 +110,11 @@ func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.Emoj
 
 func (m *Module) ValidateEmojiFiles(emojiFiles []string) error {
 	if len(emojiFiles) == 0 {
-		return fmt.Errorf("нет файлов для создания набора")
+		return &UploaderError{Code: "NoFiles", Err: fmt.Errorf("no files provided")}
 	}
-
 	if len(emojiFiles) > entity.MaxStickersTotal {
-		return fmt.Errorf("слишком много файлов для создания набора (максимум %d)", entity.MaxStickersTotal)
+		return &UploaderError{Code: "ExceedLimit", Err: fmt.Errorf("files exceed allowed limit")}
 	}
-
 	return nil
 }
 

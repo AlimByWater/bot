@@ -17,7 +17,7 @@ import (
 func (m *Module) createNewStickerSet(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFileIDs []string) (*telego.StickerSet, error) {
 	totalWithTransparent := len(emojiFileIDs)
 	if totalWithTransparent > entity.MaxStickersTotal {
-		return nil, fmt.Errorf("общее количество стикеров (%d) с прозрачными превысит максимум (%d)", totalWithTransparent, entity.MaxStickersTotal)
+		return nil, &UploaderError{Code: "ExceedLimit", Err: fmt.Errorf("общее количество стикеров (%d) с прозрачными превысит максимум (%d)", totalWithTransparent, entity.MaxStickersTotal)}
 	}
 
 	return m.createStickerSetWithBatches(ctx, b, args, emojiFileIDs)
@@ -59,7 +59,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 
 	if err != nil && !strings.Contains(err.Error(), "STICKER_VIDEO_NOWEBM") {
 		m.logger.Debug("new sticker set FAILED", slog.Int("t", 1), slog.String("name", args.PackLink), slog.String("error", err.Error()))
-		return nil, fmt.Errorf("create sticker set: %w", err)
+		return nil, &UploaderError{Code: "CreateStickerSet", Err: fmt.Errorf("create sticker set: %w", err)}
 	} else if err != nil && strings.Contains(err.Error(), "STICKER_VIDEO_NOWEBM") {
 		count = 1
 
@@ -72,7 +72,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 		})
 		if err != nil {
 			m.logger.Debug("new sticker set FAILED", slog.Int("t", 2), slog.String("name", args.PackLink), slog.String("error", err.Error()))
-			return nil, fmt.Errorf("create sticker set: %w", err)
+			return nil, &UploaderError{Code: "CreateStickerSet", Err: fmt.Errorf("create sticker set: %w", err)}
 		}
 	}
 
@@ -81,7 +81,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 	// Добавляем оставшиеся стикеры по одному
 	err = m.addStickersToSet(ctx, b, args, emojiFileIDs)
 	if err != nil {
-		return nil, fmt.Errorf("add stickers to set: %w", err)
+		return nil, &UploaderError{Code: "AddStickers", Err: err}
 	}
 
 	// Получаем финальное состояние набора
@@ -89,7 +89,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 		Name: args.PackLink,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get sticker set: %w", err)
+		return nil, &UploaderError{Code: "GetStickerSet", Err: err}
 	}
 
 	return set, nil
@@ -100,18 +100,13 @@ func (m *Module) addToExistingStickerSet(ctx context.Context, b *telego.Bot, arg
 
 	// Проверяем, что не превысим лимит
 	if len(stickerSet.Stickers)+len(emojiFileIDs) > entity.MaxStickersTotal {
-		return nil, fmt.Errorf(
-			"превышен лимит стикеров в наборе (%d + %d > %d)",
-			len(stickerSet.Stickers),
-			len(emojiFileIDs),
-			entity.MaxStickersTotal,
-		)
+		return nil, &UploaderError{Code: "ExceedLimit", Err: fmt.Errorf("превышен лимит стикеров в наборе (%d + %d > %d)", len(stickerSet.Stickers), len(emojiFileIDs), entity.MaxStickersTotal)}
 	}
 
 	// Добавляем стикеры батчами
 	err := m.addStickersToSet(ctx, b, args, emojiFileIDs)
 	if err != nil {
-		return nil, fmt.Errorf("add stickers to set: %w", err)
+		return nil, &UploaderError{Code: "AddStickers", Err: err}
 	}
 
 	select {

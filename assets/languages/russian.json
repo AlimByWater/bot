@@ -7,5 +7,22 @@
   "BuyTokens": "DripTech — сервис для создания стикерпаков из медиафайлов в формате эмодзи-арта\n\n- Конвертирует изображения (JPEG, PNG), видео (MP4, WEBM), GIF и стикерпаки Telegram в emoji-паки.\n- Результат: готовый к установке в Telegram пак стикеров из эмодзи.\n\nВыходные данные:\n- Композиция из эмодзи\n- Готовый эмоджи-пак для Telegram\n\n=== ПРОЦЕСС РАБОТЫ ===\n1. Загрузка файла через бота\n2. Обработка:\n   - Сегментация изображения/кадров\n   - Цветовая коррекция (при необходимости)\n   - Создание emoji-пака\n3. Отправка готового пакета пользователю\n\n1 Токен = 1 Рубль\n1 Генерация = 15 Токенов",
   "BuyTokensBtn": "Купить токены",
   "StartDripTech": "Добро пожаловать в DripTech!",
-  "BackBtn": "Назад"
+  "BackBtn": "Назад",
+  "EmojiGenError": "Ошибка при генерации эмодзи-пака",
+  "EmojiGenLimitExceeded": "Будет превышено максимальное количество эмодзи в паке (%d из %d)",
+  "EmojiGenProcessingStart": "Начинается обработка видео для генерации эмодзи",
+  "EmojiGenProcessingVideo": "Обработка видео...",
+  "EmojiGenUploadingEmojis": "Загрузка эмодзи...",
+  "EmojiGenDownloadError": "Ошибка скачивания файла",
+  "EmojiGenUploadError": "Ошибка загрузки эмодзи",
+  "EmojiGenUnsupportedFileType": "Неверный тип файла",
+  "EmojiGenNoFiles": "Нет файлов для создания набора.",
+  "EmojiGenYourPack": "Ваш эмодзи-пак готов: %s",
+  "EmojiGenProcessingError": "Ошибка обработки видео",
+  "EmojiGenUploadStickerError": "Ошибка загрузки эмоджи",
+  "EmojiGenUploadTransparentStickerError": "Ошибка загрузки прозрачного эмоджи",
+  "EmojiGenCreateStickerSetError": "Ошибка создания набора стикеров",
+  "EmojiGenAddStickersError": "Ошибка добавления эмоджи в набор",
+  "EmojiGenGetStickerSetError": "Ошибка получения эмоджи-пака",
+  "EmojiGenOpenFileError": "Ошибка открытия файла"
 }

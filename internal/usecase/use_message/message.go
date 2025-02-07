@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"reflect"
@@ -15,15 +16,32 @@ type config interface {
 }
 
 type language struct {
-	Code          string
-	Error         string
-	BalanceBtn    string
-	BotsListBtn   string
-	SupportBtn    string
-	BuyTokens     string
-	BuyTokensBtn  string
-	StartDripTech string
-	BackBtn       string
+	Code                                  string
+	Error                                 string
+	BalanceBtn                            string
+	BotsListBtn                           string
+	SupportBtn                            string
+	BuyTokens                             string
+	BuyTokensBtn                          string
+	StartDripTech                         string
+	BackBtn                               string
+	EmojiGenError                         string
+	EmojiGenLimitExceeded                 string
+	EmojiGenProcessingStart               string
+	EmojiGenProcessingVideo               string
+	EmojiGenUploadingEmojis               string
+	EmojiGenDownloadError                 string
+	EmojiGenUploadError                   string
+	EmojiGenUnsupportedFileType           string
+	EmojiGenYourPack                      string
+	EmojiGenProcessingError               string
+	EmojiGenUploadStickerError            string
+	EmojiGenUploadTransparentStickerError string
+	EmojiGenCreateStickerSetError         string
+	EmojiGenAddStickersError              string
+	EmojiGenGetStickerSetError            string
+	EmojiGenOpenFileError                 string
+	EmojiGenNoFiles                       string
 }
 
 type Module struct {
@@ -131,4 +149,72 @@ func (m *Module) StartDripTech(langCode string) string {
 
 func (m *Module) BackBtn(langCode string) string {
 	return m.languages[m.langIdx(langCode)].BackBtn
+}
+
+func (m *Module) EmojiGenError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenError
+}
+
+func (m *Module) EmojiGenLimitExceeded(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenLimitExceeded
+}
+
+func (m *Module) EmojiGenProcessingStart(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenProcessingStart
+}
+
+func (m *Module) EmojiGenProcessingVideo(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenProcessingVideo
+}
+
+func (m *Module) EmojiGenUploadingEmojis(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenUploadingEmojis
+}
+
+func (m *Module) EmojiGenDownloadError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenDownloadError
+}
+
+func (m *Module) EmojiGenUploadError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenUploadError
+}
+
+func (m *Module) EmojiGenUnsupportedFileType(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenUnsupportedFileType
+}
+
+func (m *Module) EmojiGenYourPack(langCode string, packLink string) string {
+	return fmt.Sprintf(m.languages[m.langIdx(langCode)].EmojiGenYourPack, packLink)
+}
+
+func (m *Module) EmojiGenProcessingError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenProcessingError
+}
+
+func (m *Module) EmojiGenUploadStickerError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenUploadStickerError
+}
+
+func (m *Module) EmojiGenUploadTransparentStickerError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenUploadTransparentStickerError
+}
+
+func (m *Module) EmojiGenCreateStickerSetError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenCreateStickerSetError
+}
+
+func (m *Module) EmojiGenAddStickersError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenAddStickersError
+}
+
+func (m *Module) EmojiGenGetStickerSetError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenGetStickerSetError
+}
+
+func (m *Module) EmojiGenOpenFileError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenOpenFileError
+}
+
+func (m *Module) EmojiGenNoFiles(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenNoFiles
 }

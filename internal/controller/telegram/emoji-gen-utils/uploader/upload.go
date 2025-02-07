@@ -29,7 +29,11 @@ func (m *Module) uploadSticker(ctx context.Context, b *telego.Bot, userID int64,
 		if errors.Is(err, context.Canceled) {
 			return "", context.Canceled
 		}
-		return "", fmt.Errorf("upload sticker: %w; filename: %s", err, filename)
+		return "", &UploaderError{
+			Code:   ErrCodeUploadSticker,
+			Params: map[string]any{"filename": filename},
+			Err:    fmt.Errorf("upload sticker: %w; filename: %s", err, filename),
+		}
 	}
 
 	return newSticker.FileID, nil
@@ -56,7 +60,11 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 	}
 
 	if totalStickers > entity.MaxStickersTotal {
-		return nil, nil, fmt.Errorf("будет превышено максимальное количество эмодзи в паке (%d из %d)", totalStickers, entity.MaxStickersTotal)
+		return nil, nil, &UploaderError{
+			Code:   ErrCodeExceedLimit,
+			Params: map[string]any{"totalStickers": totalStickers, "max": entity.MaxStickersTotal},
+			Err:    fmt.Errorf("будет превышено максимальное количество эмодзи в паке (%d из %d)", totalStickers, entity.MaxStickersTotal),
+		}
 	}
 
 	// Подготавливаем прозрачный стикер только если он нужен
@@ -86,7 +94,11 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 		}
 		fileData, err := os.ReadFile(emojiFile)
 		if err != nil {
-			return nil, nil, fmt.Errorf("open emoji file: %w", err)
+			return nil, nil, &UploaderError{
+				Code:   ErrCodeOpenFile,
+				Params: map[string]any{"file": emojiFile},
+				Err:    fmt.Errorf("open emoji file: %w", err),
+			} // skip
 		}
 
 		fileID, err := m.uploadSticker(ctx, b, args.TelegramUserID, emojiFile, fileData)
@@ -119,7 +131,11 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 				if emojiMetaRows[row][j].FileID == "" {
 					transparentFileID, err := m.uploadSticker(ctx, b, args.TelegramUserID, "transparent.webm", transparentData)
 					if err != nil {
-						return nil, nil, fmt.Errorf("upload transparent sticker: %w", err)
+						return nil, nil, &UploaderError{
+							Code:   ErrCodeUploadTransparentSticker,
+							Params: map[string]any{"file": "transparent.webm"},
+							Err:    fmt.Errorf("upload transparent sticker: %w", err),
+						} // skip
 					}
 					emojiMetaRows[row][j] = entity.EmojiMeta{
 						FileID:      transparentFileID,
@@ -147,7 +163,7 @@ func (m *Module) uploadEmojiFiles(ctx context.Context, b *telego.Bot, args *enti
 				if emojiMetaRows[row][j].FileID == "" {
 					transparentFileID, err := m.uploadSticker(ctx, b, args.TelegramUserID, "transparent.webm", transparentData)
 					if err != nil {
-						return nil, nil, fmt.Errorf("upload transparent sticker: %w", err)
+						return nil, nil, fmt.Errorf("upload transparent sticker: %w", err) // skip
 					}
 					emojiMetaRows[row][j] = entity.EmojiMeta{
 						FileID:      transparentFileID,
