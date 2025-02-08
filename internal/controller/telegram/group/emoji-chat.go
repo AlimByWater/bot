@@ -170,7 +170,7 @@ func (h *EmojiChat) Predicate() telegohandler.Predicate {
 
 func (h *EmojiChat) Handler() telegohandler.Handler {
 	return func(bot *telego.Bot, update telego.Update) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		if update.Message == nil {
 			return

@@ -140,6 +140,26 @@ func (m *Module) ParseArgs(arg string) (*entity.EmojiCommand, error) {
 				value = "true"
 			}
 			emojiArgs.Iphone = value == "true"
+		case "offset_top":
+			ot, err := strconv.Atoi(value)
+			if err == nil {
+				emojiArgs.OffsetTop = ot
+			}
+		case "offset_bottom":
+			ob, err := strconv.Atoi(value)
+			if err == nil {
+				emojiArgs.OffsetBottom = ob
+			}
+		case "offset_right":
+			or, err := strconv.Atoi(value)
+			if err == nil {
+				emojiArgs.OffsetRight = or
+			}
+		case "offset_left":
+			ol, err := strconv.Atoi(value)
+			if err == nil {
+				emojiArgs.OffsetLeft = ol
+			}
 		}
 	}
 

@@ -113,6 +113,10 @@ type EmojiCommand struct {
 
 	RawInitCommand string `json:"raw_init_command"`
 	Iphone         bool   `json:"iphone"`
+	OffsetTop      int    `json:"offset_top"`
+	OffsetBottom   int    `json:"offset_bottom"`
+	OffsetRight    int    `json:"offset_right"`
+	OffsetLeft     int    `json:"offset_left"`
 
 	WorkingDir string `json:"working_dir"`
 
@@ -175,6 +179,15 @@ var ArgAlias = map[string]string{
 	// iphone aliases
 	"iphone": "iphone",
 	"i":      "iphone",
+	// offset aliases
+	"offset_top":    "offset_top",
+	"ot":            "offset_top",
+	"offset_bottom": "offset_bottom",
+	"ob":            "offset_bottom",
+	"offset_right":  "offset_right",
+	"or":            "offset_right",
+	"offset_left":   "offset_left",
+	"ol":            "offset_left",
 }
 
 var ColorMap = map[string]string{

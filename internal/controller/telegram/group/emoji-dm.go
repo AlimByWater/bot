@@ -164,7 +164,7 @@ func (h *EmojiDM) Command() string { return "emoji" }
 
 func (h *EmojiDM) Handler() telegohandler.Handler {
 	return func(bot *telego.Bot, update telego.Update) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		if update.Message == nil {
 			return

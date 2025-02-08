@@ -176,22 +176,63 @@ func (m *Module) ProcessVideo(ctx context.Context, args *entity.EmojiCommand) ([
 				var vfArgs []string
 
 				currentTileHeight := tileHeight
-				if j == tilesY-1 && lastRowHeight > 0 {
-					currentTileHeight = lastRowHeight
-					padColor := "#04F404@0.1"
-					if args.BackgroundColor != "" {
-						padColor = args.BackgroundColor
-					} else if args.BackgroundBlend != "" {
-						args.BackgroundColor = padColor
-					}
-					vfArgs = []string{
-						fmt.Sprintf("crop=%d:%d:%d:%d", tileWidth, currentTileHeight, i*tileWidth, j*tileHeight),
-						fmt.Sprintf("scale=100:%d", currentTileHeight),
-						fmt.Sprintf("pad=100:100:%d:0:color=%s", 100-currentTileHeight, padColor),
+				// Check if any offset is provided
+				hasOffsets := (args.OffsetTop != 0 || args.OffsetBottom != 0 || args.OffsetLeft != 0 || args.OffsetRight != 0)
+				if hasOffsets {
+					if j == tilesY-1 && lastRowHeight > 0 {
+						currentTileHeight = lastRowHeight
+						padColor := "#04F404@0.1"
+						if args.BackgroundColor != "" {
+							padColor = args.BackgroundColor
+						} else if args.BackgroundBlend != "" {
+							args.BackgroundColor = padColor
+						}
+						// Сначала кропаем полный размер
+						cropFilter := fmt.Sprintf("crop=%d:%d:%d:%d", tileWidth, currentTileHeight, i*tileWidth, j*tileHeight)
+						// Масштабируем как обычно
+						scaleFilter := fmt.Sprintf("scale=%d:%d",
+							100-(args.OffsetLeft+args.OffsetRight),
+							currentTileHeight-(args.OffsetTop+args.OffsetBottom))
+						// Добавляем отступы через pad с учетом всех сторон
+						padFilter := fmt.Sprintf("pad=100:100:%d:%d:color=%s",
+							args.OffsetLeft,
+							args.OffsetTop,
+							padColor)
+						vfArgs = []string{cropFilter, scaleFilter, padFilter}
+					} else {
+						padColor := "#04F404@0.1"
+						if args.BackgroundColor != "" {
+							padColor = args.BackgroundColor
+						}
+						// Для обычных тайлов кропаем, масштабируем с учетом отступов и добавляем отступы
+						cropFilter := fmt.Sprintf("crop=%d:%d:%d:%d", tileWidth, currentTileHeight, i*tileWidth, j*tileHeight)
+						scaleFilter := fmt.Sprintf("scale=%d:%d",
+							100-(args.OffsetLeft+args.OffsetRight),
+							100-(args.OffsetTop+args.OffsetBottom))
+						padFilter := fmt.Sprintf("pad=100:100:%d:%d:color=%s",
+							args.OffsetLeft,
+							args.OffsetTop,
+							padColor)
+						vfArgs = []string{cropFilter, scaleFilter, padFilter}
 					}
 				} else {
-					vfArgs = []string{
-						fmt.Sprintf("crop=%d:%d:%d:%d", tileWidth, currentTileHeight, i*tileWidth, j*tileHeight),
+					if j == tilesY-1 && lastRowHeight > 0 {
+						currentTileHeight = lastRowHeight
+						padColor := "#04F404@0.1"
+						if args.BackgroundColor != "" {
+							padColor = args.BackgroundColor
+						} else if args.BackgroundBlend != "" {
+							args.BackgroundColor = padColor
+						}
+						vfArgs = []string{
+							fmt.Sprintf("crop=%d:%d:%d:%d", tileWidth, currentTileHeight, i*tileWidth, j*tileHeight),
+							fmt.Sprintf("scale=100:%d", currentTileHeight),
+							fmt.Sprintf("pad=100:100:%d:0:color=%s", 100-currentTileHeight, padColor),
+						}
+					} else {
+						vfArgs = []string{
+							fmt.Sprintf("crop=%d:%d:%d:%d", tileWidth, currentTileHeight, i*tileWidth, j*tileHeight),
+						}
 					}
 				}
 

@@ -24,7 +24,7 @@ func New() *Module {
 }
 
 func (m *Module) AddLogger(logger *slog.Logger) {
-	m.logger = logger.With(slog.String("module", "emoji-gen uploader"))
+	m.logger = logger.With(slog.String("module", "emoji-uploader"))
 }
 
 func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.EmojiCommand, emojiFiles []string) (*telego.StickerSet, [][]entity.EmojiMeta, error) {

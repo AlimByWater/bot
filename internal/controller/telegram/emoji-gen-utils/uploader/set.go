@@ -81,6 +81,7 @@ func (m *Module) createStickerSetWithBatches(ctx context.Context, b *telego.Bot,
 	// Добавляем оставшиеся стикеры по одному
 	err = m.addStickersToSet(ctx, b, args, emojiFileIDs)
 	if err != nil {
+		m.logger.Debug("error adding stickers", "err", err.Error())
 		return nil, &UploaderError{Code: "AddStickers", Err: err}
 	}
 
@@ -156,6 +157,7 @@ func (m *Module) addStickersToSet(ctx context.Context, b *telego.Bot, args *enti
 		}
 
 		if err != nil {
+			m.logger.Debug("error sending sticker", "err", err.Error())
 			return err
 		}
 	}
