@@ -3,9 +3,10 @@ package entity
 import (
 	"errors"
 	"fmt"
-	"github.com/mymmrac/telego"
 	"log/slog"
 	"time"
+
+	"github.com/mymmrac/telego"
 )
 
 const (

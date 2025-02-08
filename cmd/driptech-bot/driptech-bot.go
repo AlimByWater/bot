@@ -13,6 +13,7 @@ import (
 	progress_manager "elysium/internal/controller/telegram/emoji-gen-utils/progress-manager"
 	"elysium/internal/controller/telegram/group"
 	"elysium/internal/controller/telegram/inline_keyboard"
+	message_handlers "elysium/internal/controller/telegram/message"
 	"elysium/internal/controller/telegram/middleware"
 	"elysium/internal/repository/clickhouse"
 	"elysium/internal/repository/clickhouse/bot_updates_insert"
@@ -90,16 +91,21 @@ func main() {
 	/*********************************/
 	/********** CONTROLLER ***********/
 	/*********************************/
-	commStart := command.NewStart(messageUC)
+	// mainStart := command.NewStart(messageUC)
+	emojiDmStart := command.NewStartEmojiDM(messageUC)
 	buyTokens := command.NewBuyTokens(messageUC)
 	emojiMsgTracker := group.NewEmojiMessageTracker(userBot, useCache)
 	cancelEmojiHandler := inline_keyboard.NewCancelEmojiPackGeneration(progressManager)
+	myPacks := inline_keyboard.NewMyEmojiPacks(messageUC, useCache, elysiumRepo)
+	emojiPackDelete := inline_keyboard.NewEmojiPackDelete(messageUC, elysiumRepo)
 
 	emojiDM := group.NewEmojiDM(useCache, messageUC, userUC, processingUC, elysiumRepo, userBot, progressManager)
+	emojiChat := group.NewEmojiChat(messageUC, userUC, processingUC, elysiumRepo, userBot, progressManager)
 
 	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
 
+	textMessageHandler := message_handlers.NewText(useCache, messageUC)
 	driptechBot := telegram.New(
 		driptechCfg,
 		[]telegram.Middleware{
@@ -111,10 +117,17 @@ func main() {
 		},
 		[]telegram.GroupHandle{},
 		[]telegram.Handle{
+			myPacks,
+			emojiPackDelete,
+
 			emojiDM,
+			emojiChat,
 			emojiMsgTracker,
-			commStart,
+			// commStart,
+			emojiDmStart,
 			cancelEmojiHandler,
+
+			textMessageHandler,
 		},
 	)
 	/*********************************/

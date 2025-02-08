@@ -16,15 +16,11 @@ type Queuer interface {
 }
 
 type Module struct {
-	stickerQueue Queuer
-	logger       *slog.Logger
+	logger *slog.Logger
 }
 
-func New(queuer Queuer) *Module {
-	return &Module{
-		stickerQueue: queuer,
-	}
-
+func New() *Module {
+	return &Module{}
 }
 
 func (m *Module) AddLogger(logger *slog.Logger) {
@@ -37,21 +33,6 @@ func (m *Module) AddEmojis(ctx context.Context, b *telego.Bot, args *entity.Emoj
 		return nil, nil, nil
 	default:
 	}
-
-	// Пытаемся получить доступ к обработке пака
-	canProcess, waitCh := m.stickerQueue.Acquire(args.PackLink)
-	if !canProcess {
-		// Если нельзя обрабатывать сейчас - ждем своей очереди
-		m.logger.Debug("В ОЧЕРЕДИ", slog.String("pack_link", args.PackLink))
-		select {
-		case <-ctx.Done():
-			m.stickerQueue.Release(args.PackLink)
-			return nil, nil, nil
-		case <-waitCh:
-			m.logger.Debug("ОЧЕРЕДЬ ПРИШЛА, НАЧИНАЕТСЯ ОБРАБОТКА", slog.String("pack_link", args.PackLink))
-		}
-	}
-	defer m.stickerQueue.Release(args.PackLink)
 
 	if err := m.ValidateEmojiFiles(emojiFiles); err != nil {
 		return nil, nil, err

@@ -17,12 +17,15 @@ type config interface {
 
 type language struct {
 	Code                                  string
+	TextPlaceholder                       string
 	Error                                 string
 	BalanceBtn                            string
 	BotsListBtn                           string
 	SupportBtn                            string
 	BuyTokens                             string
 	BuyTokensBtn                          string
+	CreatePackkInfoBtn                    string
+	MyPacksBtn                            string
 	StartDripTech                         string
 	BackBtn                               string
 	EmojiGenError                         string
@@ -42,6 +45,12 @@ type language struct {
 	EmojiGenGetStickerSetError            string
 	EmojiGenOpenFileError                 string
 	EmojiGenNoFiles                       string
+	EmojiGenEmojiInPackLimitExceeded      string
+	ChoosePack                            string
+	ChoosenPack                           string
+	UserDontHavePacks                     string
+	RemovePackBtn                         string
+	PackDeletedSuccess                    string
 }
 
 type Module struct {
@@ -117,6 +126,10 @@ func (m *Module) langIdx(langCode string) (idx int) {
 		}
 	}
 	return m.defIdx
+}
+
+func (m *Module) TextPlaceholder(langCode string) (msg string) {
+	return m.languages[m.langIdx(langCode)].TextPlaceholder
 }
 
 func (m *Module) Error(langCode string) (msg string) {
@@ -217,4 +230,36 @@ func (m *Module) EmojiGenOpenFileError(langCode string) string {
 
 func (m *Module) EmojiGenNoFiles(langCode string) string {
 	return m.languages[m.langIdx(langCode)].EmojiGenNoFiles
+}
+
+func (m *Module) EmojiGenEmojiInPackLimitExceeded(langCode string) string {
+	return m.languages[m.langIdx(langCode)].EmojiGenEmojiInPackLimitExceeded
+}
+
+func (m *Module) ChoosePack(langCode string) string {
+	return m.languages[m.langIdx(langCode)].ChoosePack
+}
+
+func (m *Module) UserDontHavePacks(langCode string) string {
+	return m.languages[m.langIdx(langCode)].UserDontHavePacks
+}
+
+func (m *Module) RemovePackBtn(langCode string) string {
+	return m.languages[m.langIdx(langCode)].RemovePackBtn
+}
+
+func (m *Module) ChoosenPack(langCode string) string {
+	return m.languages[m.langIdx(langCode)].ChoosenPack
+}
+
+func (m *Module) PackDeletedSuccess(langCode string) string {
+	return m.languages[m.langIdx(langCode)].PackDeletedSuccess
+}
+
+func (m *Module) CreatePackkInfoBtn(langCode string) string {
+	return m.languages[m.langIdx(langCode)].CreatePackkInfoBtn
+}
+
+func (m *Module) MyPacksBtn(langCode string) string {
+	return m.languages[m.langIdx(langCode)].MyPacksBtn
 }

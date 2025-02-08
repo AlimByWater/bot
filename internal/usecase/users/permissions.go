@@ -5,6 +5,6 @@ import (
 	"elysium/internal/entity"
 )
 
-func (m *Module) CanGenerateEmojiPack(ctx context.Context, user entity.User) (bool, error) {
+func (m *Module) CanGenerateEmojiPack(ctx context.Context, user entity.User, chatID int64) (bool, error) {
 	return true, nil
 }

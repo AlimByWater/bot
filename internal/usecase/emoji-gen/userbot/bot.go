@@ -17,10 +17,10 @@ import (
 	"github.com/celestix/gotgproto/functions"
 	"github.com/celestix/gotgproto/sessionMaker"
 	"github.com/glebarez/sqlite"
-	"github.com/go-telegram/bot"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/message/styling"
 	"github.com/gotd/td/tg"
+	"github.com/mymmrac/telego"
 )
 
 type repo interface {
@@ -145,7 +145,7 @@ func (u *User) DeleteMessage(ctx context.Context, msgID int) error {
 	return nil
 }
 
-func (u *User) SendMessage(ctx context.Context, chatID string, msg bot.SendMessageParams) error {
+func (u *User) SendMessage(ctx context.Context, chatID string, msg telego.SendMessageParams) error {
 	sender := message.NewSender(tg.NewClient(u.client))
 
 	ah, err := u.chatIDToAccessHash(chatID)
