@@ -47,13 +47,35 @@ func usersEqual(u1, u2 entity.User) bool {
 }
 
 func (m *Module) UserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error) {
-	user, err := m.repo.GetUserByTelegramID(ctx, telegramID)
+	// Try to get user from cache first
+	user, err := m.cache.GetUserByTelegramIDCache(ctx, telegramID)
+	if err == nil {
+		return user, nil
+	}
+	if err != nil && !errors.Is(err, entity.ErrUserNotFound) {
+		m.logger.Error("Failed to get user from cache",
+			slog.Int64("telegram_id", telegramID),
+			slog.Any("error", err))
+		// Continue execution since cache error shouldn't interrupt
+	}
+
+	// If not in cache or cache error, get from repository
+	user, err = m.repo.GetUserByTelegramID(ctx, telegramID)
 	if err != nil {
 		m.logger.Error("Failed to get user by Telegram ID",
 			slog.Int64("telegram_id", telegramID),
 			slog.String("error", err.Error()))
 		return entity.User{}, fmt.Errorf("failed to get user by Telegram ID: %w", err)
 	}
+
+	// Save to cache
+	if err := m.cache.SaveOrUpdateUserCache(ctx, user); err != nil {
+		m.logger.Error("Failed to save user to cache",
+			slog.Int64("telegram_id", telegramID),
+			slog.Any("error", err))
+		// Don't interrupt execution due to cache error
+	}
+
 	return user, nil
 }
 

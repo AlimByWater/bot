@@ -15,6 +15,7 @@ import (
 	"elysium/internal/controller/telegram/inline_keyboard"
 	message_handlers "elysium/internal/controller/telegram/message"
 	"elysium/internal/controller/telegram/middleware"
+	"elysium/internal/controller/telegram/payments"
 	"elysium/internal/repository/clickhouse"
 	"elysium/internal/repository/clickhouse/bot_updates_insert"
 	"elysium/internal/repository/postgres"
@@ -93,7 +94,7 @@ func main() {
 	/*********************************/
 	// mainStart := command.NewStart(messageUC)
 	emojiDmStart := command.NewStartEmojiDM()
-	buyTokens := command.NewBuyTokens()
+	buyTokens := command.NewBuyTokens(userUC)
 	emojiMsgTracker := group.NewEmojiMessageTracker(userBot, useCache)
 	cancelEmojiHandler := inline_keyboard.NewCancelEmojiPackGeneration(progressManager)
 	myPacks := inline_keyboard.NewMyEmojiPacks(useCache, elysiumRepo)
@@ -104,6 +105,9 @@ func main() {
 
 	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
+
+	preCheckout := payments.NewPreCheckout(userUC)
+	successPayment := payments.NewSuccessPayment(userUC)
 
 	textMessageHandler := message_handlers.NewText(useCache)
 	driptechBot := telegram.New(
@@ -126,6 +130,9 @@ func main() {
 			// commStart,
 			emojiDmStart,
 			cancelEmojiHandler,
+
+			preCheckout,
+			successPayment,
 
 			textMessageHandler,
 		},

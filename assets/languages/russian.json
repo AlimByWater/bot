@@ -33,5 +33,8 @@
   "ChoosenPack": "Выбранн пак\n",
   "UserDontHavePacks": "У вас нет паков",
   "RemovePackBtn": "Удалить пак",
-  "PackDeletedSuccess": "Пак удален"
+  "PackDeletedSuccess": "Пак удален",
+  "PaymentsUserNotFound": "Пользователь не найден",
+  "PaymentsTransactionError": "Ошибка при создании транзакции",
+  "PaymentsSuccess": "Оплата прошла успешно! Баланс пополнен"
 }

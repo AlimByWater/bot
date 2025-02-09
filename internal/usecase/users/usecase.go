@@ -19,7 +19,12 @@ type repository interface {
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
 	SetUserToBotActive(ctx context.Context, userID int, botID int64) error
+	CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error)
+	UpdateTransactionStatus(ctx context.Context, txnID string, status string) error
+	CreatePendingTransactions(ctx context.Context, telegramUserID int, transactions []entity.PendingTransactionInput) ([]entity.UserTransaction, error)
+	GetTransactionByID(ctx context.Context, txnID string) (entity.UserTransaction, error)
 }
+
 type Module struct {
 	logger *slog.Logger
 	ctx    context.Context

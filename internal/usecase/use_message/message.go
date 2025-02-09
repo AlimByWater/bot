@@ -53,6 +53,9 @@ type language struct {
 	UserDontHavePacks                     string
 	RemovePackBtn                         string
 	PackDeletedSuccess                    string
+	PaymentsUserNotFound                  string
+	PaymentsTransactionError              string
+	PaymentsSuccess                       string
 }
 
 type Module struct {
@@ -266,4 +269,16 @@ func (m *Module) CreatePackkInfoBtn(langCode string) string {
 
 func (m *Module) MyPacksBtn(langCode string) string {
 	return m.languages[m.langIdx(langCode)].MyPacksBtn
+}
+
+func (m *Module) PaymentsUserNotFound(langCode string) string {
+	return m.languages[m.langIdx(langCode)].PaymentsUserNotFound
+}
+
+func (m *Module) PaymentsTransactionError(langCode string) string {
+	return m.languages[m.langIdx(langCode)].PaymentsTransactionError
+}
+
+func (m *Module) PaymentsSuccess(langCode string) string {
+	return m.languages[m.langIdx(langCode)].PaymentsSuccess
 }
