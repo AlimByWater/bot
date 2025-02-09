@@ -3,6 +3,7 @@ package inline_keyboard
 import (
 	"context"
 	"elysium/internal/entity"
+	"elysium/internal/usecase/use_message"
 	"log/slog"
 	"strconv"
 
@@ -12,16 +13,8 @@ import (
 )
 
 type MyEmojiPacks struct {
-	logger  *slog.Logger
-	message interface {
-		Error(langCode string) string
-		ChoosePack(langCode string) string
-		ChoosenPack(langCode string) string
-		UserDontHavePacks(langCode string) string
-		RemovePackBtn(langCode string) string
-		BackBtn(langCode string) string
-	}
-	repo interface {
+	logger *slog.Logger
+	repo   interface {
 		GetEmojiPacksByCreator(ctx context.Context, userID int64, deleted bool) ([]entity.EmojiPack, error)
 	}
 	cache interface {
@@ -30,14 +23,6 @@ type MyEmojiPacks struct {
 }
 
 func NewMyEmojiPacks(
-	message interface {
-		Error(langCode string) string
-		ChoosePack(langCode string) string
-		ChoosenPack(langCode string) string
-		UserDontHavePacks(langCode string) string
-		RemovePackBtn(langCode string) string
-		BackBtn(langCode string) string
-	},
 	cache interface {
 		Store(key string, value any)
 	},
@@ -46,9 +31,8 @@ func NewMyEmojiPacks(
 	},
 ) *MyEmojiPacks {
 	return &MyEmojiPacks{
-		repo:    repo,
-		message: message,
-		cache:   cache,
+		repo:  repo,
+		cache: cache,
 	}
 }
 
@@ -58,16 +42,16 @@ func (h *MyEmojiPacks) onPackSelected() telegohandler.Handler {
 
 		inlineKeyboard := telegoutil.InlineKeyboard(
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.RemovePackBtn(user.LanguageCode)).WithCallbackData("pack_delete:"+update.Message.Text),
+				telegoutil.InlineKeyboardButton(use_message.GL.RemovePackBtn(user.LanguageCode)).WithCallbackData("pack_delete:"+update.Message.Text),
 			),
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.BackBtn(user.LanguageCode)).WithCallbackData(h.Command()),
+				telegoutil.InlineKeyboardButton(use_message.GL.BackBtn(user.LanguageCode)).WithCallbackData(h.Command()),
 			),
 		)
 
 		message := telegoutil.Message(
 			telegoutil.ID(user.ID),
-			h.message.ChoosenPack(user.LanguageCode)+"t.me/addemoji/"+update.Message.Text,
+			use_message.GL.ChoosenPack(user.LanguageCode)+"t.me/addemoji/"+update.Message.Text,
 		).WithReplyMarkup(inlineKeyboard)
 
 		_, err := bot.SendMessage(message)
@@ -109,12 +93,12 @@ func (h *MyEmojiPacks) Handler() telegohandler.Handler {
 				})
 			}
 
-			// buttons = append(buttons, telegoutil.KeyboardButton(h.message.BackBtn(user.LanguageCode)))
+			// buttons = append(buttons, telegoutil.KeyboardButton(use_message.GL.BackBtn(user.LanguageCode)))
 
 			replyKeyboard := telegoutil.KeyboardGrid(telegoutil.KeyboardCols(2, buttons...)).WithOneTimeKeyboard().WithResizeKeyboard()
 			message := telegoutil.Message(
 				telegoutil.ID(user.ID),
-				h.message.ChoosePack(user.LanguageCode),
+				use_message.GL.ChoosePack(user.LanguageCode),
 			).WithReplyMarkup(replyKeyboard)
 
 			_, err = bot.SendMessage(message)
@@ -133,7 +117,7 @@ func (h *MyEmojiPacks) Handler() telegohandler.Handler {
 
 			message := telegoutil.Message(
 				telegoutil.ID(user.ID),
-				h.message.UserDontHavePacks(user.LanguageCode),
+				use_message.GL.UserDontHavePacks(user.LanguageCode),
 			).WithReplyMarkup(telegoutil.ReplyKeyboardRemove())
 
 			_, err = bot.SendMessage(message)

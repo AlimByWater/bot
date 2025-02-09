@@ -2,6 +2,7 @@ package inline_keyboard
 
 import (
 	"context"
+	"elysium/internal/usecase/use_message"
 	"log/slog"
 	"strings"
 
@@ -11,34 +12,20 @@ import (
 )
 
 type EmojiPackDelete struct {
-	logger  *slog.Logger
-	message interface {
-		Error(langCode string) string
-		BuyTokensBtn(lang string) string
-		PackDeletedSuccess(langCode string) string
-		CreatePackkInfoBtn(lang string) string
-		MyPacksBtn(lang string) string
-	}
-	repo interface {
+	logger *slog.Logger
+	repo   interface {
 		SetEmojiPackDeleted(ctx context.Context, packName string) error
 	}
 }
 
 func NewEmojiPackDelete(
-	message interface {
-		Error(langCode string) string
-		BuyTokensBtn(lang string) string
-		PackDeletedSuccess(langCode string) string
-		CreatePackkInfoBtn(lang string) string
-		MyPacksBtn(lang string) string
-	},
+
 	repo interface {
 		SetEmojiPackDeleted(ctx context.Context, packName string) error
 	},
 ) *EmojiPackDelete {
 	return &EmojiPackDelete{
-		repo:    repo,
-		message: message,
+		repo: repo,
 	}
 }
 
@@ -58,7 +45,7 @@ func (h *EmojiPackDelete) Handler() telegohandler.Handler {
 
 			_, err = bot.SendMessage(telegoutil.Message(
 				telegoutil.ID(user.ID),
-				h.message.Error(user.LanguageCode),
+				use_message.GL.Error(user.LanguageCode),
 			))
 			if err != nil {
 				h.logger.Error("Failed to send error message", slog.String("err", err.Error()), slog.Int64("user_id", user.ID), slog.String("username", user.Username))
@@ -71,8 +58,8 @@ func (h *EmojiPackDelete) Handler() telegohandler.Handler {
 		message := &telego.EditMessageTextParams{
 			ChatID:      telegoutil.ID(user.ID),
 			MessageID:   update.CallbackQuery.Message.GetMessageID(),
-			Text:        h.message.PackDeletedSuccess(user.LanguageCode),
-			ReplyMarkup: GetEmojiBotStartKeyboard(user.LanguageCode, h.message),
+			Text:        use_message.GL.PackDeletedSuccess(user.LanguageCode),
+			ReplyMarkup: GetEmojiBotStartKeyboard(user.LanguageCode),
 		}
 
 		_, err = bot.EditMessageText(message)

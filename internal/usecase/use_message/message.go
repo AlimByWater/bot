@@ -10,6 +10,8 @@ import (
 	"reflect"
 )
 
+var GL *Module
+
 type config interface {
 	GetDefaultLanguage() string
 	GetDirectoryName() string
@@ -61,9 +63,11 @@ type Module struct {
 }
 
 func New(config config) *Module {
-	return &Module{
+	GL = &Module{
 		config: config,
 	}
+
+	return GL
 }
 
 func (m *Module) Init(_ context.Context, logger *slog.Logger) (err error) {

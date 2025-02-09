@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"elysium/internal/usecase/use_message"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -46,27 +47,6 @@ type EmojiChat struct {
 		CreateNewEmojiPack(ctx context.Context, pack entity.EmojiPack) (entity.EmojiPack, error)
 		UpdateEmojiCount(ctx context.Context, pack int64, emojiCount int) error
 	}
-	message interface {
-		Error(langCode string) (msg string)
-		EmojiGenNoFiles(langCode string) string
-		EmojiGenError(langCode string) string
-		EmojiGenLimitExceeded(langCode string) string
-		EmojiGenProcessingStart(langCode string) string
-		EmojiGenProcessingVideo(langCode string) string
-		EmojiGenUploadingEmojis(langCode string) string
-		EmojiGenDownloadError(langCode string) string
-		EmojiGenUploadError(langCode string) string
-		EmojiGenUnsupportedFileType(langCode string) string
-		EmojiGenYourPack(langCode string, packLink string) string
-		EmojiGenProcessingError(langCode string) string
-		EmojiGenUploadStickerError(langCode string) string
-		EmojiGenUploadTransparentStickerError(langCode string) string
-		EmojiGenCreateStickerSetError(langCode string) string
-		EmojiGenAddStickersError(langCode string) string
-		EmojiGenGetStickerSetError(langCode string) string
-		EmojiGenOpenFileError(langCode string) string
-		EmojiGenEmojiInPackLimitExceeded(langCode string) string
-	}
 	progressManager interface {
 		SendMessage(ctx context.Context, b *telego.Bot, chatID telego.ChatID, replyToID int, userID int64, status string) (*entity.ProgressMessage, error)
 		UpdateMessage(ctx context.Context, bot *telego.Bot, chatID telego.ChatID, msgID int, status string) error
@@ -76,27 +56,6 @@ type EmojiChat struct {
 
 // NewEmojiChat создаёт новый экземпляр EmojiChat.
 func NewEmojiChat(
-	message interface {
-		Error(langCode string) (msg string)
-		EmojiGenNoFiles(langCode string) string
-		EmojiGenError(langCode string) string
-		EmojiGenLimitExceeded(langCode string) string
-		EmojiGenProcessingStart(langCode string) string
-		EmojiGenProcessingVideo(langCode string) string
-		EmojiGenUploadingEmojis(langCode string) string
-		EmojiGenDownloadError(langCode string) string
-		EmojiGenUploadError(langCode string) string
-		EmojiGenUnsupportedFileType(langCode string) string
-		EmojiGenYourPack(langCode string, packLink string) string
-		EmojiGenProcessingError(langCode string) string
-		EmojiGenUploadStickerError(langCode string) string
-		EmojiGenUploadTransparentStickerError(langCode string) string
-		EmojiGenCreateStickerSetError(langCode string) string
-		EmojiGenAddStickersError(langCode string) string
-		EmojiGenGetStickerSetError(langCode string) string
-		EmojiGenOpenFileError(langCode string) string
-		EmojiGenEmojiInPackLimitExceeded(langCode string) string
-	},
 	userUC interface {
 		UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
 		CanGenerateEmojiPack(ctx context.Context, user entity.User, chatID int64) (bool, error)
@@ -133,7 +92,6 @@ func NewEmojiChat(
 		processor:       processor,
 		userUC:          userUC,
 		repo:            repo,
-		message:         message,
 	}
 }
 
@@ -181,7 +139,7 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 		// Получение пользователя
 		user, err := h.userUC.UserByTelegramID(ctx, update.Message.From.ID)
 		if err != nil {
-			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenError(lang))
+			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenError(lang))
 			return
 		}
 
@@ -194,11 +152,11 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 		// Проверка возможности генерации
 		canGenerate, err := h.userUC.CanGenerateEmojiPack(ctx, user, update.Message.Chat.ID)
 		if err != nil {
-			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenError(lang))
+			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenError(lang))
 			return
 		}
 		if !canGenerate {
-			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenLimitExceeded(lang))
+			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenLimitExceeded(lang))
 			return
 		}
 
@@ -206,7 +164,7 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 		initialCommand := h.processor.ExtractCommandArgs(update.Message.Text, update.Message.Caption)
 		emojiArgs, err := h.processor.ParseArgs(initialCommand)
 		if err != nil {
-			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenError(lang))
+			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenError(lang))
 			return
 		}
 
@@ -227,12 +185,12 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 		}
 		if err != nil {
 			h.logger.Error("Failed to handle new pack", slog.String("err", err.Error()))
-			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.Error(lang))
+			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.Error(lang))
 			return
 		}
 
 		// Отправка progressMessage
-		progress, err := h.progressManager.SendMessage(ctx, bot, update.Message.Chat.ChatID(), update.Message.MessageID, user.TelegramID, h.message.EmojiGenProcessingStart(lang))
+		progress, err := h.progressManager.SendMessage(ctx, bot, update.Message.Chat.ChatID(), update.Message.MessageID, user.TelegramID, use_message.GL.EmojiGenProcessingStart(lang))
 		if err != nil {
 			h.logger.Error("Failed to send progress message", slog.String("err", err.Error()))
 		}
@@ -261,15 +219,15 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 		var stickerSet *telego.StickerSet
 		var emojiMetaRows [][]entity.EmojiMeta
 		for {
-			h.progressManager.UpdateMessage(ctx, bot, update.Message.Chat.ChatID(), progress.MessageID, h.message.EmojiGenProcessingVideo(lang))
+			h.progressManager.UpdateMessage(ctx, bot, update.Message.Chat.ChatID(), progress.MessageID, use_message.GL.EmojiGenProcessingVideo(lang))
 			files, err := h.processor.ProcessVideo(ctx, emojiArgs)
 			if err != nil {
 				h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID,
-					h.message.EmojiGenError(lang)+" "+err.Error())
+					use_message.GL.EmojiGenError(lang)+" "+err.Error())
 				return
 			}
 
-			h.progressManager.UpdateMessage(ctx, bot, update.Message.Chat.ChatID(), progress.MessageID, h.message.EmojiGenUploadingEmojis(lang))
+			h.progressManager.UpdateMessage(ctx, bot, update.Message.Chat.ChatID(), progress.MessageID, use_message.GL.EmojiGenUploadingEmojis(lang))
 			stickerSet, emojiMetaRows, err = h.uploader.AddEmojis(ctx, bot, emojiArgs, files)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
@@ -278,34 +236,34 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 				if ue, ok := err.(*uploader.UploaderError); ok {
 					switch ue.Code {
 					case uploader.ErrCodeNoFiles:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenNoFiles(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenNoFiles(lang))
 					case uploader.ErrCodeExceedLimit:
 						if total, ok1 := ue.Params["totalStickers"]; ok1 {
 							if max, ok2 := ue.Params["max"]; ok2 {
-								h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, fmt.Sprintf(h.message.EmojiGenEmojiInPackLimitExceeded(lang), total, max))
+								h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, fmt.Sprintf(use_message.GL.EmojiGenEmojiInPackLimitExceeded(lang), total, max))
 							} else {
-								h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenEmojiInPackLimitExceeded(lang))
+								h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenEmojiInPackLimitExceeded(lang))
 							}
 						} else {
-							h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenEmojiInPackLimitExceeded(lang))
+							h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenEmojiInPackLimitExceeded(lang))
 						}
 					case uploader.ErrCodeUploadSticker:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenUploadStickerError(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenUploadStickerError(lang))
 					case uploader.ErrCodeOpenFile:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenOpenFileError(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenOpenFileError(lang))
 					case uploader.ErrCodeUploadTransparentSticker:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenUploadTransparentStickerError(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenUploadTransparentStickerError(lang))
 					case uploader.ErrCodeCreateStickerSet:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenCreateStickerSetError(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenCreateStickerSetError(lang))
 					case uploader.ErrCodeAddStickers:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenAddStickersError(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenAddStickersError(lang))
 					case uploader.ErrCodeGetStickerSet:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenGetStickerSetError(lang))
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenGetStickerSetError(lang))
 					default:
-						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenUploadError(lang)+": "+ue.Error())
+						h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenUploadError(lang)+": "+ue.Error())
 					}
 				} else {
-					h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, h.message.EmojiGenUploadError(lang)+": "+err.Error())
+					h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenUploadError(lang)+": "+err.Error())
 				}
 				return
 			}
@@ -383,12 +341,12 @@ func (h *EmojiChat) handleDownloadError(ctx context.Context, bot *telego.Bot, up
 	var message string
 	switch {
 	case errors.Is(err, entity.ErrFileOfInvalidType):
-		message = h.message.EmojiGenUnsupportedFileType(lang)
+		message = use_message.GL.EmojiGenUnsupportedFileType(lang)
 	case errors.Is(err, entity.ErrFileNotProvided):
 		return
 	default:
 		h.logger.Error("Download error", slog.String("err", err.Error()))
-		message = h.message.EmojiGenDownloadError(lang)
+		message = use_message.GL.EmojiGenDownloadError(lang)
 	}
 	h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, message)
 }

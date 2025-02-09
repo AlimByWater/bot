@@ -1,6 +1,7 @@
 package message
 
 import (
+	"elysium/internal/usecase/use_message"
 	"log/slog"
 	"reflect"
 	"strconv"
@@ -15,22 +16,16 @@ type Text struct {
 	cache  interface {
 		LoadAndDelete(key string) (value any, loaded bool)
 	}
-	message interface {
-		TextPlaceholder(langCode string) (msg string)
-	}
 }
 
 func NewText(
 	cache interface {
 		LoadAndDelete(key string) (value any, loaded bool)
 	},
-	message interface {
-		TextPlaceholder(langCode string) (msg string)
-	},
+
 ) *Text {
 	return &Text{
-		cache:   cache,
-		message: message,
+		cache: cache,
 	}
 }
 
@@ -47,7 +42,7 @@ func (h *Text) Handler() telegohandler.Handler {
 		if !loaded {
 			message := telegoutil.Message(
 				update.Message.Chat.ChatID(),
-				h.message.TextPlaceholder(update.Message.From.LanguageCode),
+				use_message.GL.TextPlaceholder(update.Message.From.LanguageCode),
 			)
 			_, err := bot.SendMessage(message)
 			if err != nil {

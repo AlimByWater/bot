@@ -1,6 +1,7 @@
 package command
 
 import (
+	"elysium/internal/usecase/use_message"
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegohandler"
 	"github.com/mymmrac/telego/telegoutil"
@@ -9,29 +10,11 @@ import (
 )
 
 type Start struct {
-	logger  *slog.Logger
-	message interface {
-		Error(langCode string) (msg string)
-		BalanceBtn(langCode string) (msg string)
-		BotsListBtn(langCode string) (msg string)
-		SupportBtn(langCode string) (msg string)
-		BuyTokensBtn(langCode string) (msg string)
-		StartDripTech(langCode string) (msg string)
-	}
+	logger *slog.Logger
 }
 
-func NewStart(
-	message interface {
-		Error(langCode string) (msg string)
-		BalanceBtn(langCode string) (msg string)
-		BotsListBtn(langCode string) (msg string)
-		SupportBtn(langCode string) (msg string)
-		BuyTokensBtn(langCode string) (msg string)
-		StartDripTech(langCode string) (msg string)
-	}) *Start {
-	return &Start{
-		message: message,
-	}
+func NewStart() *Start {
+	return &Start{}
 }
 
 func (h *Start) AddLogger(logger *slog.Logger) {
@@ -52,16 +35,16 @@ func (h *Start) Handler() telegohandler.Handler {
 			lang = update.Message.From.LanguageCode
 			chat = update.Message.Chat
 		}
-		text := h.message.StartDripTech(lang)
+		text := use_message.GL.StartDripTech(lang)
 
 		inlineKeyboard := telegoutil.InlineKeyboard(
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.BalanceBtn(lang)).WithCallbackData("balance"),
-				//telegoutil.InlineKeyboardButton(h.message.BotsListBtn(lang)).WithCallbackData("bots_list"),
-				telegoutil.InlineKeyboardButton(h.message.SupportBtn(lang)).WithCallbackData("support"),
+				telegoutil.InlineKeyboardButton(use_message.GL.BalanceBtn(lang)).WithCallbackData("balance"),
+				//telegoutil.InlineKeyboardButton(use_message.GL.BotsListBtn(lang)).WithCallbackData("bots_list"),
+				telegoutil.InlineKeyboardButton(use_message.GL.SupportBtn(lang)).WithCallbackData("support"),
 			),
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.BuyTokensBtn(lang)).WithCallbackData("buy_tokens"),
+				telegoutil.InlineKeyboardButton(use_message.GL.BuyTokensBtn(lang)).WithCallbackData("buy_tokens"),
 			),
 		)
 

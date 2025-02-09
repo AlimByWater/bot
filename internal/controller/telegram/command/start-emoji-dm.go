@@ -2,6 +2,7 @@ package command
 
 import (
 	"elysium/internal/controller/telegram/inline_keyboard"
+	"elysium/internal/usecase/use_message"
 	"log/slog"
 	"reflect"
 
@@ -11,33 +12,11 @@ import (
 )
 
 type StartEmojiDM struct {
-	logger  *slog.Logger
-	message interface {
-		Error(langCode string) (msg string)
-		BalanceBtn(langCode string) (msg string)
-		BotsListBtn(langCode string) (msg string)
-		SupportBtn(langCode string) (msg string)
-		BuyTokensBtn(langCode string) (msg string)
-		StartDripTech(langCode string) (msg string)
-		CreatePackkInfoBtn(lang string) string
-		MyPacksBtn(lang string) string
-	}
+	logger *slog.Logger
 }
 
-func NewStartEmojiDM(
-	message interface {
-		Error(langCode string) (msg string)
-		BalanceBtn(langCode string) (msg string)
-		BotsListBtn(langCode string) (msg string)
-		SupportBtn(langCode string) (msg string)
-		BuyTokensBtn(langCode string) (msg string)
-		StartDripTech(langCode string) (msg string)
-		CreatePackkInfoBtn(lang string) string
-		MyPacksBtn(lang string) string
-	}) *StartEmojiDM {
-	return &StartEmojiDM{
-		message: message,
-	}
+func NewStartEmojiDM() *StartEmojiDM {
+	return &StartEmojiDM{}
 }
 
 func (h *StartEmojiDM) AddLogger(logger *slog.Logger) {
@@ -58,9 +37,9 @@ func (h *StartEmojiDM) Handler() telegohandler.Handler {
 			lang = update.Message.From.LanguageCode
 			chat = update.Message.Chat
 		}
-		text := h.message.StartDripTech(lang)
+		text := use_message.GL.StartDripTech(lang)
 
-		inlineKeyboard := inline_keyboard.GetEmojiBotStartKeyboard(lang, h.message)
+		inlineKeyboard := inline_keyboard.GetEmojiBotStartKeyboard(lang)
 
 		if update.CallbackQuery != nil {
 			_, err := bot.EditMessageText(&telego.EditMessageTextParams{

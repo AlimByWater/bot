@@ -1,6 +1,7 @@
 package command
 
 import (
+	"elysium/internal/usecase/use_message"
 	"log/slog"
 	"reflect"
 
@@ -10,23 +11,11 @@ import (
 )
 
 type BuyTokens struct {
-	logger  *slog.Logger
-	message interface {
-		Error(langCode string) (msg string)
-		BuyTokens(langCode string) (msg string)
-		BackBtn(langCode string) (msg string)
-	}
+	logger *slog.Logger
 }
 
-func NewBuyTokens(
-	message interface {
-		Error(langCode string) (msg string)
-		BuyTokens(langCode string) (msg string)
-		BackBtn(langCode string) (msg string)
-	}) *BuyTokens {
-	return &BuyTokens{
-		message: message,
-	}
+func NewBuyTokens() *BuyTokens {
+	return &BuyTokens{}
 }
 
 func (h *BuyTokens) AddLogger(logger *slog.Logger) {
@@ -45,7 +34,7 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 		chat := update.CallbackQuery.Message.GetChat()
 
 		langCode := update.CallbackQuery.From.LanguageCode
-		text := h.message.BuyTokens(langCode)
+		text := use_message.GL.BuyTokens(langCode)
 
 		labeldPrices := []telego.LabeledPrice{
 			{"⭐️50", 50},
@@ -78,7 +67,7 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 			telegoutil.InlineKeyboardRow(buttons[1]),
 			telegoutil.InlineKeyboardRow(buttons[2]),
 			telegoutil.InlineKeyboardRow(
-				telegoutil.InlineKeyboardButton(h.message.BackBtn(langCode)).WithCallbackData("start"),
+				telegoutil.InlineKeyboardButton(use_message.GL.BackBtn(langCode)).WithCallbackData("start"),
 			),
 		)
 

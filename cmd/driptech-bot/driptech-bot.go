@@ -92,20 +92,20 @@ func main() {
 	/********** CONTROLLER ***********/
 	/*********************************/
 	// mainStart := command.NewStart(messageUC)
-	emojiDmStart := command.NewStartEmojiDM(messageUC)
-	buyTokens := command.NewBuyTokens(messageUC)
+	emojiDmStart := command.NewStartEmojiDM()
+	buyTokens := command.NewBuyTokens()
 	emojiMsgTracker := group.NewEmojiMessageTracker(userBot, useCache)
 	cancelEmojiHandler := inline_keyboard.NewCancelEmojiPackGeneration(progressManager)
-	myPacks := inline_keyboard.NewMyEmojiPacks(messageUC, useCache, elysiumRepo)
-	emojiPackDelete := inline_keyboard.NewEmojiPackDelete(messageUC, elysiumRepo)
+	myPacks := inline_keyboard.NewMyEmojiPacks(useCache, elysiumRepo)
+	emojiPackDelete := inline_keyboard.NewEmojiPackDelete(elysiumRepo)
 
-	emojiDM := group.NewEmojiDM(useCache, messageUC, userUC, processingUC, elysiumRepo, userBot, progressManager)
-	emojiChat := group.NewEmojiChat(messageUC, userUC, processingUC, elysiumRepo, userBot, progressManager)
+	emojiDM := group.NewEmojiDM(useCache, userUC, processingUC, elysiumRepo, userBot, progressManager)
+	emojiChat := group.NewEmojiChat(userUC, processingUC, elysiumRepo, userBot, progressManager)
 
 	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
 
-	textMessageHandler := message_handlers.NewText(useCache, messageUC)
+	textMessageHandler := message_handlers.NewText(useCache)
 	driptechBot := telegram.New(
 		driptechCfg,
 		[]telegram.Middleware{
