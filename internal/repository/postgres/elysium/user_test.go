@@ -127,7 +127,6 @@ func TestGetUserByID(t *testing.T) {
 		TelegramUsername: "testuser",
 		Firstname:        "Test User",
 		DateCreate:       time.Now(),
-		Balance:          100,
 		Permissions: entity.Permissions{
 			PrivateGeneration: true,
 			UseByChannelName:  true,

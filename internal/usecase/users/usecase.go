@@ -18,29 +18,44 @@ type cacheUC interface {
 type repository interface {
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
+	GetUserByID(ctx context.Context, userID int) (entity.User, error)
 	SetUserToBotActive(ctx context.Context, userID int, botID int64) error
+
 	CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error)
-	UpdateTransactionStatus(ctx context.Context, txnID string, status string) error
-	CreatePendingTransactions(ctx context.Context, telegramUserID int, transactions []entity.PendingTransactionInput) ([]entity.UserTransaction, error)
 	GetTransactionByID(ctx context.Context, txnID string) (entity.UserTransaction, error)
+	ProcessTransaction(ctx context.Context, txnID string, userID int, balanceChange int, newStatus string) error
+	UpdateTransactionExternalID(ctx context.Context, txnID string, externalID string) error
+
+	// Методы для работы с балансом пользователя
+	GetUserAccount(ctx context.Context, userID int) (entity.UserAccount, error)
+	CreateUserAccount(ctx context.Context, account entity.UserAccount) error
+	UpdateUserBalance(ctx context.Context, userID int, newBalance int) error
+	GetUserBalance(ctx context.Context, userID int) (int, error)
+}
+
+type servicesUC interface {
+	GetService(ctx context.Context, botID int64, serviceName string) (entity.Service, error)
+	GetServices(ctx context.Context, botID int64) ([]entity.Service, error)
 }
 
 type Module struct {
 	logger *slog.Logger
 	ctx    context.Context
 
-	cache cacheUC
-	repo  repository
+	cache     cacheUC
+	repo      repository
+	servicesM servicesUC
 
 	onlineUsersCount   atomic.Int64
 	mu                 sync.RWMutex
 	streamsOnlineCount map[string]int64
 }
 
-func New(cache cacheUC, repo repository) *Module {
+func New(cache cacheUC, repo repository, servicesM servicesUC) *Module {
 	return &Module{
-		cache: cache,
-		repo:  repo,
+		cache:     cache,
+		repo:      repo,
+		servicesM: servicesM,
 	}
 }
 

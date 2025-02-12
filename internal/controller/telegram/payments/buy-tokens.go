@@ -1,9 +1,10 @@
-package command
+package payments
 
 import (
 	"context"
 	"elysium/internal/entity"
 	"elysium/internal/usecase/use_message"
+	"fmt"
 	"log/slog"
 	"reflect"
 
@@ -16,16 +17,25 @@ const defaultProvider = "yoomoney"
 
 type BuyTokens struct {
 	logger *slog.Logger
+	cache  interface {
+		Store(key string, value any)
+	}
 	userUC interface {
-		CreateBulkPendingTransactions(ctx context.Context, telegramUserID int64, amounts []int, provider string) ([]entity.UserTransaction, error)
+		CreateBulkPendingDeposits(ctx context.Context, botID int64, telegramUserID int64, amounts []int, provider string) ([]entity.UserTransaction, error)
 	}
 }
 
-func NewBuyTokens(userUC interface {
-	CreateBulkPendingTransactions(ctx context.Context, telegramUserID int64, amounts []int, provider string) ([]entity.UserTransaction, error)
-}) *BuyTokens {
+func NewBuyTokens(
+	userUC interface {
+		CreateBulkPendingDeposits(ctx context.Context, botID int64, telegramUserID int64, amounts []int, provider string) ([]entity.UserTransaction, error)
+	},
+	cache interface {
+		Store(key string, value any)
+	},
+) *BuyTokens {
 	return &BuyTokens{
 		userUC: userUC,
+		cache:  cache,
 	}
 }
 
@@ -69,8 +79,14 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 			amounts = append(amounts, price.Amount)
 		}
 
+		botUser, ok := update.Context().Value(entity.BotSelfCtxKey).(*telego.User)
+		if !ok || botUser == nil {
+			h.logger.Error("bot info not found in context")
+			return
+		}
+
 		// Создаем транзакции
-		txns, err := h.userUC.CreateBulkPendingTransactions(context.Background(), telegramUserID, amounts, defaultProvider)
+		txns, err := h.userUC.CreateBulkPendingDeposits(context.Background(), botUser.ID, telegramUserID, amounts, defaultProvider)
 		if err != nil {
 			h.logger.Error("create bulk pending transactions", slog.String("err", err.Error()))
 			return
@@ -121,8 +137,10 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 
 		//m, err := bot.SendInvoice(inv)
 
+		var message *telego.Message
+
 		if messageID != 0 {
-			_, err := bot.EditMessageText(&telego.EditMessageTextParams{
+			message, err = bot.EditMessageText(&telego.EditMessageTextParams{
 				ChatID:      chat.ChatID(),
 				MessageID:   update.CallbackQuery.Message.GetMessageID(),
 				Text:        text,
@@ -132,7 +150,7 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 				h.logger.Error("edit message", slog.String("err", err.Error()))
 			}
 		} else {
-			_, err := bot.SendMessage(&telego.SendMessageParams{
+			message, err = bot.SendMessage(&telego.SendMessageParams{
 				ChatID:      chat.ChatID(),
 				Text:        text,
 				ReplyMarkup: inlineKeyboard,
@@ -142,6 +160,23 @@ func (h *BuyTokens) Handler() telegohandler.Handler {
 			}
 		}
 
+		if message != nil {
+			key := fmt.Sprintf("remove_after_success_payment:%d", chat.ID) // todo если пользоваться где то кроме личных чатов, то нужно пересмотреть логику формирования ключа
+			h.cache.Store(key, h.removeMessageWithInvoicesAfterSuccessPayment(message.MessageID))
+		}
+
+	}
+}
+
+func (h *BuyTokens) removeMessageWithInvoicesAfterSuccessPayment(msgID int) telegohandler.Handler {
+	return func(bot *telego.Bot, update telego.Update) {
+		err := bot.DeleteMessage(&telego.DeleteMessageParams{
+			ChatID:    update.Message.Chat.ChatID(),
+			MessageID: msgID,
+		})
+		if err != nil {
+			h.logger.Error("delete message with invoice", slog.String("err", err.Error()), slog.Int64("telegram_id", update.Message.From.ID))
+		}
 	}
 }
 

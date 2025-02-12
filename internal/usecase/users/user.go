@@ -42,8 +42,7 @@ func (m *Module) CreateOrUpdateUser(ctx context.Context, user entity.User) (enti
 func usersEqual(u1, u2 entity.User) bool {
 	return u1.TelegramUsername == u2.TelegramUsername &&
 		u1.Firstname == u2.Firstname &&
-		reflect.DeepEqual(u1.Permissions, u2.Permissions) &&
-		u1.Balance == u2.Balance
+		reflect.DeepEqual(u1.Permissions, u2.Permissions)
 }
 
 func (m *Module) UserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error) {

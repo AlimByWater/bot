@@ -3,42 +3,124 @@ package users
 import (
 	"context"
 	"elysium/internal/entity"
+	"fmt"
+	"log/slog"
+	"strconv"
 )
-
-func (m *Module) CreatePendingTransaction(ctx context.Context, userID int, amount int, provider string) (entity.UserTransaction, error) {
-	txn := entity.UserTransaction{
-		UserID:   userID,
-		Type:     entity.TransactionTypeDeposit,
-		Amount:   amount,
-		Status:   entity.TransactionStatusPending,
-		Provider: provider,
-	}
-
-	return m.repo.CreateTransaction(ctx, txn)
-}
-
-func (m *Module) CompleteTransaction(ctx context.Context, txnID string) error {
-	return m.repo.UpdateTransactionStatus(ctx, txnID, entity.TransactionStatusCompleted)
-}
 
 func (m *Module) GetTransactionByID(ctx context.Context, txnID string) (entity.UserTransaction, error) {
 	return m.repo.GetTransactionByID(ctx, txnID)
 }
 
-func (m *Module) CreateBulkPendingTransactions(ctx context.Context, telegramUserID int64, amounts []int, provider string) ([]entity.UserTransaction, error) {
+func (m *Module) GetUserByID(ctx context.Context, userID int) (entity.User, error) {
+	return m.repo.GetUserByID(ctx, userID)
+}
+
+func (m *Module) CreateBulkPendingDeposits(ctx context.Context, botID int64, telegramUserID int64, amounts []int, provider string) ([]entity.UserTransaction, error) {
 	user, err := m.UserByTelegramID(ctx, telegramUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	transactions := make([]entity.PendingTransactionInput, len(amounts))
-	for i, amount := range amounts {
-		transactions[i] = entity.PendingTransactionInput{
-			Amount:   amount,
-			Type:     entity.TransactionTypeDeposit,
-			Provider: provider,
-		}
+	if botID > 0 {
+		botID, _ = strconv.ParseInt(fmt.Sprintf("-100%d", botID), 10, 64)
 	}
 
-	return m.repo.CreatePendingTransactions(ctx, user.ID, transactions)
+	var result []entity.UserTransaction
+	for _, amount := range amounts {
+		txn := entity.UserTransaction{
+			UserID:   user.ID,
+			Type:     entity.TransactionTypeDeposit,
+			BotID:    botID,
+			Amount:   amount,
+			Provider: provider,
+			Status:   entity.TransactionStatusPending,
+		}
+		created, err := m.repo.CreateTransaction(ctx, txn)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, created)
+	}
+	return result, nil
+}
+
+// computeBalanceChange вычисляет изменение баланса в зависимости от типа транзакции
+func (m *Module) computeBalanceChange(txnType string, amount int) int {
+	switch txnType {
+	case entity.TransactionTypeDeposit, entity.TransactionTypeRefund,
+		entity.TransactionTypePromoRedeem, entity.TransactionTypeReferralBonus,
+		entity.TransactionTypePromoTransfer:
+		return amount
+	case entity.TransactionTypeWithdrawal:
+		return -amount
+	default:
+		return 0
+	}
+}
+
+// validateTransactionStatus проверяет, что статус транзакции допустимый
+func (m *Module) validateTransactionStatus(status string) error {
+	switch status {
+	case entity.TransactionStatusPending,
+		entity.TransactionStatusCompleted,
+		entity.TransactionStatusFailed,
+		entity.TransactionStatusExpired:
+		return nil
+	default:
+		return fmt.Errorf("invalid transaction status: %s", status)
+	}
+}
+
+// ProcessTransaction обрабатывает транзакцию, обновляя её статус и баланс пользователя в одной транзакции
+func (m *Module) ProcessTransaction(ctx context.Context, txnID string, newStatus string) error {
+	// Валидируем статус
+	if err := m.validateTransactionStatus(newStatus); err != nil {
+		return err
+	}
+
+	// Получаем транзакцию
+	txn, err := m.repo.GetTransactionByID(ctx, txnID)
+	if err != nil {
+		return fmt.Errorf("failed to get transaction: %w", err)
+	}
+
+	// Вычисляем изменение баланса
+	balanceChange := m.computeBalanceChange(txn.Type, txn.Amount)
+
+	// Обрабатываем транзакцию
+	return m.repo.ProcessTransaction(ctx, txnID, txn.UserID, balanceChange, newStatus)
+}
+
+// CompleteDepositTransaction завершает транзакцию депозита, устанавливая статус completed
+func (m *Module) CompleteDepositTransaction(ctx context.Context, txnID string, externalID string) error {
+	// Получаем транзакцию для проверки типа
+	txn, err := m.repo.GetTransactionByID(ctx, txnID)
+	if err != nil {
+		return fmt.Errorf("failed to get transaction: %w", err)
+	}
+
+	// Проверяем, что это транзакция депозита
+	if txn.Type != entity.TransactionTypeDeposit {
+		return fmt.Errorf("invalid transaction type: expected deposit, got %s", txn.Type)
+	}
+
+	// Обрабатываем транзакцию
+	err = m.ProcessTransaction(ctx, txnID, entity.TransactionStatusCompleted)
+	if err != nil {
+		return fmt.Errorf("failed to process transaction: %w", err)
+	}
+
+	go func() {
+		err := m.repo.UpdateTransactionExternalID(context.Background(), txnID, externalID)
+		if err != nil {
+			m.logger.Error("Failed to update transaction external ID",
+				slog.String("error", err.Error()),
+				slog.String("txn_id", txnID),
+				slog.String("external_id", externalID),
+				slog.Int("user_id", txn.UserID),
+			)
+		}
+	}()
+	return nil
 }

@@ -10,7 +10,6 @@ type User struct {
 	Firstname        string      `db:"firstname" json:"firstname"`
 	Permissions      Permissions `db:"permissions" json:"permissions"`
 	BotsActivated    []*Bot      `db:"bots_activated" json:"bots_activated"`
-	Balance          int         `db:"balance" json:"balance"`
 	DateCreate       time.Time   `db:"date_create" json:"date_create"`
 }
 

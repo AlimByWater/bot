@@ -22,6 +22,7 @@ import (
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
 	"elysium/internal/usecase/emoji-gen/userbot"
+	"elysium/internal/usecase/services"
 	"elysium/internal/usecase/use_cache"
 	"elysium/internal/usecase/use_message"
 	"elysium/internal/usecase/users"
@@ -78,8 +79,9 @@ func main() {
 	/*********************************/
 	/************ USECASE ************/
 	/*********************************/
+	servicesUC := services.New(redisCache, elysiumRepo)
 	messageUC := use_message.New(messageCfg)
-	userUC := users.New(redisCache, elysiumRepo)
+	userUC := users.New(redisCache, elysiumRepo, servicesUC)
 
 	useCache := use_cache.New()
 
@@ -94,7 +96,7 @@ func main() {
 	/*********************************/
 	// mainStart := command.NewStart(messageUC)
 	emojiDmStart := command.NewStartEmojiDM()
-	buyTokens := command.NewBuyTokens(userUC)
+	buyTokens := payments.NewBuyTokens(userUC, useCache)
 	emojiMsgTracker := group.NewEmojiMessageTracker(userBot, useCache)
 	cancelEmojiHandler := inline_keyboard.NewCancelEmojiPackGeneration(progressManager)
 	myPacks := inline_keyboard.NewMyEmojiPacks(useCache, elysiumRepo)
@@ -107,7 +109,7 @@ func main() {
 	saveUserMiddleware := middleware.NewSaveUser(userUC)
 
 	preCheckout := payments.NewPreCheckout(userUC)
-	successPayment := payments.NewSuccessPayment(userUC)
+	successPayment := payments.NewSuccessPayment(userUC, useCache)
 
 	textMessageHandler := message_handlers.NewText(useCache)
 	driptechBot := telegram.New(

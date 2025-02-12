@@ -9,9 +9,6 @@ CREATE TABLE IF NOT EXISTS permissions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE users
-    ADD COLUMN balance INT NOT NULL DEFAULT 0;
-
 CREATE TABLE IF NOT EXISTS updates_log (
     bot_id BIGINT NOT NULL REFERENCES bots(id),
     update JSONB,
@@ -24,6 +21,4 @@ CREATE TABLE IF NOT EXISTS updates_log (
 -- +goose StatementBegin
 DROP TABLE IF EXISTS updates_log;
 DROP TABLE IF EXISTS permissions;
-ALTER TABLE users
-    DROP COLUMN balance;
 -- +goose StatementEnd

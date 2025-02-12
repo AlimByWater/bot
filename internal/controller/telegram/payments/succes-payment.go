@@ -4,6 +4,7 @@ import (
 	"context"
 	"elysium/internal/entity"
 	"elysium/internal/usecase/use_message"
+	"fmt"
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegohandler"
 	"log/slog"
@@ -12,18 +13,27 @@ import (
 
 type SuccessPayment struct {
 	logger *slog.Logger
+	cache  interface {
+		LoadAndDelete(key string) (value any, loaded bool)
+	}
 	userUC interface {
 		UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
-		CompleteTransaction(ctx context.Context, txnID string) error
+		CompleteDepositTransaction(ctx context.Context, txnID string, externalID string) error
 	}
 }
 
-func NewSuccessPayment(userUC interface {
-	UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
-	CompleteTransaction(ctx context.Context, txnID string) error
-}) *SuccessPayment {
+func NewSuccessPayment(
+	userUC interface {
+		UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
+		CompleteDepositTransaction(ctx context.Context, txnID string, externalID string) error
+	},
+	cache interface {
+		LoadAndDelete(key string) (value any, loaded bool)
+	},
+) *SuccessPayment {
 	return &SuccessPayment{
 		userUC: userUC,
+		cache:  cache,
 	}
 }
 
@@ -40,20 +50,6 @@ func (h *SuccessPayment) Handler() telegohandler.Handler {
 		payment := msg.SuccessfulPayment
 		langCode := msg.From.LanguageCode
 
-		// Получаем пользователя по Telegram ID
-		// user, err := h.userUC.UserByTelegramID(context.Background(), msg.From.ID)
-		// if err != nil {
-		// 	h.logger.Error("SuccessPayment.Handler: UserByTelegramID", slog.String("error", err.Error()), slog.Int64("telegram_id", msg.From.ID))
-		// 	_, err = bot.SendMessage(&telego.SendMessageParams{
-		// 		ChatID: telego.ChatID{ID: msg.Chat.ID},
-		// 		Text:   use_message.GL.PaymentsUserNotFound(langCode),
-		// 	})
-		// 	if err != nil {
-		// 		h.logger.Error("SuccessPayment.Handler: SendMessage", slog.String("error", err.Error()), slog.Int64("telegram_id", msg.From.ID))
-		// 	}
-		// 	return
-		// }
-
 		// Получаем ID транзакции из InvoicePayload
 		txnID := entity.GetTransactionIDFromInvoicePayload(payment.InvoicePayload)
 		if txnID == "" {
@@ -68,7 +64,7 @@ func (h *SuccessPayment) Handler() telegohandler.Handler {
 		}
 
 		// Обновляем статус транзакции
-		err := h.userUC.CompleteTransaction(context.Background(), txnID)
+		err := h.userUC.CompleteDepositTransaction(update.Context(), txnID, payment.ProviderPaymentChargeID)
 		if err != nil {
 			h.logger.Error("SuccessPayment.Handler: CompleteTransaction", slog.String("error", err.Error()), slog.Int64("telegram_id", msg.From.ID))
 			_, err = bot.SendMessage(&telego.SendMessageParams{
@@ -89,6 +85,21 @@ func (h *SuccessPayment) Handler() telegohandler.Handler {
 		if err != nil {
 			h.logger.Error("SuccessPayment.Handler: SendMessage", slog.String("error", err.Error()), slog.Int64("telegram_id", msg.From.ID))
 		}
+
+		key := fmt.Sprintf("remove_after_success_payment:%d", msg.Chat.ID)
+		handler, loaded := h.cache.LoadAndDelete(key)
+		if !loaded {
+			h.logger.Error("SuccessPayment.Handler: Cache not found", slog.Int64("telegram_id", msg.From.ID), slog.String("key", key))
+			return
+		}
+
+		switch handler.(type) {
+		case telegohandler.Handler:
+			handler.(telegohandler.Handler)(bot, update)
+		default:
+			h.logger.Error("SuccessPayment.Handler: Not a handler", slog.Int64("telegram_id", msg.From.ID))
+		}
+
 	}
 }
 

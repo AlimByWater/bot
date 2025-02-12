@@ -21,6 +21,7 @@ import (
 	"elysium/internal/repository/redis"
 	"elysium/internal/usecase/auth"
 	"elysium/internal/usecase/demethra"
+	"elysium/internal/usecase/services"
 	"elysium/internal/usecase/users"
 	"log/slog"
 	"os"
@@ -70,7 +71,8 @@ func main() {
 	redisCache := redis.New(redisCfg)
 
 	/************ USECASE *************/
-	usersUC := users.New(redisCache, elysiumRepo)
+	servicesUC := services.New(redisCache, elysiumRepo)
+	usersUC := users.New(redisCache, elysiumRepo, servicesUC)
 	authUC := auth.NewModule(authCfg, redisCache, elysiumRepo, usersUC)
 	demethraUC := demethra.New(demethraCfg, elysiumRepo, redisCache, downloaderGrpc, usersUC)
 
@@ -113,6 +115,7 @@ func main() {
 		demethraUC,
 		authUC,
 		usersUC,
+		servicesUC,
 	)
 
 	// добавляем контроллеры

@@ -16,7 +16,6 @@ func TestSaveOrUpdateUserCache(t *testing.T) {
 		TelegramID:       123456789,
 		TelegramUsername: "testuser",
 		Firstname:        "Test",
-		Balance:          100,
 	}
 
 	err := redisModule.SaveOrUpdateUserCache(context.Background(), user)

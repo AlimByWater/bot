@@ -16,8 +16,8 @@ func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (
 		// Основной запрос для upsert пользователя
 		userQuery := `
             INSERT INTO users AS u 
-                (telegram_id, telegram_username, firstname, balance)
-            VALUES ($1, $2, $3, $4)
+                (telegram_id, telegram_username, firstname)
+            VALUES ($1, $2, $3)
             ON CONFLICT (telegram_id) DO UPDATE
                 SET 
                     telegram_username = COALESCE(NULLIF($2, ''), u.telegram_username),
@@ -29,7 +29,6 @@ func (r *Repository) CreateOrUpdateUser(ctx context.Context, user entity.User) (
 			user.TelegramID,
 			user.TelegramUsername,
 			user.Firstname,
-			user.Balance,
 		).Scan(&user.ID)
 		if err != nil {
 			return fmt.Errorf("failed to upsert user: %w", err)
@@ -98,7 +97,6 @@ func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, 
 			u.telegram_username, 
 			u.firstname, 
 			u.date_create,
-			u.balance,
 			p.private_generation,
 			p.use_by_channel_name,
 			p.vip
@@ -118,7 +116,6 @@ func (r *Repository) GetUserByID(ctx context.Context, userID int) (entity.User, 
 			&telegramUsername,
 			&firstname,
 			&user.DateCreate,
-			&user.Balance,
 			&privateGeneration,
 			&useByChannelName,
 			&vip,
@@ -170,7 +167,6 @@ func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID in
 			u.telegram_username, 
 			u.firstname, 
 			u.date_create,
-			u.balance,
 			p.private_generation,
 			p.use_by_channel_name,
 			p.vip
@@ -195,7 +191,6 @@ func (q *queries) getUserByTelegramUserID(ctx context.Context, telegramUserID in
 		&telegramUsername,
 		&firstname,
 		&user.DateCreate,
-		&user.Balance,
 		&privateGeneration,
 		&useByChannelName,
 		&vip,
@@ -272,8 +267,7 @@ func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int
              u.telegram_id,                                                                                                                                                                                        
              u.telegram_username,                                                                                                                                                                                  
              u.firstname,                                                                                                                                                                                          
-             u.date_create,                                                                                                                                                                                        
-             u.balance,                                                                                                                                                                                            
+             u.date_create,                                                                                                                                                                                                                                                                                                                                                                                 
              p.private_generation,                                                                                                                                                                                 
              p.use_by_channel_name,                                                                                                                                                                                
              p.vip,                                                                                                                                                                                                
@@ -292,7 +286,7 @@ func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int
          LEFT JOIN user_to_bots ub ON u.id = ub.user_id AND ub.active = true                                                                                                                                       
          LEFT JOIN bots b ON ub.bot_id = b.id AND b.enabled = true                                                                                                                                                 
          WHERE u.telegram_id IN (?)                                                                                                                                                                                
-         GROUP BY u.id, u.telegram_id, u.telegram_username, u.firstname, u.date_create, u.balance, p.private_generation, p.use_by_channel_name, p.vip                                                              
+         GROUP BY u.id, u.telegram_id, u.telegram_username, u.firstname, u.date_create, p.private_generation, p.use_by_channel_name, p.vip                                                              
      `, telegramIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %w", err)
@@ -323,7 +317,6 @@ func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int
 			&telegramUsername,
 			&firstname,
 			&user.DateCreate,
-			&user.Balance,
 			&privateGeneration,
 			&useByChannelName,
 			&vip,

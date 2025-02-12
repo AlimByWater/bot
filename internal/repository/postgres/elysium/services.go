@@ -98,6 +98,22 @@ func (r *Repository) ListServicesByBotID(ctx context.Context, botID int64) ([]en
 	return services, nil
 }
 
+func (r *Repository) GetAllServices(ctx context.Context) ([]entity.Service, error) {
+	var services []entity.Service
+	query := fmt.Sprintf(`
+		SELECT id, bot_id, name, description, price, is_active, created_at, updated_at
+		FROM %s 
+		ORDER BY bot_id, created_at DESC
+	`, servicesTable)
+
+	err := r.db.SelectContext(ctx, &services, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all services: %w", err)
+	}
+
+	return services, nil
+}
+
 func (r *Repository) DeleteServiceHard(ctx context.Context, serviceID int) error {
 	query := fmt.Sprintf(`
 		DELETE FROM %s 

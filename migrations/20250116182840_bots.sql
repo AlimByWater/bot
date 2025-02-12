@@ -35,25 +35,6 @@ CREATE TABLE IF NOT EXISTS services (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-
-
-CREATE TABLE IF NOT EXISTS user_transactions
-(
-    id SERIAL PRIMARY KEY NOT NULL,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    bot_id BIGINT REFERENCES bots(id) ON DELETE SET NULL,
-    service_id INT REFERENCES services(id) ON DELETE SET NULL,  -- Если есть услуги
-    type VARCHAR(20) NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'refund')),
-    amount INT NOT NULL CHECK (amount != 0),
-    balance_after INT NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('pending', 'completed', 'failed')),
-    description VARCHAR(255),
-    provider VARCHAR(255),
-    external_id VARCHAR(255),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS emoji_packs
 (
     id SERIAL PRIMARY KEY NOT NULL,
@@ -93,7 +74,6 @@ ON CONFLICT DO NOTHING;
 DROP TABLE IF EXISTS access_hashes;
 DROP TABLE IF EXISTS emoji_packs;
 DROP TABLE IF EXISTS user_to_bots;
-DROP TABLE IF EXISTS user_transactions;
 DROP TABLE IF EXISTS services;
 DROP TABLE IF EXISTS bots;
 -- +goose StatementEnd

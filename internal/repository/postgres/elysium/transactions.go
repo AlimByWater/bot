@@ -5,137 +5,7 @@ import (
 	"database/sql"
 	"elysium/internal/entity"
 	"fmt"
-	"strings"
 )
-
-func (r *Repository) CreatePendingTransactions(ctx context.Context, userID int, transactions []entity.PendingTransactionInput) ([]entity.UserTransaction, error) {
-	if len(transactions) == 0 {
-		return []entity.UserTransaction{}, nil
-	}
-
-	valueStrings := make([]string, 0, len(transactions))
-	valueArgs := make([]interface{}, 0, len(transactions)*3+1)
-	valueArgs = append(valueArgs, userID)
-
-	for i, txn := range transactions {
-		valueStrings = append(valueStrings, fmt.Sprintf("($1::integer, $%d::text, $%d::integer, $%d::text)", i*3+2, i*3+3, i*3+4))
-		valueArgs = append(valueArgs, txn.Type)
-		valueArgs = append(valueArgs, txn.Amount)
-		valueArgs = append(valueArgs, txn.Provider)
-	}
-
-	query := fmt.Sprintf(`
-		WITH locked_user AS (
-			SELECT id, balance
-			FROM users
-			WHERE id = $1
-			FOR UPDATE
-		),
-		ins AS (
-			INSERT INTO user_transactions (
-				user_id, type, amount, provider, status, balance_after
-			)
-			SELECT
-				v.user_id,
-				v.type,
-				v.amount,
-				v.provider,
-				'pending',
-				CASE v.type::text
-					WHEN 'deposit' THEN lu.balance + v.amount::integer
-					WHEN 'withdrawal' THEN lu.balance - v.amount::integer
-					WHEN 'refund' THEN lu.balance + v.amount::integer
-					ELSE lu.balance
-				END as balance_after
-			FROM (VALUES %s) as v(user_id, type, amount, provider)
-			CROSS JOIN locked_user lu
-			RETURNING id, amount, created_at, updated_at, balance_after
-		)
-		SELECT id, amount, created_at, updated_at, balance_after FROM ins
-	`, strings.Join(valueStrings, ","))
-
-	rows, err := r.db.QueryContext(ctx, query, valueArgs...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create pending transactions: %w", err)
-	}
-	defer rows.Close()
-
-	var result []entity.UserTransaction
-	for rows.Next() {
-		var txn entity.UserTransaction
-		var amount int
-		err := rows.Scan(&txn.ID, &amount, &txn.CreatedAt, &txn.UpdatedAt, &txn.BalanceAfter)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan transaction: %w", err)
-		}
-		txn.UserID = userID
-		txn.Status = entity.TransactionStatusPending
-		txn.Amount = amount
-		result = append(result, txn)
-	}
-
-	return result, nil
-}
-
-func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error) {
-	query := `                                                                                                                                                                                                    
-         WITH locked_user AS (                                                                                                                                                                                     
-              SELECT id, balance                                                                                                                                                                                    
-              FROM users                                                                                                                                                                                            
-              WHERE id = $1                                                                                                                                                                                         
-              FOR UPDATE                                                                                                                                                                                            
-          ),                                                                                                                                                                                                        
-          new_balance AS (                                                                                                                                                                                          
-              SELECT
-                  CASE
-                      WHEN $4 = 'pending' THEN balance
-                      WHEN $2 = 'deposit' THEN balance + $3
-                      WHEN $2 = 'withdrawal' THEN balance - $3
-                      WHEN $2 = 'refund' THEN balance + $3
-                  END AS balance
-              FROM locked_user
-          ),                                                                                                                                                                                                        
-          insert_txn AS (                                                                                                                                                                                           
-              INSERT INTO user_transactions (                                                                                                                                                                       
-                  user_id, type, amount, status, provider, external_id,                                                                                                                                             
-                  service_id, bot_id, balance_after, description                                                                                                                                                    
-              )                                                                                                                                                                                                     
-              SELECT                                                                                                                                                                                                
-                  $1, $2, $3, $4, $5, $6, $7, $8, nb.balance, $9                                                                                                                                                    
-              FROM new_balance nb                                                                                                                                                                                   
-              RETURNING                                                                                                                                                                                             
-                  id, created_at, updated_at, balance_after                                                                                                                                                         
-          )                                                                                                                                                                                                         
-          UPDATE users u                                                                                                                                                                                            
-          SET balance = ib.balance_after                                                                                                                                                                            
-          FROM insert_txn ib                                                                                                                                                                                        
-          WHERE u.id = $1                                                                                                                                                                                           
-          RETURNING ib.id, ib.created_at, ib.updated_at, ib.balance_after                                                                                                                                           
-      `
-
-	err := r.db.QueryRowContext(ctx, query,
-		txn.UserID,
-		txn.Type,
-		txn.Amount,
-		txn.Status,
-		txn.Provider,
-		txn.ExternalID,
-		txn.ServiceID,
-		txn.BotID,
-		txn.Description,
-	).Scan(
-		&txn.ID,
-		&txn.CreatedAt,
-		&txn.UpdatedAt,
-		&txn.BalanceAfter,
-	)
-
-	if err != nil {
-		return entity.UserTransaction{}, fmt.Errorf("transaction failed: %w", err)
-	}
-
-	return txn, nil
-}
 
 func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([]entity.UserTransaction, error) {
 	query := `
@@ -149,8 +19,8 @@ func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([
 			t.external_id,
 			t.service_id,
 			t.bot_id,
-			t.balance_after,
 			t.description,
+			t.promo_code_id,
 			t.created_at,
 			t.updated_at
 		FROM user_transactions t
@@ -170,7 +40,7 @@ func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([
 		var txn entity.UserTransaction
 		var serviceID sql.NullInt64
 		var botID sql.NullInt64
-		var provider, externalID sql.NullString
+		var provider, externalID, promoCodeID sql.NullString
 
 		err := rows.Scan(
 			&txn.ID,
@@ -182,8 +52,8 @@ func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([
 			&externalID,
 			&serviceID,
 			&botID,
-			&txn.BalanceAfter,
 			&txn.Description,
+			&promoCodeID,
 			&txn.CreatedAt,
 			&txn.UpdatedAt,
 		)
@@ -196,14 +66,18 @@ func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([
 			*txn.ServiceID = int(serviceID.Int64)
 		}
 		if botID.Valid {
-			txn.BotID = new(int64)
-			*txn.BotID = botID.Int64
+			txn.BotID = botID.Int64
 		}
 		if provider.Valid {
 			txn.Provider = provider.String
 		}
 		if externalID.Valid {
 			txn.ExternalID = externalID.String
+		}
+		if promoCodeID.Valid {
+			if promo, err := r.GetPromoCodeByID(ctx, promoCodeID.String); err == nil {
+				txn.PromoCode = &promo
+			}
 		}
 
 		transactions = append(transactions, txn)
@@ -224,8 +98,8 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 			t.external_id,
 			t.service_id,
 			t.bot_id,
-			t.balance_after,
 			t.description,
+			t.promo_code_id,
 			t.created_at,
 			t.updated_at
 		FROM user_transactions t
@@ -236,7 +110,7 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 	var txn entity.UserTransaction
 	var serviceID sql.NullInt64
 	var botID sql.NullInt64
-	var provider, externalID, description sql.NullString
+	var provider, externalID, description, promoCodeID sql.NullString
 
 	err := r.db.QueryRowContext(ctx, query, txnID).Scan(
 		&txn.ID,
@@ -248,8 +122,8 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 		&externalID,
 		&serviceID,
 		&botID,
-		&txn.BalanceAfter,
 		&description,
+		&promoCodeID,
 		&txn.CreatedAt,
 		&txn.UpdatedAt,
 	)
@@ -265,8 +139,7 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 		*txn.ServiceID = int(serviceID.Int64)
 	}
 	if botID.Valid {
-		txn.BotID = new(int64)
-		*txn.BotID = botID.Int64
+		txn.BotID = botID.Int64
 	}
 	if provider.Valid {
 		txn.Provider = provider.String
@@ -277,50 +150,231 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 	if description.Valid {
 		txn.Description = description.String
 	}
+	if promoCodeID.Valid {
+		if promo, err := r.GetPromoCodeByID(ctx, promoCodeID.String); err == nil {
+			txn.PromoCode = &promo
+		}
+	}
 
 	return txn, nil
 }
 
-func (r *Repository) UpdateTransactionStatus(ctx context.Context, txnID string, status string) error {
+func (r *Repository) ProcessTransaction(ctx context.Context, txnID string, userID int, balanceChange int, newStatus string) error {
+	return r.execTX(ctx, func(q *queries) error {
+		// Обновляем статус транзакции
+		if err := q.updateTransactionStatus(ctx, txnID, newStatus); err != nil {
+			return err
+		}
+		// Обновляем баланс пользователя
+		if err := q.updateUserBalance(ctx, userID, balanceChange); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (r *Repository) GetPromoCodeByID(ctx context.Context, codeID string) (entity.PromoCode, error) {
 	query := `
-		WITH locked_txn AS (
-			SELECT user_id, type, amount
-			FROM user_transactions
-			WHERE id = $1
-			FOR UPDATE
-		),
-		locked_user AS (
-			SELECT id, balance
-			FROM users
-			WHERE id = (SELECT user_id FROM locked_txn)
-			FOR UPDATE
-		),
-		new_balance AS (
-			SELECT
-				CASE
-					WHEN lt.type = 'deposit' THEN lu.balance + lt.amount
-					WHEN lt.type = 'withdrawal' THEN lu.balance - lt.amount
-					WHEN lt.type = 'refund' THEN lu.balance + lt.amount
-					ELSE lu.balance
-				END AS balance
-			FROM locked_txn lt
-			CROSS JOIN locked_user lu
-		)
-		UPDATE user_transactions ut
-		SET 
-			status = $2,
-			balance_after = nb.balance,
-			updated_at = NOW()
-		FROM new_balance nb
-		WHERE ut.id = $1
-		RETURNING ut.user_id
+		SELECT
+			code,
+			type,
+			user_id,
+			bonus_redeemer,
+			bonus_referrer,
+			usage_limit,
+			usage_count,
+			valid_from,
+			valid_to,
+			created_at,
+			updated_at
+		FROM promo_codes
+		WHERE code = $1
 	`
 
-	var userID int
-	err := r.db.QueryRowContext(ctx, query, txnID, status).Scan(&userID)
+	var promoCode entity.PromoCode
+	var userID sql.NullInt64
+	var validTo sql.NullTime
+
+	err := r.db.QueryRowContext(ctx, query, codeID).Scan(
+		&promoCode.Code,
+		&promoCode.Type,
+		&userID,
+		&promoCode.BonusRedeemer,
+		&promoCode.BonusReferrer,
+		&promoCode.UsageLimit,
+		&promoCode.UsageCount,
+		&promoCode.ValidFrom,
+		&validTo,
+		&promoCode.CreatedAt,
+		&promoCode.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return entity.PromoCode{}, fmt.Errorf("promo code not found: %w", err)
+		}
+		return entity.PromoCode{}, fmt.Errorf("failed to get promo code: %w", err)
+	}
+
+	if userID.Valid {
+		promoCode.UserID = new(int)
+		*promoCode.UserID = int(userID.Int64)
+	}
+
+	if validTo.Valid {
+		promoCode.ValidTo = &validTo.Time
+	}
+
+	return promoCode, nil
+}
+
+// CreateTransaction создает транзакцию, используя атомарные операции с БД.
+func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error) {
+	var resultTxn entity.UserTransaction
+
+	err := r.execTX(ctx, func(q *queries) error {
+		// 1. Блокируем баланс пользователя
+		_, err := q.lockUserBalance(ctx, txn.UserID)
+		if err != nil {
+			return fmt.Errorf("failed to lock user balance: %w", err)
+		}
+
+		// 2. Обновляем баланс пользователя если статус не pending
+		if txn.Status != entity.TransactionStatusPending {
+			var balanceChange int
+			switch txn.Type {
+			case entity.TransactionTypeDeposit,
+				entity.TransactionTypeRefund,
+				entity.TransactionTypePromoRedeem,
+				entity.TransactionTypeReferralBonus,
+				entity.TransactionTypePromoTransfer:
+				balanceChange = txn.Amount
+			case entity.TransactionTypeWithdrawal:
+				// проверяем на всякий случай
+				if txn.Amount <= 0 {
+					balanceChange = txn.Amount
+				} else {
+					balanceChange = -txn.Amount
+				}
+			}
+			if err := q.updateUserBalance(ctx, txn.UserID, balanceChange); err != nil {
+				return fmt.Errorf("failed to update user balance: %w", err)
+			}
+		}
+
+		// 3. Вставляем транзакцию
+		var err2 error
+		resultTxn, err2 = q.insertTransaction(ctx, txn)
+		if err2 != nil {
+			return fmt.Errorf("failed to insert transaction: %w", err2)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return entity.UserTransaction{}, fmt.Errorf("exec tx: %w", err)
+	}
+
+	return resultTxn, nil
+}
+
+// lockUserBalance блокирует строку пользователя в таблице users и возвращает его текущий баланс.
+func (q *queries) lockUserBalance(ctx context.Context, userID int) (int, error) {
+	query := `
+		SELECT balance
+		FROM users
+		WHERE id = $1
+		FOR UPDATE
+	`
+	var balance int
+	err := q.db.QueryRowContext(ctx, query, userID).Scan(&balance)
+	if err != nil {
+		return 0, fmt.Errorf("failed to lock user balance: %w", err)
+	}
+	return balance, nil
+}
+
+// insertTransaction вставляет новую транзакцию и возвращает созданную запись.
+func (q *queries) insertTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error) {
+	query := `
+		INSERT INTO user_transactions (
+			user_id, type, amount, status, provider, external_id,
+			service_id, bot_id, description, promo_code_id
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+			CASE WHEN $10 <> '' THEN (SELECT code FROM promo_codes WHERE code = $10) ELSE NULL END
+		)
+		RETURNING id, created_at, updated_at
+	`
+	promoCode := ""
+	if txn.PromoCode != nil {
+		promoCode = txn.PromoCode.Code
+	}
+	err := q.db.QueryRowContext(ctx, query,
+		txn.UserID,
+		txn.Type,
+		txn.Amount,
+		txn.Status,
+		txn.Provider,
+		txn.ExternalID,
+		txn.ServiceID,
+		txn.BotID,
+		txn.Description,
+		promoCode,
+	).Scan(&txn.ID, &txn.CreatedAt, &txn.UpdatedAt)
+	if err != nil {
+		return entity.UserTransaction{}, fmt.Errorf("failed to insert transaction: %w", err)
+	}
+	return txn, nil
+}
+
+func (q *queries) lockTransaction(ctx context.Context, txnID string) (userID int, txnType string, amount int, err error) {
+	query := "SELECT user_id, type, amount FROM user_transactions WHERE id = $1 FOR UPDATE"
+	err = q.db.QueryRowContext(ctx, query, txnID).Scan(&userID, &txnType, &amount)
+	if err != nil {
+		return 0, "", 0, fmt.Errorf("failed to lock transaction: %w", err)
+	}
+	return userID, txnType, amount, nil
+}
+
+func (q *queries) updateTransactionStatus(ctx context.Context, txnID string, status string) error {
+	_, err := q.db.ExecContext(ctx, "UPDATE user_transactions SET status = $1, updated_at = NOW() WHERE id = $2", status, txnID)
 	if err != nil {
 		return fmt.Errorf("failed to update transaction status: %w", err)
 	}
+	return nil
+}
 
+func (q *queries) updateUserBalance(ctx context.Context, userID int, balanceChange int) error {
+	var currentBalance int
+	err := q.db.QueryRowContext(ctx, "SELECT balance FROM user_accounts WHERE user_id = $1 FOR UPDATE", userID).Scan(&currentBalance)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			currentBalance = 0
+			// Создаем новую запись с балансом 0, если пользователь не найден
+			_, err2 := q.db.ExecContext(ctx, "INSERT INTO user_accounts (user_id, balance) VALUES ($1, $2)", userID, currentBalance)
+			if err2 != nil {
+				return fmt.Errorf("failed to create user account: %w", err2)
+			}
+		} else {
+			return fmt.Errorf("failed to lock user account: %w", err)
+		}
+	}
+	newBalance := currentBalance + balanceChange
+	if newBalance < 0 {
+		return fmt.Errorf("insufficient funds: balance would become negative")
+	}
+	_, err = q.db.ExecContext(ctx, "UPDATE user_accounts SET balance = $1 WHERE user_id = $2", newBalance, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user balance: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) UpdateTransactionExternalID(ctx context.Context, txnID string, externalID string) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE user_transactions SET external_id = $1 WHERE id = $2", externalID, txnID)
+	if err != nil {
+		return fmt.Errorf("failed to update transaction external ID: %w", err)
+	}
 	return nil
 }
