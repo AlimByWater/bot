@@ -29,6 +29,7 @@
   "EmojiGenGetStickerSetError": "Ошибка получения эмоджи-пака",
   "EmojiGenOpenFileError": "Ошибка открытия файла",
   "EmojiGenEmojiInPackLimitExceeded": "Будет превышено максимальное количество эмодзи в паке (%d из %d)",
+  "InitEmojiGenBotMsg": "Чтобы бот мог создать пак \nнажмите кнопку ниже\n↓↓↓↓↓↓↓↓",
   "ChoosePack": "Выберите пак",
   "ChoosenPack": "Выбранн пак\n",
   "UserDontHavePacks": "У вас нет паков",

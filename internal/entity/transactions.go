@@ -2,8 +2,9 @@ package entity
 
 import (
 	"fmt"
-	"github.com/valyala/fastjson"
 	"time"
+
+	"github.com/valyala/fastjson"
 )
 
 type UserTransaction struct {
@@ -14,7 +15,7 @@ type UserTransaction struct {
 	Status      string     `db:"status" json:"status"`
 	Provider    string     `db:"provider" json:"provider"`
 	ExternalID  string     `db:"external_id" json:"external_id"`
-	ServiceID   *int       `db:"service_id" json:"service_id,omitempty"`
+	ServiceID   int        `db:"service_id" json:"service_id,omitempty"`
 	BotID       int64      `db:"bot_id" json:"bot_id,omitempty"`
 	Description string     `db:"description" json:"description"`
 	PromoCode   *PromoCode `db:"promo_code" json:"promo_code,omitempty"`

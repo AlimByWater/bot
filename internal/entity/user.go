@@ -9,7 +9,7 @@ type User struct {
 	TelegramUsername string      `db:"telegram_username" json:"username"`
 	Firstname        string      `db:"firstname" json:"firstname"`
 	Permissions      Permissions `db:"permissions" json:"permissions"`
-	BotsActivated    []*Bot      `db:"bots_activated" json:"bots_activated"`
+	BotsActivated    []Bot       `db:"bots_activated" json:"bots_activated"`
 	DateCreate       time.Time   `db:"date_create" json:"date_create"`
 }
 

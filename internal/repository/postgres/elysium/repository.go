@@ -19,16 +19,24 @@ type (
 	}
 
 	queries struct {
-		db dbtx
+		db    dbtx
+		audit auditer
+	}
+
+	auditer interface {
+		SaveAudit(txnID string, payload string, version int, eventtime time.Time) (err error)
 	}
 
 	Repository struct {
-		db *sqlx.DB
+		db    *sqlx.DB
+		audit auditer
 	}
 )
 
-func NewRepository() *Repository {
-	return &Repository{}
+func NewRepository(audit auditer) *Repository {
+	return &Repository{
+		audit: audit,
+	}
 }
 
 // AddDb - добавляет в структуру пул соединений с СУБД
@@ -40,8 +48,11 @@ func (r *Repository) DB() *sqlx.DB {
 	return r.db
 }
 
-func newQueries(db dbtx) *queries {
-	return &queries{db: db}
+func newQueries(db dbtx, audit auditer) *queries {
+	return &queries{
+		db:    db,
+		audit: audit,
+	}
 }
 
 func (r *Repository) execTX(ctx context.Context, fn func(*queries) error) error {
@@ -53,7 +64,7 @@ func (r *Repository) execTX(ctx context.Context, fn func(*queries) error) error 
 		return err
 	}
 
-	q := newQueries(tx)
+	q := newQueries(tx, r.audit)
 	err = fn(q)
 	if err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {

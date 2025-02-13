@@ -190,8 +190,8 @@ func (r *Repository) UnsetUserToBot(ctx context.Context, userID int, botID int64
 	return nil
 }
 
-func (r *Repository) GetUserActiveBots(ctx context.Context, userID int) ([]*entity.Bot, error) {
-	var bots []*entity.Bot
+func (r *Repository) GetUserActiveBots(ctx context.Context, userID int) ([]entity.Bot, error) {
+	var bots []entity.Bot
 	err := r.execTX(ctx, func(q *queries) error {
 		var err error
 		bots, err = q.getUserActiveBots(ctx, userID)
@@ -208,8 +208,8 @@ func (r *Repository) GetUserActiveBots(ctx context.Context, userID int) ([]*enti
 	return bots, nil
 }
 
-func (q *queries) getUserActiveBots(ctx context.Context, userID int) ([]*entity.Bot, error) {
-	var bots []*entity.Bot
+func (q *queries) getUserActiveBots(ctx context.Context, userID int) ([]entity.Bot, error) {
+	var bots []entity.Bot
 	query := `
         SELECT id, name, token, purpose, test, enabled 
         FROM bots 
@@ -236,7 +236,7 @@ func (q *queries) getUserActiveBots(ctx context.Context, userID int) ([]*entity.
 		if err != nil {
 			return nil, fmt.Errorf("scan bot: %w", err)
 		}
-		bots = append(bots, &bot)
+		bots = append(bots, bot)
 	}
 
 	return bots, nil

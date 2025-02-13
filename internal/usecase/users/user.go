@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"reflect"
+	"testing"
 )
 
 func (m *Module) CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error) {
@@ -41,8 +41,7 @@ func (m *Module) CreateOrUpdateUser(ctx context.Context, user entity.User) (enti
 
 func usersEqual(u1, u2 entity.User) bool {
 	return u1.TelegramUsername == u2.TelegramUsername &&
-		u1.Firstname == u2.Firstname &&
-		reflect.DeepEqual(u1.Permissions, u2.Permissions)
+		u1.Firstname == u2.Firstname
 }
 
 func (m *Module) UserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error) {
@@ -86,6 +85,51 @@ func (m *Module) SetUserToBotActive(ctx context.Context, userID int, botID int64
 			slog.Int64("bot_id", botID),
 			slog.String("error", err.Error()))
 		return fmt.Errorf("failed to set user to bot active: %w", err)
+	}
+
+	user, err := m.cache.GetUserByID(ctx, userID)
+	if err != nil {
+		m.logger.Error("Failed to get user from cache",
+			slog.Int("user_id", userID),
+			slog.String("error", err.Error()))
+		return fmt.Errorf("failed to get user from cache: %w", err)
+	}
+
+	activeBots, err := m.repo.GetUserActiveBots(ctx, userID)
+	if err != nil {
+		m.logger.Error("Failed to get user active bots",
+			slog.Int("user_id", userID),
+			slog.String("error", err.Error()))
+		return fmt.Errorf("failed to get user active bots: %w", err)
+	}
+
+	user.BotsActivated = append(user.BotsActivated, activeBots...)
+
+	err = m.cache.SaveOrUpdateUserCache(ctx, user)
+	if err != nil {
+		m.logger.Error("Failed to save user to cache",
+			slog.Int("user_id", userID),
+			slog.String("error", err.Error()))
+		return fmt.Errorf("failed to save user to cache: %w", err)
+	}
+	return nil
+}
+
+func (m *Module) DeleteUserHard(ctx context.Context, t *testing.T, userID int) error {
+	t.Helper()
+	err := m.repo.DeleteUser(context.Background(), userID)
+	if err != nil {
+		m.logger.Error("Failed to delete user from cache",
+			slog.Int("user_id", userID),
+			slog.String("error", err.Error()))
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+	err = m.repo.DeleteUser(ctx, userID)
+	if err != nil {
+		m.logger.Error("Failed to delete user",
+			slog.Int("user_id", userID),
+			slog.String("error", err.Error()))
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	return nil
 }

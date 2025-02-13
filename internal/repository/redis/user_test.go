@@ -60,8 +60,8 @@ func TestRemoveUserCache(t *testing.T) {
 	defer teardown(t)
 
 	user := entity.User{
-		ID:               93456789,
-		TelegramID:       323456789,
+		ID:               758,
+		TelegramID:       123456789,
 		TelegramUsername: "testuser",
 	}
 	err := redisModule.SaveOrUpdateUserCache(context.Background(), user)

@@ -7,8 +7,11 @@ import (
 	"elysium/internal/application/env"
 	"elysium/internal/application/env/test"
 	"elysium/internal/application/logger"
+	"elysium/internal/repository/clickhouse"
+	"elysium/internal/repository/clickhouse/transaction_audit_insert"
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
+	"github.com/stretchr/testify/require"
 	"log/slog"
 	"os"
 	"testing"
@@ -19,7 +22,7 @@ var (
 	postgresql  *postgres.Module
 )
 
-func testConfig(t *testing.T) *config_module.Postgres {
+func testConfig(t *testing.T) (*config_module.Postgres, *config_module.Clickhouse) {
 	t.Helper()
 
 	t.Setenv("ENV", "test")
@@ -31,13 +34,14 @@ func testConfig(t *testing.T) *config_module.Postgres {
 	}
 
 	postgresCfg := config_module.NewPostgresConfig()
-	cfg := config.New(postgresCfg)
+	clickhouseCfg := config_module.NewClickhouseConfig()
+	cfg := config.New(postgresCfg, clickhouseCfg)
 	err = cfg.Init(storage)
 	if err != nil {
 		t.Fatalf("Failed to initialize config: %v", err)
 	}
 
-	return postgresCfg
+	return postgresCfg, clickhouseCfg
 }
 
 func TestMain(m *testing.M) {
@@ -53,11 +57,19 @@ func TestMain(m *testing.M) {
 		},
 	)
 
+	t := &testing.T{}
 	// Инициализация репозиториев
-	cfg := testConfig(&testing.T{})
-	elysiumRepo = elysium.NewRepository()
+	cfg, clickCfg := testConfig(t)
+
+	clickhouseRepo := clickhouse.New(clickCfg)
+	transactionsAuditInsert := transaction_audit_insert.NewInsertTable()
+	clickhouseRepo.AddInsertTable(transactionsAuditInsert)
+	err := clickhouseRepo.Init(ctx, log)
+	require.NoError(t, err)
+
+	elysiumRepo = elysium.NewRepository(transactionsAuditInsert)
 	postgresql = postgres.New(cfg, elysiumRepo)
-	err := postgresql.Init(ctx, log)
+	err = postgresql.Init(ctx, log)
 	if err != nil {
 		log.Error("Failed to initialize postgres repository", "error", err)
 		os.Exit(1)
@@ -68,6 +80,7 @@ func TestMain(m *testing.M) {
 
 	// Очистка после всех тестов
 	postgresql.Close()
+	clickhouseRepo.Close()
 
 	os.Exit(code)
 }
@@ -75,10 +88,27 @@ func TestMain(m *testing.M) {
 func setupTest(t *testing.T) func(t *testing.T) {
 	t.Helper()
 
-	cfg := testConfig(t)
-	elysiumRepo = elysium.NewRepository()
+	loggerModule := logger.New(
+		logger.Options{
+			AppName: "test-bot-manager",
+			Writer:  os.Stdout,
+			HandlerOptions: &slog.HandlerOptions{
+				Level: slog.LevelDebug,
+			},
+		},
+	)
+
+	cfg, clickCfg := testConfig(t)
+
+	clickhouseRepo := clickhouse.New(clickCfg)
+	transactionsAuditInsert := transaction_audit_insert.NewInsertTable()
+	clickhouseRepo.AddInsertTable(transactionsAuditInsert)
+	err := clickhouseRepo.Init(context.Background(), loggerModule)
+	require.NoError(t, err)
+
+	elysiumRepo = elysium.NewRepository(transactionsAuditInsert)
 	postgresql = postgres.New(cfg, elysiumRepo)
-	err := postgresql.Init(context.Background(), nil)
+	err = postgresql.Init(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize postgres repository: %v", err)
 
@@ -88,6 +118,10 @@ func setupTest(t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		if err := postgresql.Close(); err != nil {
 			t.Errorf("Failed to close postgresql connection: %v", err)
+		}
+
+		if err := clickhouseRepo.Close(); err != nil {
+			t.Errorf("Failed to close clickhouse connection: %v", err)
 		}
 	}
 }

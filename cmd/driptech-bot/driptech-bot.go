@@ -18,6 +18,7 @@ import (
 	"elysium/internal/controller/telegram/payments"
 	"elysium/internal/repository/clickhouse"
 	"elysium/internal/repository/clickhouse/bot_updates_insert"
+	"elysium/internal/repository/clickhouse/transaction_audit_insert"
 	"elysium/internal/repository/postgres"
 	"elysium/internal/repository/postgres/elysium"
 	"elysium/internal/repository/redis"
@@ -65,16 +66,17 @@ func main() {
 	/*********************************/
 	/********** REPOSITORY ***********/
 	/*********************************/
-	elysiumRepo := elysium.NewRepository()
+	transactionsAuditInsert := transaction_audit_insert.NewInsertTable(loggerModule)
+	botUpdatesInsert := bot_updates_insert.NewInsertTable()
+
+	clickhouseRepo := clickhouse.New(clickhouseCfg)
+	clickhouseRepo.AddInsertTable(botUpdatesInsert, transactionsAuditInsert)
+
+	elysiumRepo := elysium.NewRepository(transactionsAuditInsert)
 	//sc := soundcloud.New(soundcloudCfg)
 
 	postgresql := postgres.New(postgresCfg, elysiumRepo)
 	redisCache := redis.New(redisCfg)
-
-	clickhouseRepo := clickhouse.New(clickhouseCfg)
-
-	botUpdatesInsert := bot_updates_insert.NewInsertTable()
-	clickhouseRepo.AddInsertTable(botUpdatesInsert)
 
 	/*********************************/
 	/************ USECASE ************/
@@ -102,11 +104,11 @@ func main() {
 	myPacks := inline_keyboard.NewMyEmojiPacks(useCache, elysiumRepo)
 	emojiPackDelete := inline_keyboard.NewEmojiPackDelete(elysiumRepo)
 
-	emojiDM := group.NewEmojiDM(useCache, userUC, processingUC, elysiumRepo, userBot, progressManager)
-	emojiChat := group.NewEmojiChat(userUC, processingUC, elysiumRepo, userBot, progressManager)
+	emojiDM := group.NewEmojiDM(useCache, userUC, servicesUC, processingUC, elysiumRepo, userBot, progressManager)
+	emojiChat := group.NewEmojiChat(useCache, userUC, processingUC, elysiumRepo, userBot, progressManager)
 
 	saveUpdateMiddleware := middleware.NewSaveUpdate(botUpdatesInsert)
-	saveUserMiddleware := middleware.NewSaveUser(userUC)
+	saveUserMiddleware := middleware.NewSaveUser(useCache, userUC)
 
 	preCheckout := payments.NewPreCheckout(userUC)
 	successPayment := payments.NewSuccessPayment(userUC, useCache)
@@ -146,9 +148,9 @@ func main() {
 
 	// Добавление репозиториев и usecase
 	app.AddRepositories(
+		clickhouseRepo,
 		postgresql,
 		redisCache,
-		clickhouseRepo,
 	)
 	app.AddUsecases(
 		userUC,

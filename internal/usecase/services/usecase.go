@@ -16,6 +16,7 @@ type cacheUC interface {
 type repository interface {
 	ListServicesByBotID(ctx context.Context, botID int64) ([]entity.Service, error)
 	GetAllServices(ctx context.Context) ([]entity.Service, error)
+	InitServices(ctx context.Context, services []entity.Service) error
 }
 
 type Module struct {
@@ -33,14 +34,39 @@ func New(cache cacheUC, repo repository) *Module {
 	}
 }
 
+func (m *Module) initServices(ctx context.Context) ([]entity.Service, error) {
+	services := []entity.Service{
+		{
+			BotID:       -1007894673045,
+			Name:        "emoji-generator",
+			Description: "Генерация телеграм эмоджи-паков из любого контента",
+			Price:       1500, //15 рублей за один пак
+			IsActive:    true,
+		},
+	}
+
+	err := m.repo.InitServices(ctx, services)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init services: %w", err)
+	}
+
+	return services, nil
+}
+
 func (m *Module) Init(ctx context.Context, logger *slog.Logger) error {
 	m.ctx = ctx
 	m.logger = logger.With(slog.String("module", "📱 services"))
 
 	// Загружаем все сервисы из БД в кэш при инициализации
-	services, err := m.repo.GetAllServices(ctx)
+	//services, err := m.repo.GetAllServices(ctx)
+	//if err != nil {
+	//	return fmt.Errorf("failed to get all services: %w", err)
+	//}
+
+	// TODO после того как определюсь с набором сервисов эту функцию нужно убрать
+	services, err := m.initServices(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get all services: %w", err)
+		return fmt.Errorf("failed to init services: %w", err)
 	}
 
 	// Сохраняем каждый сервис в кэш

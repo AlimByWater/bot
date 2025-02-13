@@ -48,6 +48,7 @@ type language struct {
 	EmojiGenOpenFileError                 string
 	EmojiGenNoFiles                       string
 	EmojiGenEmojiInPackLimitExceeded      string
+	InitEmojiGenBotMsg                    string
 	ChoosePack                            string
 	ChoosenPack                           string
 	UserDontHavePacks                     string
@@ -281,4 +282,8 @@ func (m *Module) PaymentsTransactionError(langCode string) string {
 
 func (m *Module) PaymentsSuccess(langCode string) string {
 	return m.languages[m.langIdx(langCode)].PaymentsSuccess
+}
+
+func (m *Module) InitEmojiGenBotMsg(langCode string) string {
+	return m.languages[m.langIdx(langCode)].InitEmojiGenBotMsg
 }

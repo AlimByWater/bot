@@ -12,6 +12,10 @@ func (m *Module) GetTransactionByID(ctx context.Context, txnID string) (entity.U
 	return m.repo.GetTransactionByID(ctx, txnID)
 }
 
+func (m *Module) CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error) {
+	return m.repo.CreateTransaction(ctx, txn)
+}
+
 func (m *Module) GetUserByID(ctx context.Context, userID int) (entity.User, error) {
 	return m.repo.GetUserByID(ctx, userID)
 }
@@ -85,8 +89,25 @@ func (m *Module) ProcessTransaction(ctx context.Context, txnID string, newStatus
 		return fmt.Errorf("failed to get transaction: %w", err)
 	}
 
-	// Вычисляем изменение баланса
-	balanceChange := m.computeBalanceChange(txn.Type, txn.Amount)
+	var balanceChange int
+	if txn.Type == entity.TransactionTypeWithdrawal {
+		if newStatus == entity.TransactionStatusCompleted {
+			// Средства уже зарезервированы – оставляем без изменений.
+			balanceChange = 0
+		} else if newStatus == entity.TransactionStatusFailed || newStatus == entity.TransactionStatusExpired {
+			// Возвращаем зарезервированные средства.
+			balanceChange = txn.Amount
+		} else {
+			balanceChange = 0
+		}
+	} else {
+		// Кредитные транзакции (Deposit, Refund, и т.п.)
+		if newStatus == entity.TransactionStatusCompleted {
+			balanceChange = m.computeBalanceChange(txn.Type, txn.Amount)
+		} else {
+			balanceChange = 0
+		}
+	}
 
 	// Обрабатываем транзакцию
 	return m.repo.ProcessTransaction(ctx, txnID, txn.UserID, balanceChange, newStatus)

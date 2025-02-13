@@ -5,6 +5,7 @@ import (
 	"elysium/internal/entity"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"time"
 )
 
 var (
@@ -13,6 +14,7 @@ var (
 
 const userCachePrefix = "user:"
 const userCacheByTelegramIDPrefix = "user_telegram_id:"
+const defaultExpiredTime = time.Hour * 1
 
 func (m *Module) SaveOrUpdateUserCache(ctx context.Context, user entity.User) error {
 	if user.TelegramID == 0 || user.ID == 0 {
@@ -26,13 +28,13 @@ func (m *Module) SaveOrUpdateUserCache(ctx context.Context, user entity.User) er
 
 	key := fmt.Sprintf("%s%d", userCachePrefix, user.ID)
 
-	err = m.client.Set(ctx, key, data, 0).Err()
+	err = m.client.Set(ctx, key, data, defaultExpiredTime).Err()
 	if err != nil {
 		return fmt.Errorf("failed to save user to cache: %w", err)
 	}
 
 	key = fmt.Sprintf("%s%d", userCacheByTelegramIDPrefix, user.TelegramID)
-	err = m.client.Set(ctx, key, data, 0).Err()
+	err = m.client.Set(ctx, key, data, defaultExpiredTime).Err()
 	if err != nil {
 		return fmt.Errorf("failed to save user to cache: %w", err)
 	}
@@ -46,6 +48,28 @@ func (m *Module) GetUserByTelegramIDCache(ctx context.Context, telegramID int64)
 	}
 
 	key := fmt.Sprintf("%s%d", userCacheByTelegramIDPrefix, telegramID)
+	data, err := m.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return entity.User{}, entity.ErrUserNotFound
+	} else if err != nil {
+		return entity.User{}, fmt.Errorf("failed to get user from cache: %w", err)
+	}
+
+	var user entity.User
+	err = user.UnmarshalJSON([]byte(data))
+	if err != nil {
+		return entity.User{}, fmt.Errorf("failed to unmarshal user data: %w", err)
+	}
+
+	return user, nil
+}
+
+func (m *Module) GetUserByID(ctx context.Context, userID int) (entity.User, error) {
+	if userID == 0 {
+		return entity.User{}, ErrUserIDZero
+	}
+
+	key := fmt.Sprintf("%s%d", userCachePrefix, userID)
 	data, err := m.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return entity.User{}, entity.ErrUserNotFound

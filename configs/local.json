@@ -23,7 +23,7 @@
     "MaxOpenConns": 5,
     "Password": "OJocasd923sa0d3",
     "SaveTime": 10,
-    "Size": 10000,
+    "Size": 2,
     "User": "elysium"
   },
   "Redis": {

@@ -13,13 +13,17 @@ type cacheUC interface {
 	GetAllCurrentListeners(ctx context.Context) ([]entity.ListenerCache, error)
 	GetUserByTelegramIDCache(ctx context.Context, telegramID int64) (entity.User, error)
 	SaveOrUpdateUserCache(ctx context.Context, user entity.User) error
+	RemoveUserCache(ctx context.Context, userID int) error
+	GetUserByID(ctx context.Context, userID int) (entity.User, error)
 }
 
 type repository interface {
+	DeleteUser(ctx context.Context, userID int) error
 	CreateOrUpdateUser(ctx context.Context, user entity.User) (entity.User, error)
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (entity.User, error)
 	GetUserByID(ctx context.Context, userID int) (entity.User, error)
 	SetUserToBotActive(ctx context.Context, userID int, botID int64) error
+	GetUserActiveBots(ctx context.Context, userID int) ([]entity.Bot, error)
 
 	CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error)
 	GetTransactionByID(ctx context.Context, txnID string) (entity.UserTransaction, error)

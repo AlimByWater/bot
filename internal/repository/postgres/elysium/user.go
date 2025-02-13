@@ -340,7 +340,7 @@ func (r *Repository) GetUsersByTelegramID(ctx context.Context, telegramIDs []int
 		}
 
 		// Парсим JSON с ботами
-		var bots []*entity.Bot
+		var bots []entity.Bot
 		err = json.Unmarshal(botsJSON, &bots)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal bots: %w", err)

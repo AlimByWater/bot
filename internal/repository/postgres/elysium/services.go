@@ -31,6 +31,33 @@ func (r *Repository) CreateService(ctx context.Context, service entity.Service) 
 	return service, nil
 }
 
+func (r *Repository) InitServices(ctx context.Context, services []entity.Service) error {
+	for i, service := range services {
+		query := fmt.Sprintf(`
+			INSERT INTO %s (bot_id, name, description, price, is_active)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (bot_id, name) DO UPDATE SET
+				description = EXCLUDED.description,                                                                                                                                                                           
+				price = EXCLUDED.price,                                                                                                                                                                                       
+				is_active = EXCLUDED.is_active,                                                                                                                                                                               
+				updated_at = NOW()
+			RETURNING id
+		`, servicesTable)
+
+		err := r.db.QueryRowContext(ctx, query,
+			service.BotID,
+			service.Name,
+			service.Description,
+			service.Price,
+			service.IsActive,
+		).Scan(&services[i].ID)
+		if err != nil {
+			return fmt.Errorf("failed to init service: %w", err)
+		}
+	}
+	return nil
+}
+
 func (r *Repository) UpdateService(ctx context.Context, service entity.Service) (entity.Service, error) {
 	query := fmt.Sprintf(`
 		UPDATE %s SET

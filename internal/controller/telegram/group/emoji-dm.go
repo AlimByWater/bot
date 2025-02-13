@@ -10,12 +10,10 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/cavaliergopher/grab/v3"
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegohandler"
 
@@ -32,6 +30,11 @@ type EmojiDM struct {
 	userUC interface {
 		UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
 		CanGenerateEmojiPack(ctx context.Context, user entity.User, chatID int64) (bool, error)
+		CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error)
+		ProcessTransaction(ctx context.Context, txnID string, newStatus string) error
+	}
+	servicesUC interface {
+		GetService(ctx context.Context, botID int64, serviceName string) (entity.Service, error)
 	}
 	processor interface {
 		ParseArgs(arg string) (*entity.EmojiCommand, error)
@@ -64,6 +67,11 @@ func NewEmojiDM(
 	userUC interface {
 		UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
 		CanGenerateEmojiPack(ctx context.Context, user entity.User, chatID int64) (bool, error)
+		CreateTransaction(ctx context.Context, txn entity.UserTransaction) (entity.UserTransaction, error)
+		ProcessTransaction(ctx context.Context, txnID string, newStatus string) error
+	},
+	servicesUC interface {
+		GetService(ctx context.Context, botID int64, serviceName string) (entity.Service, error)
 	},
 	processor interface {
 		ParseArgs(arg string) (*entity.EmojiCommand, error)
@@ -78,10 +86,6 @@ func NewEmojiDM(
 		CreateNewEmojiPack(ctx context.Context, pack entity.EmojiPack) (entity.EmojiPack, error)
 		UpdateEmojiCount(ctx context.Context, pack int64, emojiCount int) error
 	},
-	//stickerQueue interface {
-	//	Acquire(packLink string) (bool, chan struct{})
-	//	Release(packLink string)
-	//},
 	userBot interface {
 		GetID() int64
 		SendMessageWithEmojisToBot(ctx context.Context, chatID string, width int, packLink string, emojis []entity.EmojiMeta) (int, error)
@@ -98,6 +102,7 @@ func NewEmojiDM(
 	return &EmojiDM{
 		cache:           cache,
 		userUC:          userUC,
+		servicesUC:      servicesUC,
 		processor:       processor,
 		repo:            repo,
 		uploader:        uploaderModule,
@@ -149,6 +154,43 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 			h.sendMessage(bot, update.Message.Chat.ID, update.Message.MessageID, use_message.GL.EmojiGenLimitExceeded(lang))
 			return
 		}
+
+		// Получение информации о сервисе и создание транзакции списания
+		service, err := h.servicesUC.GetService(ctx, botUser.ID, entity.ServiceTypeEmojiGenerator)
+		if err != nil {
+			h.logger.Error("Failed to get service info", slog.String("err", err.Error()))
+			h.sendMessage(bot, update.Message.Chat.ID, update.Message.MessageID, use_message.GL.Error(lang))
+			return
+		}
+
+		// Создание транзакции в статусе pending
+		txn := entity.UserTransaction{
+			UserID:      user.ID,
+			Type:        entity.TransactionTypeWithdrawal,
+			Amount:      service.Price,
+			Status:      entity.TransactionStatusPending,
+			ServiceID:   service.ID,
+			BotID:       botUser.ID,
+			Description: "Генерация эмодзи",
+		}
+
+		createdTxn, err := h.userUC.CreateTransaction(ctx, txn)
+		if err != nil {
+			h.logger.Error("Failed to create transaction", slog.String("err", err.Error()))
+			h.sendMessage(bot, update.Message.Chat.ID, update.Message.MessageID, use_message.GL.Error(lang))
+			return
+		}
+
+		// Отложенная обработка статуса транзакции
+		defer func() {
+			if err != nil { // если есть ошибка, помечаем транзакцию как failed
+				if pErr := h.userUC.ProcessTransaction(ctx, createdTxn.ID, entity.TransactionStatusFailed); pErr != nil {
+					h.logger.Error("Failed to process transaction as failed",
+						slog.String("err", pErr.Error()),
+						slog.String("txn_id", createdTxn.ID))
+				}
+			}
+		}()
 
 		// Парсинг аргументов
 		initialCommand := h.processor.ExtractCommandArgs(update.Message.Text, update.Message.Caption)
@@ -300,6 +342,15 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 			)
 		}
 
+		// Помечаем транзакцию как успешную
+		if err := h.userUC.ProcessTransaction(ctx, createdTxn.ID, entity.TransactionStatusCompleted); err != nil {
+			h.logger.Error("Failed to complete transaction",
+				slog.String("err", err.Error()),
+				slog.String("txn_id", createdTxn.ID))
+			return
+		}
+
+		// Финализация
 		selectedEmojis := emoji_gen_utils.GenerateEmojiMessage(emojiMetaRows, stickerSet, emojiArgs)
 		_, err = h.userBot.SendMessageWithEmojisToBot(ctx, strconv.FormatInt(botUser.ID, 10), emojiArgs.Width, emojiArgs.PackLink, selectedEmojis)
 		if err != nil {
@@ -318,7 +369,6 @@ func (h *EmojiDM) Handler() telegohandler.Handler {
 			}
 		}
 
-		// Финализация
 		h.sendMessage(bot, update.Message.Chat.ID, update.Message.MessageID,
 			use_message.GL.EmojiGenYourPack(lang, emojiArgs.PackLink))
 	}
@@ -388,7 +438,7 @@ func (h *EmojiDM) prepareWorkingEnvironment(ctx context.Context, bot *telego.Bot
 	}
 	args.WorkingDir = workingDir
 
-	fileName, err := h.downloadFile(ctx, bot, update.Message, args)
+	fileName, err := emoji_gen_utils.DownloadFile(bot, update.Message, args)
 	if err != nil {
 		return err
 	}
@@ -431,87 +481,6 @@ func (h *EmojiDM) handleExistingPack(ctx context.Context, args *entity.EmojiComm
 	}
 	args.SetTitle = ""
 	return pack, nil
-}
-
-func (h *EmojiDM) downloadFile(ctx context.Context, bot *telego.Bot, msg *telego.Message, args *entity.EmojiCommand) (string, error) {
-	var fileID string
-	var mimeType string
-
-	switch {
-	case msg.Video != nil:
-		fileID = msg.Video.FileID
-		mimeType = msg.Video.MimeType
-	case msg.Photo != nil && len(msg.Photo) > 0:
-		fileID = msg.Photo[len(msg.Photo)-1].FileID
-		mimeType = "image/jpeg"
-	case msg.Document != nil:
-		if slices.Contains(entity.AllowedMimeTypes, msg.Document.MimeType) {
-			fileID = msg.Document.FileID
-			mimeType = msg.Document.MimeType
-		} else {
-			return "", entity.ErrFileOfInvalidType
-		}
-	case msg.ReplyToMessage != nil:
-		switch {
-		case msg.ReplyToMessage.Video != nil:
-			fileID = msg.ReplyToMessage.Video.FileID
-			mimeType = msg.ReplyToMessage.Video.MimeType
-		case msg.ReplyToMessage.Photo != nil && len(msg.ReplyToMessage.Photo) > 0:
-			fileID = msg.ReplyToMessage.Photo[len(msg.ReplyToMessage.Photo)-1].FileID
-			mimeType = "image/jpeg"
-		case msg.ReplyToMessage.Document != nil:
-			fileID = msg.ReplyToMessage.Document.FileID
-			mimeType = msg.ReplyToMessage.Document.MimeType
-		case msg.ReplyToMessage.Sticker != nil && msg.ReplyToMessage.Sticker.Type == "regular":
-			fileID = msg.ReplyToMessage.Sticker.FileID
-			if msg.ReplyToMessage.Sticker.IsVideo {
-				mimeType = "video/webm"
-			} else if !msg.ReplyToMessage.Sticker.IsAnimated {
-				mimeType = "image/webp"
-			}
-		default:
-			return "", entity.ErrFileNotProvided
-		}
-	default:
-		return "", entity.ErrFileNotProvided
-	}
-
-	// Get file info from Telegram
-	file, err := bot.GetFile(&telego.GetFileParams{FileID: fileID})
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", entity.ErrGetFileFromTelegram, err)
-	}
-	args.File = file
-
-	// Determine file extension
-	var fileExt string
-	switch mimeType {
-	case "image/gif":
-		fileExt = ".gif"
-	case "image/jpeg":
-		fileExt = ".jpg"
-	case "image/png":
-		fileExt = ".png"
-	case "image/webp":
-		fileExt = ".webp"
-	case "video/mp4":
-		fileExt = ".mp4"
-	case "video/webm":
-		fileExt = ".webm"
-	case "video/mpeg":
-		fileExt = ".mpeg"
-	default:
-		return "", entity.ErrFileOfInvalidType
-	}
-
-	// Download file
-	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", bot.Token(), file.FilePath)
-	resp, err := grab.Get(args.WorkingDir+"/saved"+fileExt, fileURL)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", entity.ErrFileDownloadFailed, err)
-	}
-
-	return resp.Filename, nil
 }
 
 func (h *EmojiDM) sendMessage(bot *telego.Bot, chatID int64, replyTo int, msgToSend string) {

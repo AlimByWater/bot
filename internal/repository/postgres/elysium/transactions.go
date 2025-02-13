@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"elysium/internal/entity"
+	"encoding/json"
 	"fmt"
+	"time"
 )
 
 func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([]entity.UserTransaction, error) {
@@ -62,8 +64,7 @@ func (r *Repository) GetTransactionsByUserID(ctx context.Context, userID int) ([
 		}
 
 		if serviceID.Valid {
-			txn.ServiceID = new(int)
-			*txn.ServiceID = int(serviceID.Int64)
+			txn.ServiceID = int(serviceID.Int64)
 		}
 		if botID.Valid {
 			txn.BotID = botID.Int64
@@ -135,8 +136,7 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 	}
 
 	if serviceID.Valid {
-		txn.ServiceID = new(int)
-		*txn.ServiceID = int(serviceID.Int64)
+		txn.ServiceID = int(serviceID.Int64)
 	}
 	if botID.Valid {
 		txn.BotID = botID.Int64
@@ -160,7 +160,7 @@ func (r *Repository) GetTransactionByID(ctx context.Context, txnID string) (enti
 }
 
 func (r *Repository) ProcessTransaction(ctx context.Context, txnID string, userID int, balanceChange int, newStatus string) error {
-	return r.execTX(ctx, func(q *queries) error {
+	err := r.execTX(ctx, func(q *queries) error {
 		// Обновляем статус транзакции
 		if err := q.updateTransactionStatus(ctx, txnID, newStatus); err != nil {
 			return err
@@ -171,6 +171,32 @@ func (r *Repository) ProcessTransaction(ctx context.Context, txnID string, userI
 		}
 		return nil
 	})
+
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		// Получаем обновленную транзакцию для аудита
+		txn, err := r.GetTransactionByID(context.Background(), txnID)
+		if err != nil {
+			//r.logger.Error("failed to get transaction for audit log", "error", err.Error(), "txn_id", txnID)
+			return // не блокируем основную операцию
+		}
+
+		// Формируем JSON-событие аудита
+		auditEvent := entity.NewTransactionAuditEventFromTransaction(txn)
+		payload, errMarshal := json.Marshal(auditEvent)
+		if errMarshal != nil {
+			//r.logger.Error("failed to marshal audit event in ProcessTransaction", "error", errMarshal.Error())
+		} else {
+			if err := r.SaveAuditLog(txn.ID, string(payload), auditEvent.Version, time.Now()); err != nil {
+				fmt.Println("err", err.Error())
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (r *Repository) GetPromoCodeByID(ctx context.Context, codeID string) (entity.PromoCode, error) {
@@ -238,8 +264,23 @@ func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTrans
 			return fmt.Errorf("failed to lock user balance: %w", err)
 		}
 
-		// 2. Обновляем баланс пользователя если статус не pending
-		if txn.Status != entity.TransactionStatusPending {
+		// Обновляем баланс с резервированием, если транзакция в статусе Pending.
+		if txn.Status == entity.TransactionStatusPending {
+			// Если транзакция списывает деньги (например, Withdrawal) – резервируем, вычитая сумму.
+			if txn.Type == entity.TransactionTypeWithdrawal {
+				var balanceChange int
+				if txn.Amount > 0 {
+					balanceChange = -txn.Amount
+				} else {
+					balanceChange = txn.Amount
+				}
+				if err := q.updateUserBalance(ctx, txn.UserID, balanceChange); err != nil {
+					return fmt.Errorf("failed to reserve funds: %w", err)
+				}
+			}
+			// Для остальных типов в состоянии Pending баланс не меняем.
+		} else {
+			// Если транзакция создаётся не в статусе Pending – обновляем баланс стандартно.
 			var balanceChange int
 			switch txn.Type {
 			case entity.TransactionTypeDeposit,
@@ -249,11 +290,10 @@ func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTrans
 				entity.TransactionTypePromoTransfer:
 				balanceChange = txn.Amount
 			case entity.TransactionTypeWithdrawal:
-				// проверяем на всякий случай
-				if txn.Amount <= 0 {
-					balanceChange = txn.Amount
-				} else {
+				if txn.Amount > 0 {
 					balanceChange = -txn.Amount
+				} else {
+					balanceChange = txn.Amount
 				}
 			}
 			if err := q.updateUserBalance(ctx, txn.UserID, balanceChange); err != nil {
@@ -275,6 +315,20 @@ func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTrans
 		return entity.UserTransaction{}, fmt.Errorf("exec tx: %w", err)
 	}
 
+	// Сформировать JSON-событие аудита
+	go func() {
+		auditEvent := entity.NewTransactionAuditEventFromTransaction(resultTxn)
+		payload, errMarshal := json.Marshal(auditEvent)
+		if errMarshal != nil {
+			// Можно залогировать ошибку сериализации, но не блокировать основную операцию
+			return
+		} else {
+			if err := r.SaveAuditLog(resultTxn.ID, string(payload), auditEvent.Version, time.Now()); err != nil {
+				//r.logger.Error("failed to save transaction audit log", "error", err.Error(), "txn_id", resultTxn.ID)
+			}
+		}
+	}()
+
 	return resultTxn, nil
 }
 
@@ -282,13 +336,18 @@ func (r *Repository) CreateTransaction(ctx context.Context, txn entity.UserTrans
 func (q *queries) lockUserBalance(ctx context.Context, userID int) (int, error) {
 	query := `
 		SELECT balance
-		FROM users
-		WHERE id = $1
+		FROM user_accounts
+		WHERE user_id = $1
 		FOR UPDATE
 	`
 	var balance int
 	err := q.db.QueryRowContext(ctx, query, userID).Scan(&balance)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		_, err2 := q.db.ExecContext(ctx, "INSERT INTO user_accounts (user_id, balance) VALUES ($1, $2)", userID, 0)
+		if err2 != nil {
+			return 0, fmt.Errorf("failed to create user account: %w", err2)
+		}
+	} else if err != nil {
 		return 0, fmt.Errorf("failed to lock user balance: %w", err)
 	}
 	return balance, nil
@@ -310,6 +369,12 @@ func (q *queries) insertTransaction(ctx context.Context, txn entity.UserTransact
 	if txn.PromoCode != nil {
 		promoCode = txn.PromoCode.Code
 	}
+
+	serviceID := sql.NullInt64{}
+	if txn.ServiceID != 0 {
+		serviceID = sql.NullInt64{Int64: int64(txn.ServiceID), Valid: true}
+	}
+
 	err := q.db.QueryRowContext(ctx, query,
 		txn.UserID,
 		txn.Type,
@@ -317,7 +382,7 @@ func (q *queries) insertTransaction(ctx context.Context, txn entity.UserTransact
 		txn.Status,
 		txn.Provider,
 		txn.ExternalID,
-		txn.ServiceID,
+		serviceID,
 		txn.BotID,
 		txn.Description,
 		promoCode,
@@ -377,4 +442,12 @@ func (r *Repository) UpdateTransactionExternalID(ctx context.Context, txnID stri
 		return fmt.Errorf("failed to update transaction external ID: %w", err)
 	}
 	return nil
+}
+
+func (r *Repository) SaveAuditLog(txnID string, payload string, version int, eventtime time.Time) error {
+	return r.audit.SaveAudit(txnID, payload, version, eventtime)
+}
+
+func (q *queries) saveAuditLog(txnID string, payload string, version int, eventtime time.Time) error {
+	return q.audit.SaveAudit(txnID, payload, version, eventtime)
 }

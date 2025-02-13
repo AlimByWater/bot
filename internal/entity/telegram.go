@@ -16,3 +16,7 @@ type BotUpdate struct {
 	UpdateTime time.Time `json:"update_time" clickhouse:"update_time"`
 	Payload    string    `json:"payload" clickhouse:"payload"`
 }
+
+const (
+	CacheKeyInitMessageToDelete = "init_message_to_delete"
+)

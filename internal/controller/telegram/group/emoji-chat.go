@@ -5,6 +5,7 @@ import (
 	"elysium/internal/usecase/use_message"
 	"errors"
 	"fmt"
+	"github.com/mymmrac/telego/telegoutil"
 	"log/slog"
 	"reflect"
 	"slices"
@@ -16,7 +17,6 @@ import (
 	"elysium/internal/controller/telegram/emoji-gen-utils/uploader"
 	"elysium/internal/entity"
 
-	"github.com/cavaliergopher/grab/v3"
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegohandler"
 )
@@ -27,7 +27,10 @@ type EmojiChat struct {
 	logger   *slog.Logger
 	uploader *uploader.Module
 	queue    *queue.StickerQueue
-	userBot  interface {
+	cache    interface {
+		Store(key string, value any)
+	}
+	userBot interface {
 		SendMessage(ctx context.Context, chat string, params telego.SendMessageParams) error
 		SendMessageWithEmojis(ctx context.Context, chatID string, width int, packLink string, emojis []entity.EmojiMeta, replyTo int) error
 	}
@@ -56,6 +59,9 @@ type EmojiChat struct {
 
 // NewEmojiChat создаёт новый экземпляр EmojiChat.
 func NewEmojiChat(
+	cache interface {
+		Store(key string, value any)
+	},
 	userUC interface {
 		UserByTelegramID(ctx context.Context, userID int64) (entity.User, error)
 		CanGenerateEmojiPack(ctx context.Context, user entity.User, chatID int64) (bool, error)
@@ -85,6 +91,7 @@ func NewEmojiChat(
 	queueModule := queue.New()
 	uploaderModule := uploader.New()
 	return &EmojiChat{
+		cache:           cache,
 		userBot:         userBot,
 		uploader:        uploaderModule,
 		queue:           queueModule,
@@ -116,6 +123,10 @@ func (h *EmojiChat) Predicate() telegohandler.Predicate {
 			return false
 		}
 
+		if !strings.HasPrefix(update.Message.Text, "/"+h.Command()) {
+			return false
+		}
+
 		if slices.Contains(validChatIDs, update.Message.Chat.ID) {
 			if update.Message.MessageThreadID == 3 {
 				return true
@@ -136,17 +147,32 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 
 		lang := update.Message.From.LanguageCode
 
+		botUser, ok := update.Context().Value(entity.BotSelfCtxKey).(*telego.User)
+		if !ok || botUser == nil {
+			h.logger.Error("bot info not found in context")
+			return
+		}
+
 		// Получение пользователя
 		user, err := h.userUC.UserByTelegramID(ctx, update.Message.From.ID)
 		if err != nil {
 			h.sendErrorMessage(ctx, update.Message.Chat.ID, update.Message.MessageID, update.Message.MessageThreadID, use_message.GL.EmojiGenError(lang))
 			return
-		}
+		} else {
+			// Так как это хэндлер для чата - проверяем, было ли у пользователя хоть какое-то взаимодействие с ботом.
+			// это нужно потому что бот может создавать паки на имя пользователя только в том случае если у них было взаимодействие.
+			botActivated := false
+			for _, b := range user.BotsActivated {
+				if strings.Contains(fmt.Sprintf("%d", b.ID), fmt.Sprintf("%d", botUser.Username)) {
+					botActivated = true
+					break
+				}
+			}
 
-		botUser, ok := update.Context().Value(entity.BotSelfCtxKey).(*telego.User)
-		if !ok || botUser == nil {
-			h.logger.Error("bot info not found in context")
-			return
+			if !botActivated {
+				h.sendInitMessage(bot, update.Message.Chat.ID, update.Message.MessageID, update.Message.From, botUser.Username, lang)
+				return
+			}
 		}
 
 		// Проверка возможности генерации
@@ -233,6 +259,12 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 				if errors.Is(err, context.Canceled) {
 					return
 				}
+
+				if strings.Contains(err.Error(), "PEER_ID_INVALID") || strings.Contains(err.Error(), "user not found") || strings.Contains(err.Error(), "bot was blocked by the user") {
+					h.sendInitMessage(bot, update.Message.Chat.ID, update.Message.MessageID, update.Message.From, botUser.Username, lang)
+					return
+				}
+
 				if ue, ok := err.(*uploader.UploaderError); ok {
 					switch ue.Code {
 					case uploader.ErrCodeNoFiles:
@@ -309,6 +341,46 @@ func (h *EmojiChat) Handler() telegohandler.Handler {
 	}
 }
 
+func (h *EmojiChat) sendInitMessage(bot *telego.Bot, chatID int64, replyTo int, from *telego.User, botUsername string, langCode string) {
+	inlineKeyboard := telegoutil.InlineKeyboard([]telego.InlineKeyboardButton{
+		telegoutil.InlineKeyboardButton("/start").WithURL(fmt.Sprintf("t.me/%s?start=start", botUsername)),
+	})
+
+	params := &telego.SendMessageParams{
+		ChatID:      telego.ChatID{ID: chatID},
+		Text:        use_message.GL.InitEmojiGenBotMsg(langCode),
+		ReplyMarkup: inlineKeyboard,
+	}
+
+	if replyTo != 0 {
+		params.ReplyParameters = &telego.ReplyParameters{
+			MessageID: replyTo,
+			ChatID:    telego.ChatID{ID: chatID},
+		}
+	}
+
+	m, err := bot.SendMessage(params)
+	if err != nil {
+		h.logger.Error("Failed to send init message", slog.String("err", err.Error()))
+	}
+
+	h.cache.Store(fmt.Sprintf("%s:%d", entity.CacheKeyInitMessageToDelete, from.ID), h.deleteInitMessage(chatID, m.MessageID))
+}
+
+func (h *EmojiChat) deleteInitMessage(chatID int64, msgID int) telegohandler.Handler {
+	return func(bot *telego.Bot, update telego.Update) {
+		params := &telego.DeleteMessageParams{
+			ChatID:    telego.ChatID{ID: chatID},
+			MessageID: msgID,
+		}
+
+		err := bot.DeleteMessage(params)
+		if err != nil {
+			h.logger.Error("Failed to delete init message", slog.String("err", err.Error()))
+		}
+	}
+}
+
 func (h *EmojiChat) sendErrorMessage(ctx context.Context, chatID int64, replyTo int, threadID int, errMsg string) {
 	params := telego.SendMessageParams{
 		ChatID: telego.ChatID{ID: chatID},
@@ -359,7 +431,7 @@ func (h *EmojiChat) prepareWorkingEnvironment(ctx context.Context, bot *telego.B
 	}
 	args.WorkingDir = workingDir
 
-	fileName, err := h.downloadFile(ctx, bot, update.Message, args)
+	fileName, err := emoji_gen_utils.DownloadFile(bot, update.Message, args)
 	if err != nil {
 		return err
 	}
@@ -402,85 +474,4 @@ func (h *EmojiChat) handleExistingPack(ctx context.Context, args *entity.EmojiCo
 	}
 	args.SetTitle = ""
 	return pack, nil
-}
-
-func (h *EmojiChat) downloadFile(ctx context.Context, bot *telego.Bot, msg *telego.Message, args *entity.EmojiCommand) (string, error) {
-	var fileID string
-	var mimeType string
-
-	switch {
-	case msg.Video != nil:
-		fileID = msg.Video.FileID
-		mimeType = msg.Video.MimeType
-	case msg.Photo != nil && len(msg.Photo) > 0:
-		fileID = msg.Photo[len(msg.Photo)-1].FileID
-		mimeType = "image/jpeg"
-	case msg.Document != nil:
-		if slices.Contains(entity.AllowedMimeTypes, msg.Document.MimeType) {
-			fileID = msg.Document.FileID
-			mimeType = msg.Document.MimeType
-		} else {
-			return "", entity.ErrFileOfInvalidType
-		}
-	case msg.ReplyToMessage != nil:
-		switch {
-		case msg.ReplyToMessage.Video != nil:
-			fileID = msg.ReplyToMessage.Video.FileID
-			mimeType = msg.ReplyToMessage.Video.MimeType
-		case msg.ReplyToMessage.Photo != nil && len(msg.ReplyToMessage.Photo) > 0:
-			fileID = msg.ReplyToMessage.Photo[len(msg.ReplyToMessage.Photo)-1].FileID
-			mimeType = "image/jpeg"
-		case msg.ReplyToMessage.Document != nil:
-			fileID = msg.ReplyToMessage.Document.FileID
-			mimeType = msg.ReplyToMessage.Document.MimeType
-		case msg.ReplyToMessage.Sticker != nil && msg.ReplyToMessage.Sticker.Type == "regular":
-			fileID = msg.ReplyToMessage.Sticker.FileID
-			if msg.ReplyToMessage.Sticker.IsVideo {
-				mimeType = "video/webm"
-			} else if !msg.ReplyToMessage.Sticker.IsAnimated {
-				mimeType = "image/webp"
-			}
-		default:
-			return "", entity.ErrFileNotProvided
-		}
-	default:
-		return "", entity.ErrFileNotProvided
-	}
-
-	// Get file info from Telegram
-	file, err := bot.GetFile(&telego.GetFileParams{FileID: fileID})
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", entity.ErrGetFileFromTelegram, err)
-	}
-	args.File = file
-
-	// Determine file extension
-	var fileExt string
-	switch mimeType {
-	case "image/gif":
-		fileExt = ".gif"
-	case "image/jpeg":
-		fileExt = ".jpg"
-	case "image/png":
-		fileExt = ".png"
-	case "image/webp":
-		fileExt = ".webp"
-	case "video/mp4":
-		fileExt = ".mp4"
-	case "video/webm":
-		fileExt = ".webm"
-	case "video/mpeg":
-		fileExt = ".mpeg"
-	default:
-		return "", entity.ErrFileOfInvalidType
-	}
-
-	// Download file
-	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", bot.Token(), file.FilePath)
-	resp, err := grab.Get(args.WorkingDir+"/saved"+fileExt, fileURL)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", entity.ErrFileDownloadFailed, err)
-	}
-
-	return resp.Filename, nil
 }
